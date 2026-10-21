@@ -6,17 +6,15 @@ no attribution required, modification permitted.
 
 | File | Pexels ID | Subject |
 | --- | --- | --- |
-| `welcome-bonus.jpg` | 1884574 | Supporters in the stands, match in play |
-| `best-odds.jpg` | 32110586 | Players celebrating a goal |
+| `messi.jpg` | 3148452 | Match action in front of the stands |
+| `welcome-bonus.jpg` | 61135 | Stadium stands from pitch level, sunny day |
+| `best-odds.jpg` | 1171084 | Aerial view of a match in play |
+| `live-now.jpg` | 399187 | Floodlit pitch at night |
 | `top-matches.jpg` | 13069970 | Packed stadium crowd |
-| `live-now.jpg` | 9735384 | Football ground at night, aerial |
 | `booking-codes.jpg` | 16826134 | Ball on a floodlit pitch |
 
-Each is cropped to 344x352 — four times the 86x88 display size, so the cards
-stay sharp on a high-density phone screen.
+The four hero images are served at 1600px wide and object-cover cropped by
+the banner, so any landscape frame works.
 
-Replacing one is a straight file swap: keep the name, keep the aspect ratio.
-
-`messi.jpg` is not from Pexels: "Messi vs Nigeria 2018" by Кирилл Венедиктов
-(soccer.ru), via Wikimedia Commons, licensed CC BY-SA 3.0
-(https://commons.wikimedia.org/wiki/File:Messi_vs_Nigeria_2018.jpg).
+Replacing one is a straight file swap: keep the name, keep a landscape
+aspect ratio.
