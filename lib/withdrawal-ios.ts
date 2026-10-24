@@ -16,7 +16,7 @@ declare global {
 }
 
 const SCRIPT_SRC = "/withdrawal-notification/withdrawal-notification.js";
-const BRAND_NAME = "www.betcono.com";
+const BRAND_NAME = "www.betzone.com";
 
 function loadNotificationScript(): Promise<void> {
   if (typeof window === "undefined") return Promise.resolve();

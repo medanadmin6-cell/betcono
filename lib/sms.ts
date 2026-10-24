@@ -7,7 +7,7 @@ const ENDPOINT = "https://sms.arkesel.com/api/v2/sms/send";
 
 export async function sendSms(to: string, message: string): Promise<boolean> {
   const key = process.env.ARKESEL_API_KEY;
-  const sender = process.env.ARKESEL_SENDER_ID || "BetCono";
+  const sender = process.env.ARKESEL_SENDER_ID || "BetZone";
 
   if (!key) {
     console.warn("[sms] ARKESEL_API_KEY unset — skipping:", to, message);
@@ -32,9 +32,9 @@ export async function sendSms(to: string, message: string): Promise<boolean> {
 }
 
 export function paymentReceivedSms(amount: number, currency: string, balance: number) {
-  return `BetCono: Your deposit of ${currency} ${amount.toFixed(2)} was received. New balance: ${currency} ${balance.toFixed(2)}. Good luck!`;
+  return `BetZone: Your deposit of ${currency} ${amount.toFixed(2)} was received. New balance: ${currency} ${balance.toFixed(2)}. Good luck!`;
 }
 
 export function withdrawalRequestedSms(amount: number, currency: string) {
-  return `BetCono: Your withdrawal request of ${currency} ${amount.toFixed(2)} has been received and is being processed.`;
+  return `BetZone: Your withdrawal request of ${currency} ${amount.toFixed(2)} has been received and is being processed.`;
 }

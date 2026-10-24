@@ -54,7 +54,7 @@ export function PlacedReceipt({
     <div className="overflow-y-auto">
       {/* Brand strip */}
       <div className="relative flex items-center justify-center border-b border-[var(--line)] px-4 py-2">
-        <Image src="/logo.svg" alt="BetCono" width={96} height={21} />
+        <Image src="/logo.svg" alt="BetZone" width={96} height={21} />
         <button
           onClick={onDone}
           aria-label="Close"

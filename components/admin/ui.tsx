@@ -112,7 +112,7 @@ export function Badge({
   const styles = {
     win: { background: "var(--win)", color: "#052e16" },
     lose: { background: "var(--lose)", color: "#450a12" },
-    pending: { background: "var(--pending)", color: "#4b0f14" },
+    pending: { background: "var(--pending)", color: "#071a33" },
     muted: { background: "var(--surface-2)", color: "var(--text-muted)" },
   }[tone];
 

@@ -234,7 +234,7 @@ async function loadCustom(): Promise<FeedMatch[]> {
       id: `cm_${row.id}`,
       source: "custom",
       league: row.league,
-      country: "BetCono",
+      country: "BetZone",
       sport: row.sport ?? "football",
       homeTeam: row.home_team,
       awayTeam: row.away_team,

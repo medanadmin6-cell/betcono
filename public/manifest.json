@@ -1,12 +1,12 @@
 {
-  "name": "BetCono",
-  "short_name": "BetCono",
+  "name": "BetZone",
+  "short_name": "BetZone",
   "description": "Sports betting with mobile money deposits",
   "lang": "en",
   "display": "standalone",
   "orientation": "portrait",
   "start_url": "/",
-  "theme_color": "#4b0f14",
+  "theme_color": "#071a33",
   "background_color": "#ffffff",
   "icons": [{ "src": "/logo-mark.svg", "type": "image/svg+xml", "sizes": "any" }],
   "shortcuts": [

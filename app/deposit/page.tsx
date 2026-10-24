@@ -256,7 +256,7 @@ export default function DepositPage() {
 
             <SwitchRow
               icon={
-                <span className="flex h-7 w-9 items-center justify-center rounded-lg bg-[var(--pending)] text-[9px] font-black text-[#4b0f14]">
+                <span className="flex h-7 w-9 items-center justify-center rounded-lg bg-[var(--pending)] text-[9px] font-black text-[#071a33]">
                   {chosenNetwork.split(" ")[0].slice(0, 4).toUpperCase()}
                 </span>
               }
@@ -322,7 +322,7 @@ export default function DepositPage() {
                 {settings.deposit_account_number ?? "—"}
               </p>
               <p className="text-[12px] text-[var(--text-muted)]">
-                {settings.deposit_account_name ?? "BetCono"} ·{" "}
+                {settings.deposit_account_name ?? "BetZone"} ·{" "}
                 {settings.deposit_account_network ?? "Mobile Money"}
               </p>
             </div>

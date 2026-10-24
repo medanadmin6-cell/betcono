@@ -152,7 +152,7 @@ function CheckoutInner() {
     <div className="flex min-h-screen items-center justify-center bg-[var(--bg)] px-4 py-12">
       <div className="w-full max-w-sm rounded-2xl bg-[var(--bg-elevated)] p-6 ring-1 ring-[var(--line)] shadow-xl">
         <div className="flex justify-center">
-          <Image src="/logo.svg" alt="BetCono" width={120} height={26} priority />
+          <Image src="/logo.svg" alt="BetZone" width={120} height={26} priority />
         </div>
 
         {stage === "loading" && (
@@ -285,7 +285,7 @@ function CheckoutInner() {
         )}
 
         <p className="mt-6 text-center text-[10px] text-[var(--text-faint)]">
-          Secured by AlphaPay · BetCono never sees your PIN
+          Secured by AlphaPay · BetZone never sees your PIN
         </p>
       </div>
     </div>

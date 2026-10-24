@@ -37,7 +37,7 @@ export async function GET() {
 
   try {
     const res = await fetch(FEED_URL, {
-      headers: { "User-Agent": "BetCono/1.0" },
+      headers: { "User-Agent": "BetZone/1.0" },
       next: { revalidate: 900 },
     });
     const xml = await res.text();

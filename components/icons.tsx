@@ -34,7 +34,7 @@ export function BallIcon({ size = 24, strokeWidth = 1.7, className }: IconProps)
   );
 }
 
-/** BetCono mark, for the home tab in the bottom navigation. */
+/** BetZone mark, for the home tab in the bottom navigation. */
 export function BrandIcon({ size = 20, className }: { size?: number; className?: string }) {
   return (
     <svg

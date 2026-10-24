@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Page } from "@/components/Shell";
 import { TIERS } from "@/lib/tiers";
 
-export const metadata = { title: "How to play | BetCono" };
+export const metadata = { title: "How to play | BetZone" };
 
 /**
  * The help page the account screen links into.

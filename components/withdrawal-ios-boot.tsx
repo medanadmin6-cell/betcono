@@ -17,7 +17,7 @@ export function WithdrawalIosBoot() {
     const boot = () => {
       window.WithdrawalNotification?.configure({
         assetBase: "/withdrawal-notification/assets",
-        brandName: "www.betcono.com",
+        brandName: "www.betzone.com",
       });
     };
     if (window.WithdrawalNotification) {

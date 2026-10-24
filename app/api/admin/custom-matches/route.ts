@@ -36,7 +36,7 @@ export async function POST(req: Request) {
       away_team: body.away_team,
       home_crest: body.home_crest ?? null,
       away_crest: body.away_crest ?? null,
-      league: body.league || "BetCono Special",
+      league: body.league || "BetZone Special",
       sport: body.sport || "football",
       kickoff: body.kickoff,
       odds_home: Number(body.odds_home) || 2.0,

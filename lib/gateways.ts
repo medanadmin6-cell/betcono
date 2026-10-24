@@ -81,7 +81,7 @@ const korapay: GatewayAdapter = {
           amount,
           currency,
           redirect_url: redirectUrl,
-          customer: { email: email || "player@betcono.com", name },
+          customer: { email: email || "player@betzone.com", name },
           notification_url: `${redirectUrl.split("/account")[0]}/api/deposits/korapay/webhook`,
         }),
       });
@@ -192,7 +192,7 @@ const paystack: GatewayAdapter = {
           // Paystack takes the minor unit.
           amount: Math.round(amount * 100),
           currency,
-          email: email || `${phone}@betcono.com`,
+          email: email || `${phone}@betzone.com`,
           callback_url: redirectUrl,
         }),
       });

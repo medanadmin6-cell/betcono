@@ -52,10 +52,10 @@ export function RecommendedCodes() {
 
   const share = async (card: Card) => {
     const url = `${window.location.origin}/load-code?code=${card.code}`;
-    const text = `BetCono code ${card.code} — ${card.legs.length} picks at ${oddsLabel(card.totalOdds)} odds. ${url}`;
+    const text = `BetZone code ${card.code} — ${card.legs.length} picks at ${oddsLabel(card.totalOdds)} odds. ${url}`;
     try {
       if (navigator.share) {
-        await navigator.share({ title: `BetCono code ${card.code}`, text, url });
+        await navigator.share({ title: `BetZone code ${card.code}`, text, url });
         return;
       }
     } catch {

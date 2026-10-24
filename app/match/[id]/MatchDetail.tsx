@@ -87,7 +87,7 @@ export function MatchDetail({ id }: { id: string }) {
               <div className="px-2.5 pt-2.5 md:px-5">
                 <span
                   className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-black text-white"
-                  style={{ background: "linear-gradient(90deg,#d42b23,#f4c430)" }}
+                  style={{ background: "linear-gradient(90deg,#d42b23,#9ff611)" }}
                 >
                   <Flame size={12} strokeWidth={2.4} />
                   Top Odds
@@ -277,7 +277,7 @@ function Watermark() {
   return (
     <div className="flex items-center gap-3 px-6 py-4 md:px-5">
       <span className="h-px flex-1 bg-[var(--line)]" />
-      <span className="text-[10px] font-bold tracking-[0.3em] text-[var(--text-faint)]">BetCono</span>
+      <span className="text-[10px] font-bold tracking-[0.3em] text-[var(--text-faint)]">BetZone</span>
       <span className="h-px flex-1 bg-[var(--line)]" />
     </div>
   );

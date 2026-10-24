@@ -120,7 +120,7 @@ export function AccountDrawer({ open, onClose }: { open: boolean; onClose: () =>
           {/* Balances */}
           <div
             className="mx-4 rounded-2xl p-4"
-            style={{ background: "linear-gradient(150deg,#7a1b22,#4b0f14)" }}
+            style={{ background: "linear-gradient(150deg,#0a6b40,#071a33)" }}
           >
             <div className="flex items-start justify-between">
               <div>

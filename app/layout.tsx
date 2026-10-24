@@ -21,15 +21,15 @@ const bebas = Bebas_Neue({
 });
 
 export const metadata: Metadata = {
-  title: "BetCono — Live Sports Betting & Casino",
+  title: "BetZone — Live Sports Betting & Casino",
   description:
-    "Bet live on football and more, and cash out fast with mobile money on BetCono. Live odds, instant betslips, booking codes and daily boosted odds.",
+    "Bet live on football and more, and cash out fast with mobile money on BetZone. Live odds, instant betslips, booking codes and daily boosted odds.",
   manifest: "/manifest.json",
   icons: { icon: "/logo-mark.svg", apple: "/logo-mark.svg" },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#4b0f14",
+  themeColor: "#071a33",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,

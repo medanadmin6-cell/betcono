@@ -1,12 +1,14 @@
 @import "tailwindcss";
 
 /* ---------------------------------------------------------------------------
-   EN CONO token layer.
+   BetZone token layer.
 
-   White is the default ground, and the brand's deep maroon (#7a1b22) is the
-   ACTION color — buttons, selected odds, active states — with cream type on
-   it. Brand red (#d42b23) marks live and losing states, green (#00bb7f)
-   wins. Chrome (header, bottom nav) is deep maroon in BOTH themes.
+   White is the default ground, and the brand's deep green (#0a6b40) is the
+   ACTION color — buttons, selected odds, active states — with near-white
+   type on it. Signal red (#d42b23) marks live and losing states, and a
+   brighter green (#00bb7f) marks wins. Chrome (header, bottom nav) is deep
+   navy in BOTH themes, with electric lime (#9ff611) for the wordmark,
+   balance, and the active tab.
 
    The one thing worth knowing when editing: an odds button is DARKER than the
    row it sits in, not lighter. That inversion is what makes the board read.
@@ -14,89 +16,89 @@
 :root {
   /* Grounds */
   --bg: #ffffff;          /* the page */
-  --bg-elevated: #faf6f0; /* cards, panels, footer */
-  --chrome: #4b0f14;      /* header, bottom nav — maroon in BOTH themes */
-  --surface: #f1e7dc;     /* league bars, chips, section heads — flips */
-  --surface-2: #f1e7dc;   /* chips, inputs */
-  --surface-3: #f7f0e7;
-  --line: #eadfd2;        /* dividers */
-  --odds-btn: #f3ebe1;    /* darker than the card it sits in */
-  --disabled: #d9cec1;
+  --bg-elevated: #f4f8fb; /* cards, panels, footer */
+  --chrome: #071a33;      /* header, bottom nav — navy in BOTH themes */
+  --surface: #e6eef5;     /* league bars, chips, section heads — flips */
+  --surface-2: #e6eef5;   /* chips, inputs */
+  --surface-3: #f1f6fa;
+  --line: #d4e1ec;        /* dividers */
+  --odds-btn: #e1ebf3;    /* darker than the card it sits in */
+  --disabled: #c3d2e0;
 
   /* Brand */
-  --accent: #7a1b22;      /* en cono maroon — the button color */
-  --accent-ink: #f7eedd;  /* cream type on maroon */
-  --accent-dim: #5e141b;
-  --focus: #a8323c;
+  --accent: #0a6b40;      /* BetZone green — the button color */
+  --accent-ink: #f4fff8;  /* near-white type on green */
+  --accent-dim: #085433;
+  --focus: #12875a;
 
   /* Type */
-  --text: #4b0f14;        /* maroon ink */
-  --text-muted: #8a5a52;
-  --text-faint: #b08d84;
-  --text-bright: #35090d;
+  --text: #071a33;        /* navy ink */
+  --text-muted: #4c667f;
+  --text-faint: #8aa0b4;
+  --text-bright: #03111f;
 
   /* State */
   --win: #00bb7f;
   --win-2: #04976b;
-  --lose: #d42b23;        /* en cono red */
-  --lose-bg: #f6d9d2;
-  --pending: #f4c430;
+  --lose: #d42b23;
+  --lose-bg: #fde8e6;
+  --pending: #f5a524;
   --live: #d42b23;
   --hint: #34b4ff;
   --hint-bg: #dbeafe;
 
   /* Form fields sit on the white ground like the rest of the app; the
-     maroon accent marks focus. */
+     green accent marks focus. */
   --field: #ffffff;
-  --field-line: #d9cec1;
+  --field-line: #c3d2e0;
   --input: #ffffff;
-  --input-ink: #4b0f14;
-  --input-placeholder: #b08d84;
+  --input-ink: #071a33;
+  --input-placeholder: #8aa0b4;
 
   /* The glow hung on the betslip button and active nav. */
-  --glow: rgba(122, 27, 34, 0.35);
-  --glow-sm: rgba(122, 27, 34, 0.6);
+  --glow: rgba(10, 107, 64, 0.35);
+  --glow-sm: rgba(10, 107, 64, 0.6);
 
   --radius: 12px;
 }
 
 /* ---------------------------------------------------------------------------
-   The dark theme, toggled from the header: the brand's maroon variant. The
-   grounds become the deep maroons and the accent flips to the golden yellow
-   (maroon buttons would vanish on maroon grounds). Anything that sits ON the
-   chrome uses literal white/yellow classes, never the flipping tokens.
+   The dark theme, toggled from the header: navy grounds with a lime accent.
+   Green buttons would sink into the navy, so the accent flips to electric
+   lime. Anything that sits ON the chrome uses literal white/lime classes,
+   never the flipping tokens.
    ------------------------------------------------------------------------- */
 :root[data-theme="dark"] {
-  --bg: #4b0f14;
-  --bg-elevated: #5e141b;
-  --surface: #35090d;
-  --surface-2: #6f1a21;
-  --surface-3: #561218;
-  --line: #6f1a21;
-  --odds-btn: #400c11;
-  --disabled: #7a2a30;
+  --bg: #071a33;
+  --bg-elevated: #0c2748;
+  --surface: #04101f;
+  --surface-2: #16345c;
+  --surface-3: #0e2c50;
+  --line: #1a3d68;
+  --odds-btn: #061628;
+  --disabled: #2a4d73;
 
-  --accent: #f4c430;     /* en cono yellow */
-  --accent-ink: #4b0f14; /* maroon type on yellow */
-  --accent-dim: #d4a017;
-  --focus: #f7d35e;
+  --accent: #9ff611;     /* BetZone lime */
+  --accent-ink: #071a33; /* navy type on lime */
+  --accent-dim: #7ad40a;
+  --focus: #c6ff6a;
 
-  --text: #f7eedd;       /* en cono cream */
-  --text-muted: #d8bdb4;
-  --text-faint: #a97e7c;
+  --text: #f4f8fc;
+  --text-muted: #b7c9dc;
+  --text-faint: #8aa3bb;
   --text-bright: #ffffff;
 
-  --lose-bg: #2e0406;
+  --lose-bg: #3a1216;
   --hint-bg: #123a63;
 
-  --field: #5e141b;
-  --field-line: #7a2a30;
-  --input: #400c11;
-  --input-ink: #f7eedd;
-  --input-placeholder: #b08b86;
+  --field: #0c2748;
+  --field-line: #2a4d73;
+  --input: #061628;
+  --input-ink: #f4f8fc;
+  --input-placeholder: #8aa3bb;
 
-  --glow: rgba(244, 196, 48, 0.4);
-  --glow-sm: rgba(244, 196, 48, 0.7);
+  --glow: rgba(159, 246, 17, 0.4);
+  --glow-sm: rgba(159, 246, 17, 0.7);
 }
 
 @theme inline {
@@ -160,8 +162,8 @@ body {
   display: none;
 }
 
-/* The accent glow hung on the betslip button and active nav. Maroon on the
-   white theme, yellow on the dark one. */
+/* The accent glow hung on the betslip button and active nav. Green on the
+   white theme, lime on the dark one. */
 .glow-gold {
   box-shadow: 0 0 20px var(--glow);
 }
