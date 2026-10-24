@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   Calendar,
+  Gamepad2,
   ShieldCheck,
   Ticket,
   Grid3x3,
@@ -118,14 +119,13 @@ export function HeroBanner() {
 const TILES: {
   label: string;
   href: string;
-  Icon?: LucideIcon | typeof BallIcon;
-  art?: string;
+  Icon: LucideIcon | typeof BallIcon;
   hot?: boolean;
   active?: boolean;
 }[] = [
   { label: "Soccer", href: "/", Icon: BallIcon, active: true },
   { label: "Today", href: "/?tab=today", Icon: Calendar },
-  { label: "Games", href: "/games", art: "/image.png", hot: true },
+  { label: "Games", href: "/games", Icon: Gamepad2, hot: true },
   { label: "Verify Bet", href: "/my-bets", Icon: ShieldCheck },
   { label: "Booking Codes", href: "/load-code", Icon: Ticket },
   { label: "All", href: "/az", Icon: Grid3x3 },
@@ -133,25 +133,21 @@ const TILES: {
 
 export function SportTiles() {
   return (
-    <div className="scroll-x mx-2.5 flex gap-2 pb-1 md:mx-5">
-      {TILES.map(({ label, href, Icon, art, hot, active }) => (
+    <div className="scroll-x mx-2.5 flex items-center gap-1.5 pb-1 md:mx-5">
+      {TILES.map(({ label, href, Icon, hot, active }) => (
         <Link
           key={label}
           href={href}
-          className={`relative flex h-16 w-16 shrink-0 flex-col items-center justify-center gap-1 overflow-hidden rounded-2xl border transition-colors md:h-20 md:w-20 ${
+          className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl px-3.5 py-2 text-[12px] font-bold transition-all ${
             active
-              ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)] shadow-lg shadow-lime-400/15"
-              : "border-[var(--line)] bg-[var(--bg-elevated)] text-[var(--text-muted)]"
+              ? "bg-[var(--accent)] text-[var(--accent-ink)] shadow-md shadow-lime-400/20"
+              : "border border-[var(--line)] bg-[var(--bg-elevated)] text-[var(--text-muted)]"
           }`}
         >
-          {art ? (
-            <Image src={art} alt="" width={40} height={40} className="h-9 w-9 object-contain md:h-11 md:w-11" />
-          ) : (
-            Icon && <Icon size={22} strokeWidth={1.7} />
-          )}
-          <span className="px-0.5 text-center text-[10px] font-bold leading-tight">{label}</span>
+          <Icon size={15} strokeWidth={2.2} />
+          {label}
           {hot && (
-            <span className="absolute right-1 top-1 animate-pulse rounded-full bg-[var(--lose)] px-1 text-[8px] font-black text-white">
+            <span className="rounded-full bg-[var(--lose)] px-1.5 py-px text-[8px] font-black text-white">
               HOT
             </span>
           )}
