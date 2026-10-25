@@ -36,7 +36,7 @@ interface Banner {
 
 const BANNERS: Banner[] = [
   {
-    art: "/promo/messi.jpg",
+    art: "/promo/stadium.jpg",
     kicker: "Football every day",
     title: "Back greatness — bet on the world's game",
     href: "/?tab=today",
