@@ -71,19 +71,19 @@ export function RecommendedCodes() {
   };
 
   return (
-    <section className="mx-2.5 mt-3 md:mx-5">
+    <section>
       <div className="mb-2 flex items-center gap-2">
         <Sparkles size={15} className="text-[var(--accent)]" />
-        <h2 className="text-[14px] font-black uppercase tracking-tight text-[var(--text-bright)]">
-          AI Football Codes
+        <h2 className="text-[15px] font-black tracking-tight text-[var(--text-bright)]">
+          Ready-made codes
         </h2>
       </div>
 
-      <div className="scroll-x flex gap-2.5 pb-1">
+      <div className="scroll-x -mx-2.5 flex gap-2 px-2.5 pb-1 md:mx-0 md:px-0">
         {cards.map((card) => (
           <article
             key={card.code}
-            className="w-[300px] shrink-0 overflow-hidden rounded-xl bg-[var(--bg-elevated)] ring-1 ring-[var(--line)] sm:w-[340px]"
+            className="w-[290px] shrink-0 overflow-hidden rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] sm:w-[320px]"
           >
             <header className="flex items-center justify-between bg-[var(--surface)] px-3 py-2">
               <span className="text-[14px] font-black tracking-[0.08em] text-[var(--text-bright)]">
@@ -119,19 +119,19 @@ export function RecommendedCodes() {
               )}
             </ul>
 
-            <footer className="flex">
+            <footer className="flex gap-2 px-3 pb-3">
               <button
                 onClick={() => void share(card)}
-                className="flex flex-1 items-center justify-center gap-1.5 py-2.5 text-[12px] font-bold text-[var(--text-muted)]"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded border border-[var(--line)] py-2 text-[12px] font-bold text-[var(--text-muted)]"
               >
                 <Share2 size={14} />
-                {copied === card.code ? "Copied!" : "Share"}
+                {copied === card.code ? "Copied" : "Share"}
               </button>
               <button
                 onClick={() => load(card.legs)}
-                className="flex-1 bg-[var(--accent)] py-2.5 text-[12px] font-black text-[var(--accent-ink)]"
+                className="flex-1 rounded bg-[var(--accent)] py-2 text-[12px] font-black text-[var(--accent-ink)]"
               >
-                Add to Betslip
+                Add to slip
               </button>
             </footer>
           </article>

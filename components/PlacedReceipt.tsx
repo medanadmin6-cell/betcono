@@ -66,11 +66,12 @@ export function PlacedReceipt({
 
       {/* Code */}
       <div className="px-4 pt-3 text-center">
-        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">
-          {lines > 1 ? "First Ticket Code" : "Ticket Code"}
+        <p className="text-[12px] font-bold text-[var(--win)]">Bet placed</p>
+        <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+          {lines > 1 ? "First ticket code" : "Ticket code"}
         </p>
-        <button onClick={copy} className="mx-auto mt-1 flex items-center gap-2">
-          <span className="text-[26px] font-black tracking-[0.1em] text-[var(--pending)]">
+        <button onClick={copy} className="mx-auto mt-1 flex items-center gap-2" aria-label="Copy ticket code">
+          <span className="text-[26px] font-black tracking-[0.1em] text-[var(--text-bright)]">
             {ticket.code}
           </span>
           {copied ? (
@@ -82,11 +83,11 @@ export function PlacedReceipt({
       </div>
 
       {/* Total odds panel */}
-      <div className="mx-4 mt-2.5 flex items-center justify-between rounded-lg px-3 py-2 ring-1 ring-[var(--line)]">
+      <div className="mx-4 mt-2.5 flex items-center justify-between rounded bg-[var(--surface)] px-3 py-2">
         <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">
-          Total Odds
+          Total odds
         </span>
-        <span className="text-[20px] font-black leading-none text-[var(--text-bright)]">
+        <span className="text-[20px] font-black leading-none tabular-nums text-[var(--text-bright)]">
           {Number(ticket.total_odds).toFixed(2)}
         </span>
       </div>
@@ -111,24 +112,24 @@ export function PlacedReceipt({
         {legs.map((l) => (
           <li key={`${l.matchId}-${l.outcome}`} className="px-4 py-2">
             <div className="flex items-center gap-2">
-              <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--live)]" />
+              <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--accent)]" />
               <span className="flex-1 truncate text-[13px] font-bold text-[var(--text-bright)]">
                 {l.outcomeLabel}
               </span>
-              <span className="text-[13px] font-black text-[var(--pending)]">
+              <span className="text-[13px] font-black tabular-nums text-[var(--text-bright)]">
                 {l.odds.toFixed(2)}
               </span>
             </div>
-            <p className="truncate text-[12px] text-[var(--text)]">
-              {l.homeTeam} vs {l.awayTeam}
+            <p className="truncate pl-4 text-[12px] text-[var(--text)]">
+              {l.homeTeam} v {l.awayTeam}
             </p>
-            <p className="text-[11px] text-[var(--text-faint)]">{l.marketLabel}</p>
+            <p className="pl-4 text-[11px] text-[var(--text-faint)]">{l.marketLabel}</p>
           </li>
         ))}
       </ul>
 
       {oddsChanged.length > 0 && (
-        <p className="mx-4 mt-2 rounded-lg bg-[var(--surface)] px-3 py-1.5 text-[10px] leading-snug text-[var(--text-muted)]">
+        <p className="mx-4 mt-2 rounded bg-[var(--surface)] px-3 py-1.5 text-[11px] leading-snug text-[var(--text-muted)]">
           {oddsChanged.length === 1
             ? `The price on ${oddsChanged[0].match} was ${oddsChanged[0].to.toFixed(2)} at placement, not ${oddsChanged[0].from.toFixed(2)}. Your ticket shows what you were given.`
             : `${oddsChanged.length} prices differed from the board at placement. Your ticket shows what you were given.`}
@@ -138,13 +139,13 @@ export function PlacedReceipt({
       <div className="flex gap-2 p-3">
         <Link
           href={`/my-bets/${ticket.code}`}
-          className="flex-1 rounded-lg py-2.5 text-center text-[13px] font-bold ring-1 ring-[var(--line)]"
+          className="flex-1 rounded border border-[var(--line)] py-2.5 text-center text-[13px] font-bold text-[var(--text)]"
         >
           View ticket
         </Link>
         <button
           onClick={onDone}
-          className="flex-1 rounded-lg bg-[var(--accent)] py-2.5 text-[13px] font-black text-[var(--accent-ink)]"
+          className="flex-1 rounded bg-[var(--accent)] py-2.5 text-[13px] font-black text-[var(--accent-ink)]"
         >
           Keep betting
         </button>
@@ -176,7 +177,7 @@ function Row({
     <div className="flex items-center justify-between">
       <dt className="text-[var(--text-muted)]">{label}</dt>
       <dd
-        className="font-bold"
+        className="font-bold tabular-nums"
         style={{ color: win ? "var(--win)" : accent ? "var(--accent)" : "var(--text-bright)" }}
       >
         {value}

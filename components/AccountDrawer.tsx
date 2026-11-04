@@ -105,31 +105,28 @@ export function AccountDrawer({ open, onClose }: { open: boolean; onClose: () =>
     <div className="fixed inset-0 z-50" role="dialog" aria-label="Account">
       <button className="absolute inset-0 bg-black/70" onClick={onClose} aria-label="Close" />
 
-      <div className="relative mx-auto max-w-2xl px-3 pt-3">
-        <div className="overflow-hidden rounded-2xl bg-[var(--bg-elevated)] shadow-2xl">
-          <header className="flex items-center gap-3 px-4 py-3.5">
-            <Image src="/avatar.svg" alt="" width={36} height={36} className="h-9 w-9 rounded-full" />
-            <span className="flex-1 truncate text-[17px] font-bold text-[var(--text-bright)]">
+      <div className="relative ml-auto max-w-sm px-3 pt-[60px] md:pr-5">
+        <div className="overflow-hidden rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] shadow-md">
+          <header className="flex items-center gap-3 px-4 py-3">
+            <Image src="/avatar.svg" alt="" width={32} height={32} className="h-8 w-8 rounded-full" />
+            <span className="flex-1 truncate text-[15px] font-black text-[var(--text-bright)]">
               {player.name}
             </span>
-            <button onClick={onClose} aria-label="Close" className="text-[var(--text-bright)]">
-              <X size={22} strokeWidth={2} />
+            <button onClick={onClose} aria-label="Close" className="rounded p-1 text-[var(--text-muted)] hover:text-[var(--text)]">
+              <X size={19} strokeWidth={2} />
             </button>
           </header>
 
-          {/* Balances */}
-          <div
-            className="mx-4 rounded-2xl p-4"
-            style={{ background: "linear-gradient(150deg,#0a6b40,#071a33)" }}
-          >
+          {/* Balances, on the navy chrome in both themes. */}
+          <div className="mx-3 rounded-md bg-[#071a33] p-4 text-white">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-[12px] text-[var(--text-muted)]">Total Balance</p>
-                <p className="mt-0.5 text-[26px] font-black leading-none text-[var(--text-bright)]">
+                <p className="text-[11px] font-semibold text-white/60">Total balance</p>
+                <p className="mt-1 text-[24px] font-black leading-none tabular-nums text-[#9ff611]">
                   {hidden ? "••••••" : formatMoney(balance, player.currency)}
                 </p>
               </div>
-              <div className="flex items-center gap-3 text-[var(--text-muted)]">
+              <div className="flex items-center gap-3 text-white/60">
                 <button onClick={() => setHidden((h) => !h)} aria-label={hidden ? "Show" : "Hide"}>
                   {hidden ? <EyeOff size={17} strokeWidth={1.8} /> : <Eye size={17} strokeWidth={1.8} />}
                 </button>
@@ -144,8 +141,8 @@ export function AccountDrawer({ open, onClose }: { open: boolean; onClose: () =>
             </div>
 
             <div className="mt-3">
-              <p className="text-[12px] text-[var(--text-muted)]">Withdrawable Balance</p>
-              <p className="mt-0.5 text-[20px] font-black leading-none text-[var(--text-bright)]">
+              <p className="text-[11px] font-semibold text-white/60">Withdrawable</p>
+              <p className="mt-1 text-[18px] font-black leading-none tabular-nums text-white">
                 {hidden ? "••••" : formatMoney(withdrawable, player.currency)}
               </p>
               {summary && !summary.unlocked && (
@@ -153,22 +150,22 @@ export function AccountDrawer({ open, onClose }: { open: boolean; onClose: () =>
               )}
             </div>
 
-            <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className="mt-3 grid grid-cols-2 gap-3 border-t border-white/10 pt-3">
               <Stat
-                icon={<Ticket size={15} strokeWidth={2} className="text-[var(--hint)]" />}
-                label="Open Bets"
+                icon={<Ticket size={14} strokeWidth={2} className="text-white/60" />}
+                label="Open bets"
                 value={summary?.openBets ?? 0}
               />
               <Stat
-                icon={<Award size={15} strokeWidth={2} className="text-[var(--pending)]" />}
-                label="Tier Points"
+                icon={<Award size={14} strokeWidth={2} className="text-white/60" />}
+                label="Tier points"
                 value={summary?.tierPoints ?? 0}
               />
             </div>
           </div>
 
           {/* Actions */}
-          <div className="grid grid-cols-4 gap-1 px-2 py-5">
+          <div className="grid grid-cols-4 gap-1 px-2 py-4">
             <Action href="/deposit" icon={<Wallet size={22} strokeWidth={1.6} />} label="Deposit" onGo={onClose} />
             <Action href="/withdraw" icon={<Banknote size={22} strokeWidth={1.6} />} label="Withdraw" onGo={onClose} />
             <Action
@@ -180,7 +177,7 @@ export function AccountDrawer({ open, onClose }: { open: boolean; onClose: () =>
             <Action
               href="/how-to-play#support"
               icon={<Headphones size={22} strokeWidth={1.6} />}
-              label="24/7 Service"
+              label="Support"
               onGo={onClose}
             />
           </div>
@@ -193,8 +190,8 @@ export function AccountDrawer({ open, onClose }: { open: boolean; onClose: () =>
 function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
   return (
     <div>
-      <p className="text-[11px] text-[var(--text-muted)]">{label}</p>
-      <p className="mt-1 flex items-center gap-1.5 text-[17px] font-black text-[var(--text-bright)]">
+      <p className="text-[11px] text-white/60">{label}</p>
+      <p className="mt-1 flex items-center gap-1.5 text-[15px] font-black tabular-nums text-white">
         {icon}
         {value.toLocaleString()}
       </p>
@@ -217,10 +214,10 @@ function Action({
     <Link
       href={href}
       onClick={onGo}
-      className="flex flex-col items-center gap-2 py-1 text-[var(--text-bright)]"
+      className="flex flex-col items-center gap-1.5 rounded py-2 text-[var(--accent)] hover:bg-[var(--surface)]"
     >
       {icon}
-      <span className="text-center text-[11px] leading-tight text-[var(--text)]">{label}</span>
+      <span className="text-center text-[11px] font-bold leading-tight text-[var(--text)]">{label}</span>
     </Link>
   );
 }

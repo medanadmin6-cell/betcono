@@ -120,8 +120,8 @@ export function WalletPanel({
   // --- Not opened yet ------------------------------------------------------
   if (!wallet) {
     return (
-      <section className="overflow-hidden rounded-lg bg-[var(--bg-elevated)]">
-        <h2 className="flex items-center gap-2 border-b border-[var(--line)] px-4 py-2.5 text-[13px] font-bold">
+      <section className="overflow-hidden rounded-md border border-[var(--line)] bg-[var(--bg-elevated)]">
+        <h2 className="flex items-center gap-2 border-b border-[var(--line)] px-4 py-2.5 text-[13px] font-black text-[var(--text-bright)]">
           <Wallet size={15} strokeWidth={1.9} className="text-[var(--accent)]" />
           Your betting account
         </h2>
@@ -140,7 +140,7 @@ export function WalletPanel({
               <select
                 value={countryCode}
                 onChange={(e) => setCountryCode(e.target.value)}
-                className="w-full rounded-lg bg-[var(--surface-2)] px-3 py-2 text-[13px] outline-none focus:ring-1 focus:ring-[var(--accent)]"
+                className="w-full rounded border border-[var(--field-line)] bg-[var(--input)] px-3 py-2 text-[13px] text-[var(--input-ink)] outline-none placeholder:text-[var(--input-placeholder)] focus:border-[var(--accent)]"
               >
                 {allCountries().map((c) => (
                   <option key={c.code} value={c.code}>
@@ -158,7 +158,7 @@ export function WalletPanel({
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder={`0${"X".repeat(getCountry(countryCode).phoneDigits)}`}
-                className="w-full rounded-lg bg-[var(--surface-2)] px-3 py-2 text-[13px] outline-none focus:ring-1 focus:ring-[var(--accent)]"
+                className="w-full rounded border border-[var(--field-line)] bg-[var(--input)] px-3 py-2 text-[13px] text-[var(--input-ink)] outline-none placeholder:text-[var(--input-placeholder)] focus:border-[var(--accent)]"
               />
             </label>
           </div>
@@ -168,7 +168,7 @@ export function WalletPanel({
           <button
             onClick={open}
             disabled={busy || !phone.trim()}
-            className="rounded-lg bg-[var(--accent)] px-4 py-2.5 text-[13px] font-black text-[var(--accent-ink)] disabled:opacity-50"
+            className="rounded bg-[var(--accent)] px-4 py-2.5 text-[13px] font-black text-[var(--accent-ink)] disabled:opacity-50"
           >
             {busy ? "Opening…" : "Open betting account"}
           </button>
@@ -181,8 +181,8 @@ export function WalletPanel({
   const remaining = Math.max(0, dailyLimit - creditedToday);
 
   return (
-    <section className="overflow-hidden rounded-lg bg-[var(--bg-elevated)]">
-      <h2 className="flex items-center gap-2 border-b border-[var(--line)] px-4 py-2.5 text-[13px] font-bold">
+    <section className="overflow-hidden rounded-md border border-[var(--line)] bg-[var(--bg-elevated)]">
+      <h2 className="flex items-center gap-2 border-b border-[var(--line)] px-4 py-2.5 text-[13px] font-black text-[var(--text-bright)]">
         <Wallet size={15} strokeWidth={1.9} className="text-[var(--accent)]" />
         Your betting account
       </h2>
@@ -191,7 +191,7 @@ export function WalletPanel({
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="text-[11px] uppercase tracking-wide text-[var(--text-faint)]">Wallet balance</p>
-            <p className="text-[26px] font-black leading-none text-[var(--accent)]">
+            <p className="text-[26px] font-black leading-none tabular-nums text-[var(--accent)]">
               {formatMoney(Number(wallet.balance), wallet.currency)}
             </p>
             <p className="mt-1 text-[11px] text-[var(--text-faint)]">
@@ -201,14 +201,14 @@ export function WalletPanel({
 
           <button
             onClick={play}
-            className="flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-4 py-2.5 text-[13px] font-black text-[var(--accent-ink)]"
+            className="flex items-center gap-1.5 rounded bg-[var(--accent)] px-4 py-2.5 text-[13px] font-black text-[var(--accent-ink)]"
           >
             Go to the board
             <ArrowRight size={15} strokeWidth={2.4} />
           </button>
         </div>
 
-        <form onSubmit={credit} className="space-y-2 rounded-lg bg-[var(--surface)] p-3">
+        <form onSubmit={credit} className="space-y-2 rounded bg-[var(--surface)] p-3">
           <p className="text-[12px] font-semibold">Credit your wallet</p>
           <div className="flex flex-wrap items-center gap-2">
             <input
@@ -218,12 +218,12 @@ export function WalletPanel({
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder={`Amount in ${wallet.currency}`}
-              className="w-40 rounded-lg bg-[var(--surface-2)] px-3 py-2 text-[13px] outline-none focus:ring-1 focus:ring-[var(--accent)]"
+              className="w-40 rounded border border-[var(--field-line)] bg-[var(--input)] px-3 py-2 text-[13px] text-[var(--input-ink)] outline-none placeholder:text-[var(--input-placeholder)] focus:border-[var(--accent)]"
             />
             <button
               type="submit"
               disabled={busy || !approved || !amount}
-              className="rounded-lg bg-[var(--accent-dim)] px-4 py-2 text-[13px] font-black text-[var(--accent-ink)] disabled:opacity-40"
+              className="rounded bg-[var(--accent)] px-4 py-2 text-[13px] font-black text-[var(--accent-ink)] disabled:opacity-40"
             >
               {busy ? "Working…" : "Credit"}
             </button>

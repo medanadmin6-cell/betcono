@@ -20,20 +20,23 @@ export function RequestSubmitted({ title, message }: { title: string; message: s
     >
       <div className="absolute inset-0 bg-black/70" />
 
-      <div className="relative w-full max-w-[320px] overflow-hidden rounded-2xl bg-[var(--bg-elevated)] text-center">
+      <div className="relative w-full max-w-[320px] overflow-hidden rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] text-center">
         <div className="px-5 pb-5 pt-6">
           <h2 className="text-[17px] font-black text-[var(--text-bright)]">{title}</h2>
           <p className="mt-2 text-[13px] leading-relaxed text-[var(--text-muted)]">{message}</p>
         </div>
 
-        <div className="grid grid-cols-2 border-t border-[var(--line)]">
+        <div className="grid grid-cols-2 gap-2 px-4 pb-4">
           <Link
             href="/transactions"
-            className="border-r border-[var(--line)] py-3.5 text-[15px] font-bold text-[var(--accent)]"
+            className="rounded-[5px] border border-[var(--line)] py-2.5 text-[14px] font-bold text-[var(--text)]"
           >
             Transactions
           </Link>
-          <Link href="/" className="py-3.5 text-[15px] font-bold text-[var(--accent)]">
+          <Link
+            href="/"
+            className="rounded-[5px] bg-[var(--accent)] py-2.5 text-[14px] font-black text-[var(--accent-ink)]"
+          >
             Home
           </Link>
         </div>

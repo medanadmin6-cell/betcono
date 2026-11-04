@@ -2,13 +2,15 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Eye, EyeOff, X, ChevronRight, Check as CheckGlyph } from "lucide-react";
+import Link from "next/link";
+import { Eye, EyeOff, X, ChevronDown, Check as CheckGlyph } from "lucide-react";
 import { allCountries, type CountryConfig } from "@/lib/countries";
+import { BrandIcon } from "@/components/icons";
 
 /**
- * The auth form furniture, following the reference login: a country row with a
- * Change affordance, and fields that invert — a pale fill sitting inside a
- * lifted, bordered shell on the dark ground.
+ * The auth form furniture: the page frame the login, register and reset
+ * screens share, a country row with an inline picker, and single bordered
+ * fields that match the rest of the app's inputs.
  */
 
 /**
@@ -22,16 +24,74 @@ export function Flag({ code, size = 18 }: { code: string; size?: number }) {
       alt=""
       width={size}
       height={Math.round((size * 2) / 3)}
-      className="shrink-0 rounded-lg"
+      className="shrink-0 rounded-[2px]"
     />
   );
 }
 
-/** Country row with an inline picker, and the close control on the right. */
+/**
+ * The auth page frame: a slim navy bar with the wordmark and a close control,
+ * then a centred card holding the form.
+ */
+export function AuthLayout({
+  title,
+  subtitle,
+  onClose,
+  children,
+  footer,
+}: {
+  title: string;
+  subtitle?: string;
+  onClose?: () => void;
+  children: React.ReactNode;
+  footer?: React.ReactNode;
+}) {
+  return (
+    <div className="min-h-screen bg-[var(--bg)]">
+      <header className="bg-[var(--chrome)]">
+        <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between px-4">
+          <Link href="/" className="flex items-center gap-2" aria-label="BetZone home">
+            <BrandIcon size={26} className="text-[#9ff611]" />
+            <span className="text-[18px] font-black tracking-tight text-white">
+              Bet<span className="text-[#9ff611]">Zone</span>
+            </span>
+          </Link>
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="rounded p-1.5 text-white/80 hover:bg-white/10 hover:text-white"
+            >
+              <X size={20} strokeWidth={2} />
+            </button>
+          )}
+        </div>
+      </header>
+
+      <main className="px-4 pb-16 pt-8">
+        <div className="mx-auto w-full max-w-sm">
+          <h1 className="text-[20px] font-black text-[var(--text-bright)]">{title}</h1>
+          {subtitle && <p className="mt-1 text-[13px] text-[var(--text-muted)]">{subtitle}</p>}
+
+          <div className="mt-5 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] p-4 sm:p-5">
+            {children}
+          </div>
+
+          {footer && <div className="mt-5">{footer}</div>}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+/**
+ * Country row with an inline picker. `onClose` is still accepted for older
+ * callers; the close control now lives in AuthLayout's header.
+ */
 export function CountryBar({
   country,
   onChange,
-  onClose,
 }: {
   country: CountryConfig;
   onChange: (code: string) => void;
@@ -41,34 +101,23 @@ export function CountryBar({
 
   return (
     <div className="relative">
-      <div className="flex items-center justify-between px-1 py-1">
-        <div className="flex items-center gap-2">
+      <FieldLabel>Country</FieldLabel>
+      <div>
+        <button
+          type="button"
+          onClick={() => setPicking((p) => !p)}
+          aria-expanded={picking}
+          className="flex w-full items-center gap-2 rounded-[5px] border border-[var(--field-line)] bg-[var(--input)] px-3 py-2.5 text-left focus:border-[var(--accent)] focus:outline-none"
+        >
           <Flag code={country.code} size={20} />
-          <span className="text-[15px] font-medium text-[var(--text-bright)]">{country.name}</span>
-          <button
-            type="button"
-            onClick={() => setPicking((p) => !p)}
-            className="flex items-center gap-0.5 text-[15px] font-medium text-[var(--accent)]"
-          >
-            Change
-            <ChevronRight size={15} strokeWidth={2.2} />
-          </button>
-        </div>
-
-        {onClose && (
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="text-[var(--text-bright)]"
-          >
-            <X size={22} strokeWidth={2} />
-          </button>
-        )}
+          <span className="flex-1 text-[14px] font-semibold text-[var(--input-ink)]">{country.name}</span>
+          <span className="text-[12px] font-semibold text-[var(--text-muted)]">Change</span>
+          <ChevronDown size={15} strokeWidth={2.2} className="text-[var(--text-muted)]" />
+        </button>
       </div>
 
       {picking && (
-        <ul className="absolute left-0 right-0 z-20 mt-1 overflow-hidden rounded-lg bg-[var(--field)] ring-1 ring-[var(--field-line)]">
+        <ul className="absolute left-0 right-0 z-20 mt-1 max-h-72 overflow-y-auto rounded-md border border-[var(--field-line)] bg-[var(--bg-elevated)] shadow-md">
           {allCountries().map((c) => (
             <li key={c.code}>
               <button
@@ -77,12 +126,12 @@ export function CountryBar({
                   onChange(c.code);
                   setPicking(false);
                 }}
-                className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-[14px] hover:bg-[var(--surface-2)]"
+                className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-[14px] hover:bg-[var(--surface)]"
                 style={c.code === country.code ? { color: "var(--accent)" } : undefined}
               >
                 <Flag code={c.code} />
-                <span className="flex-1">{c.name}</span>
-                <span className="text-[12px] text-[var(--text-muted)]">+{c.dialCode}</span>
+                <span className="flex-1 font-semibold">{c.name}</span>
+                <span className="text-[12px] tabular-nums text-[var(--text-muted)]">+{c.dialCode}</span>
               </button>
             </li>
           ))}
@@ -92,7 +141,16 @@ export function CountryBar({
   );
 }
 
-/** Phone field: dial-code prefix on the shell, pale input, clear control. */
+/** Field label, shared so every auth input reads the same. */
+export function FieldLabel({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) {
+  return (
+    <label htmlFor={htmlFor} className="mb-1.5 block text-[12px] font-bold text-[var(--text-muted)]">
+      {children}
+    </label>
+  );
+}
+
+/** Phone field: dial-code prefix, the number, and a clear control. */
 export function PhoneField({
   country,
   value,
@@ -105,34 +163,40 @@ export function PhoneField({
   autoFocus?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-2 rounded-lg bg-[var(--field)] px-3 py-2 ring-1 ring-[var(--field-line)]">
-      <span className="shrink-0 text-[15px] text-[var(--text-muted)]">+{country.dialCode}</span>
-      <div className="relative flex-1">
-        <input
-          type="tel"
-          inputMode="numeric"
-          autoComplete="tel"
-          autoFocus={autoFocus}
-          value={value}
-          onChange={(e) => onChange(e.target.value.replace(/[^\d]/g, ""))}
-          className="w-full rounded-lg bg-[var(--input)] py-2 pl-2 pr-7 text-[15px] text-[var(--input-ink)] outline-none placeholder:text-[var(--input-placeholder)] focus:ring-1 focus:ring-[var(--accent)]"
-        />
-        {value && (
-          <button
-            type="button"
-            onClick={() => onChange("")}
-            aria-label="Clear phone number"
-            className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--input-placeholder)]"
-          >
-            <X size={16} strokeWidth={2.2} />
-          </button>
-        )}
+    <div>
+      <FieldLabel htmlFor="auth-phone">Mobile number</FieldLabel>
+      <div className="flex items-center rounded-[5px] border border-[var(--field-line)] bg-[var(--input)] focus-within:border-[var(--accent)]">
+        <span className="shrink-0 border-r border-[var(--field-line)] px-3 py-2.5 text-[14px] font-semibold tabular-nums text-[var(--text-muted)]">
+          +{country.dialCode}
+        </span>
+        <div className="relative flex-1">
+          <input
+            id="auth-phone"
+            type="tel"
+            inputMode="numeric"
+            autoComplete="tel"
+            autoFocus={autoFocus}
+            value={value}
+            onChange={(e) => onChange(e.target.value.replace(/[^\d]/g, ""))}
+            className="w-full bg-transparent py-2.5 pl-3 pr-8 text-[15px] tabular-nums text-[var(--input-ink)] outline-none placeholder:text-[var(--input-placeholder)]"
+          />
+          {value && (
+            <button
+              type="button"
+              onClick={() => onChange("")}
+              aria-label="Clear phone number"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--input-placeholder)]"
+            >
+              <X size={16} strokeWidth={2.2} />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
-/** Password field with the show/hide eye on the shell, outside the pale input. */
+/** Password field with the show/hide control inside the border. */
 export function PasswordField({
   value,
   onChange,
@@ -147,28 +211,32 @@ export function PasswordField({
   const [shown, setShown] = useState(false);
 
   return (
-    <div className="flex items-center gap-2 rounded-lg bg-[var(--field)] px-3 py-2 ring-1 ring-[var(--field-line)]">
-      <input
-        type={shown ? "text" : "password"}
-        autoComplete={autoComplete}
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="min-w-0 flex-1 rounded-lg bg-[var(--input)] px-2 py-2 text-[15px] text-[var(--input-ink)] outline-none placeholder:text-[var(--input-placeholder)] focus:ring-1 focus:ring-[var(--accent)]"
-      />
-      <button
-        type="button"
-        onClick={() => setShown((s) => !s)}
-        aria-label={shown ? "Hide password" : "Show password"}
-        className="shrink-0 text-[var(--text-muted)]"
-      >
-        {shown ? <Eye size={20} strokeWidth={1.7} /> : <EyeOff size={20} strokeWidth={1.7} />}
-      </button>
+    <div>
+      <FieldLabel htmlFor="auth-password">Password</FieldLabel>
+      <div className="flex items-center rounded-[5px] border border-[var(--field-line)] bg-[var(--input)] focus-within:border-[var(--accent)]">
+        <input
+          id="auth-password"
+          type={shown ? "text" : "password"}
+          autoComplete={autoComplete}
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-[15px] text-[var(--input-ink)] outline-none placeholder:text-[var(--input-placeholder)]"
+        />
+        <button
+          type="button"
+          onClick={() => setShown((s) => !s)}
+          aria-label={shown ? "Hide password" : "Show password"}
+          className="shrink-0 px-3 text-[var(--text-muted)]"
+        >
+          {shown ? <Eye size={18} strokeWidth={1.8} /> : <EyeOff size={18} strokeWidth={1.8} />}
+        </button>
+      </div>
     </div>
   );
 }
 
-/** Square checkbox with a lime tick, matching the reference pair. */
+/** Square checkbox with an accent tick. */
 export function Check({
   checked,
   onChange,
@@ -176,18 +244,18 @@ export function Check({
 }: {
   checked: boolean;
   onChange: (v: boolean) => void;
-  label: string;
+  label: React.ReactNode;
 }) {
   return (
     <label className="flex cursor-pointer select-none items-center gap-2">
       <span
-        className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-lg ring-1 transition-colors"
+        className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[3px] transition-colors"
         style={{
-          background: checked ? "var(--accent)" : "transparent",
-          boxShadow: `inset 0 0 0 1px ${checked ? "var(--accent)" : "var(--text-muted)"}`,
+          background: checked ? "var(--accent)" : "var(--input)",
+          boxShadow: `inset 0 0 0 1px ${checked ? "var(--accent)" : "var(--field-line)"}`,
         }}
       >
-        {checked && <CheckGlyph size={14} strokeWidth={3.4} className="text-[var(--accent-ink)]" />}
+        {checked && <CheckGlyph size={12} strokeWidth={3.4} className="text-[var(--accent-ink)]" />}
       </span>
       <input
         type="checkbox"
@@ -195,19 +263,18 @@ export function Check({
         onChange={(e) => onChange(e.target.checked)}
         className="sr-only"
       />
-      <span className="text-[14px] text-[var(--text-bright)]">{label}</span>
+      <span className="text-[13px] text-[var(--text)]">{label}</span>
     </label>
   );
 }
 
 /**
- * The full-width lime action the reference uses for Login and Register.
+ * The full-width primary action for Log in and Register.
  *
- * It is lime in every state. A greyed or faded version of it over this ground
- * turns into a dark slab that reads as a broken button, so an empty form is
- * answered by the form telling the player what is missing, not by the button
- * going out. The only time it changes is while a submission is in flight, and
- * then it says so.
+ * It stays in the accent colour in every state. A faded version reads as a
+ * broken button, so an empty form is answered by the form saying what is
+ * missing, not by the button going out. The only time it changes is while a
+ * submission is in flight, and then it says so.
  */
 export function PrimaryButton({
   children,
@@ -216,7 +283,7 @@ export function PrimaryButton({
   return (
     <button
       {...props}
-      className="w-full rounded-lg bg-[var(--accent)] py-3.5 text-[16px] font-medium text-[var(--accent-ink)] disabled:cursor-wait"
+      className="w-full rounded-[5px] bg-[var(--accent)] py-3 text-[15px] font-black text-[var(--accent-ink)] disabled:cursor-wait"
     >
       {children}
     </button>

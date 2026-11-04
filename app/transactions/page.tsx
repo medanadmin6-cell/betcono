@@ -50,10 +50,10 @@ export default function TransactionsPage() {
 
   return (
     <Page>
-      <div className="px-2 pt-2 md:mx-auto md:max-w-3xl md:px-5 md:pt-4">
-        <h1 className="px-2 text-[18px] font-black">Transactions</h1>
+      <div className="px-4 py-4 md:mx-auto md:max-w-2xl md:px-5">
+        <h1 className="text-[18px] font-black text-[var(--text-bright)]">Transactions</h1>
 
-        <div className="mt-3 flex gap-1.5 px-2">
+        <div className="mt-3 flex border-b border-[var(--line)]" role="tablist">
           {[
             { key: "all", label: "All" },
             { key: "deposit", label: "Deposits" },
@@ -61,13 +61,14 @@ export default function TransactionsPage() {
           ].map((f) => (
             <button
               key={f.key}
+              role="tab"
+              aria-selected={filter === f.key}
               onClick={() => setFilter(f.key)}
-              className="rounded-lg px-3 py-1.5 text-[12px] font-bold"
-              style={
+              className={`-mb-px border-b-2 px-3 py-2 text-[13px] font-bold ${
                 filter === f.key
-                  ? { background: "var(--accent)", color: "var(--accent-ink)" }
-                  : { background: "var(--surface)", color: "var(--text-muted)" }
-              }
+                  ? "border-[var(--accent)] text-[var(--text-bright)]"
+                  : "border-transparent text-[var(--text-muted)] hover:text-[var(--text)]"
+              }`}
             >
               {f.label}
             </button>
@@ -75,17 +76,17 @@ export default function TransactionsPage() {
         </div>
 
         {txns === null ? (
-          <div className="mt-3 space-y-2 px-2">
+          <div className="mt-3 space-y-2">
             {[0, 1, 2].map((i) => (
-              <div key={i} className="h-16 rounded-lg bg-[var(--bg-elevated)] opacity-60" />
+              <div key={i} className="h-14 rounded-md bg-[var(--bg-elevated)] opacity-60" />
             ))}
           </div>
         ) : !shown.length ? (
-          <p className="mt-3 rounded-lg bg-[var(--bg-elevated)] p-10 text-center text-[13px] text-[var(--text-muted)]">
+          <p className="mt-3 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] p-10 text-center text-[13px] text-[var(--text-muted)]">
             Nothing here yet.
           </p>
         ) : (
-          <ul className="mt-3 overflow-hidden rounded-lg bg-[var(--bg-elevated)]">
+          <ul className="mt-3 overflow-hidden rounded-md border border-[var(--line)] bg-[var(--bg-elevated)]">
             {shown.map((t) => {
               const out = t.metadata?.type === "withdrawal";
               const isPartner = t.metadata?.type === "partner_credit";
@@ -95,7 +96,7 @@ export default function TransactionsPage() {
                   className="flex items-center gap-3 border-b border-[var(--line)] px-4 py-3 last:border-0"
                 >
                   <span
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--surface-2)]"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-[var(--surface-2)]"
                     style={{ color: out ? "var(--lose)" : "var(--win)" }}
                   >
                     {isPartner ? (
@@ -108,20 +109,20 @@ export default function TransactionsPage() {
                   </span>
 
                   <div className="min-w-0 flex-1">
-                    <p className="text-[13px] font-semibold capitalize">
+                    <p className="text-[13px] font-bold capitalize text-[var(--text-bright)]">
                       {(t.metadata?.type ?? "payment").replace("_", " ")}
                     </p>
-                    <p className="text-[11px] text-[var(--text-faint)]">
+                    <p className="text-[11px] tabular-nums text-[var(--text-faint)]">
                       {new Date(t.created_at).toLocaleString()} · {t.provider}
                     </p>
                   </div>
 
                   <div className="text-right">
-                    <p className="text-[13px] font-bold" style={{ color: out ? "var(--lose)" : "var(--win)" }}>
+                    <p className="text-[13px] font-black tabular-nums" style={{ color: out ? "var(--lose)" : "var(--win)" }}>
                       {out ? "−" : "+"}
                       {formatMoney(Number(t.amount), t.currency)}
                     </p>
-                    <p className="text-[10px] capitalize" style={{ color: TONE[t.status] ?? "var(--text-faint)" }}>
+                    <p className="text-[10px] font-semibold capitalize" style={{ color: TONE[t.status] ?? "var(--text-faint)" }}>
                       {t.status}
                     </p>
                   </div>

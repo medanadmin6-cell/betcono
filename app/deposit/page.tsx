@@ -3,18 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  CircleHelp,
-  Home,
-  Smartphone,
-  ChevronRight,
-  MapPin,
-  Check,
-  Upload,
-} from "lucide-react";
+import { ArrowLeft, CircleHelp, Smartphone, Check, Upload } from "lucide-react";
 import { useSession } from "@/lib/store";
 import { getCountry, formatMoney, maskPhoneTail } from "@/lib/countries";
+import { Page } from "@/components/Shell";
 
 type Rail = "momo" | "manual";
 
@@ -73,8 +65,8 @@ export default function DepositPage() {
   );
 
   // A credited deposit shows its confirmation, then returns to the home page to
-  // bet. The manual rail never reaches `done` — it stays pending until the
-  // operator confirms it — so only an instant credit sends the player back.
+  // bet. The manual rail never reaches `done` (it stays pending until the
+  // operator confirms it), so only an instant credit sends the player back.
   useEffect(() => {
     if (!done) return;
     const t = setTimeout(() => router.push("/"), 2200);
@@ -160,31 +152,32 @@ export default function DepositPage() {
 
   if (done) {
     return (
-      <div className="min-h-screen bg-[var(--bg)]">
-        <DepositHeader onBack={() => router.push("/")} />
-        <div className="mx-auto max-w-md space-y-4 px-6 py-14 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-ink)]">
-            <Check size={34} strokeWidth={3} />
+      <Page>
+        <div className="mx-auto max-w-md px-4 py-12">
+          <div className="rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] p-6 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-ink)]">
+              <Check size={30} strokeWidth={3} />
+            </div>
+            <h1 className="mt-4 text-[20px] font-black text-[var(--text-bright)]">Deposit received</h1>
+            {done.bonus ? (
+              <p className="mt-1 text-[13px] font-semibold text-[var(--accent)]">
+                Plus a {formatMoney(done.bonus, player.currency)} welcome bonus.
+              </p>
+            ) : null}
+            {typeof done.balance === "number" && (
+              <p className="mt-2 text-[15px] font-bold tabular-nums">
+                New balance {formatMoney(done.balance, player.currency)}
+              </p>
+            )}
+            <button
+              onClick={() => router.push("/")}
+              className="mt-5 w-full rounded-[5px] bg-[var(--accent)] py-3 text-[14px] font-black text-[var(--accent-ink)]"
+            >
+              Start betting
+            </button>
           </div>
-          <h1 className="text-[20px] font-black">Deposit received</h1>
-          {done.bonus ? (
-            <p className="text-[13px] text-[var(--accent)]">
-              Plus a {formatMoney(done.bonus, player.currency)} welcome bonus.
-            </p>
-          ) : null}
-          {typeof done.balance === "number" && (
-            <p className="text-[15px] font-bold">
-              New balance {formatMoney(done.balance, player.currency)}
-            </p>
-          )}
-          <button
-            onClick={() => router.push("/")}
-            className="w-full rounded-lg bg-[var(--accent)] py-3 text-[14px] font-black text-[var(--accent-ink)]"
-          >
-            Start betting
-          </button>
         </div>
-      </div>
+      </Page>
     );
   }
 
@@ -192,16 +185,35 @@ export default function DepositPage() {
   const tooBig = value > max;
   const canSubmit = value >= min && value <= max && !busy;
 
-  return (
-    <div className="min-h-screen bg-[var(--bg)]">
-      <DepositHeader onBack={() => router.back()} />
+  // Shortcut amounts from the real limits: the minimum and a few multiples
+  // of it, never above the per-transaction cap.
+  const quick = [min, min * 2, min * 5, min * 10].filter((a, i, all) => a <= max && all.indexOf(a) === i);
 
-      <div className="mx-auto max-w-2xl">
+  return (
+    <Page>
+      <div className="mx-auto max-w-lg px-4 py-5">
+        <div className="mb-4 flex items-center gap-2">
+          <button
+            onClick={() => router.back()}
+            aria-label="Back"
+            className="-ml-1 rounded p-1 text-[var(--text-bright)] hover:bg-[var(--surface)]"
+          >
+            <ArrowLeft size={20} strokeWidth={2} />
+          </button>
+          <h1 className="flex-1 text-[20px] font-black text-[var(--text-bright)]">Deposit</h1>
+          <span className="text-[12px] font-semibold text-[var(--text-muted)]">
+            Balance{" "}
+            <span className="font-black tabular-nums text-[var(--text-bright)]">
+              {formatMoney(Number(player.balance), player.currency)}
+            </span>
+          </span>
+        </div>
+
         {/* Rail tabs */}
-        <div className="grid grid-cols-2">
+        <div className="grid grid-cols-2 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] p-0.5">
           {(
             [
-              { key: "momo", label: country.payoutRail === "bank" ? "Card / Bank" : "Mobile Money" },
+              { key: "momo", label: country.payoutRail === "bank" ? "Card or bank" : "Mobile money" },
               { key: "manual", label: "Manual transfer" },
             ] as const
           ).map((t) => (
@@ -212,151 +224,153 @@ export default function DepositPage() {
                 setError(null);
                 setStatus(null);
               }}
-              className="relative py-3.5 text-[15px]"
-              style={{
-                color: rail === t.key ? "var(--text-bright)" : "var(--text-muted)",
-                fontWeight: rail === t.key ? 700 : 400,
-              }}
+              className={`rounded-[4px] py-2 text-[13px] font-bold transition-colors ${
+                rail === t.key
+                  ? "bg-[var(--accent)] text-[var(--accent-ink)]"
+                  : "text-[var(--text-muted)] hover:text-[var(--text)]"
+              }`}
             >
               {t.label}
-              {rail === t.key && (
-                <span className="absolute inset-x-6 bottom-0 h-[3px] rounded-full bg-[var(--accent)]" />
-              )}
             </button>
           ))}
         </div>
 
-        {rail === "momo" ? (
-          <>
-            {/* Account rows */}
-            <SwitchRow
-              icon={<Smartphone size={20} strokeWidth={1.7} className="text-[var(--text-muted)]" />}
-              value={
-                <>
-                  <span className="text-[var(--text-muted)]">+{country.dialCode}</span>{" "}
-                  <span className="text-[var(--text-bright)]">{maskPhoneTail(phone)}</span>
-                </>
-              }
-              action={switching === "phone" ? "Done" : "Switch"}
-              muted={switching !== "phone"}
-              onAction={() => setSwitching(switching === "phone" ? null : "phone")}
-            />
+        <div className="mt-3 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] p-4">
+          {rail === "momo" ? (
+            <>
+              {/* Account rows */}
+              <SwitchRow
+                label="Pay from"
+                icon={<Smartphone size={18} strokeWidth={1.8} className="text-[var(--text-muted)]" />}
+                value={
+                  <span className="tabular-nums">
+                    <span className="text-[var(--text-muted)]">+{country.dialCode}</span>{" "}
+                    <span className="text-[var(--text-bright)]">{maskPhoneTail(phone)}</span>
+                  </span>
+                }
+                action={switching === "phone" ? "Done" : "Change"}
+                onAction={() => setSwitching(switching === "phone" ? null : "phone")}
+              />
 
-            {switching === "phone" && (
-              <div className="px-4 pb-3">
+              {switching === "phone" && (
                 <input
                   value={phone}
                   onChange={(e) => setPhoneEdit(e.target.value.replace(/[^\d]/g, ""))}
                   inputMode="numeric"
+                  aria-label="Mobile money number"
                   placeholder={`0${"X".repeat(country.phoneDigits)}`}
-                  className="w-full rounded-lg bg-[var(--surface-2)] px-3 py-2.5 text-[14px] outline-none focus:ring-1 focus:ring-[var(--accent)]"
+                  className="mt-2 w-full rounded-[5px] border border-[var(--field-line)] bg-[var(--input)] px-3 py-2.5 text-[14px] tabular-nums text-[var(--input-ink)] outline-none placeholder:text-[var(--input-placeholder)] focus:border-[var(--accent)]"
+                />
+              )}
+
+              <div className="mt-3">
+                <SwitchRow
+                  label="Network"
+                  icon={
+                    <span className="flex h-6 w-9 items-center justify-center rounded-[3px] bg-[var(--pending)] text-[9px] font-black text-[#071a33]">
+                      {chosenNetwork.split(" ")[0].slice(0, 4).toUpperCase()}
+                    </span>
+                  }
+                  value={<span className="text-[var(--text-bright)]">{chosenNetwork}</span>}
+                  action={switching === "network" ? "Done" : "Change"}
+                  onAction={() => setSwitching(switching === "network" ? null : "network")}
                 />
               </div>
-            )}
 
-            <SwitchRow
-              icon={
-                <span className="flex h-7 w-9 items-center justify-center rounded-lg bg-[var(--pending)] text-[9px] font-black text-[#071a33]">
-                  {chosenNetwork.split(" ")[0].slice(0, 4).toUpperCase()}
-                </span>
-              }
-              value={<span className="text-[var(--text-bright)]">{chosenNetwork}</span>}
-              action="Switch"
-              onAction={() => setSwitching(switching === "network" ? null : "network")}
-            />
+              {switching === "network" && (
+                <div className="mt-2 grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+                  {country.networks.map((n) => (
+                    <button
+                      key={n}
+                      onClick={() => {
+                        setNetwork(n);
+                        setSwitching(null);
+                      }}
+                      className="rounded border px-3 py-2 text-[13px] font-semibold"
+                      style={
+                        chosenNetwork === n
+                          ? {
+                              borderColor: "var(--accent)",
+                              background: "color-mix(in srgb, var(--accent) 12%, transparent)",
+                              color: "var(--text-bright)",
+                            }
+                          : { borderColor: "var(--line)", color: "var(--text)" }
+                      }
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              )}
 
-            {switching === "network" && (
-              <div className="flex flex-wrap gap-2 px-4 pb-3">
-                {country.networks.map((n) => (
-                  <button
-                    key={n}
-                    onClick={() => {
-                      setNetwork(n);
-                      setSwitching(null);
-                    }}
-                    className="rounded-lg px-3 py-2 text-[13px] font-medium"
-                    style={
-                      chosenNetwork === n
-                        ? { background: "var(--accent)", color: "var(--accent-ink)" }
-                        : { background: "var(--surface-2)", color: "var(--text)" }
-                    }
-                  >
-                    {n}
-                  </button>
-                ))}
+              <div className="mt-4">
+                <AmountField
+                  currency={player.currency}
+                  value={amount}
+                  onChange={setAmount}
+                  hint={`Min. ${min.toFixed(2)}`}
+                  quick={quick}
+                />
               </div>
-            )}
 
-            <p className="flex items-center justify-end gap-1 px-4 py-3 text-[13px] text-[var(--text-muted)]">
-              <MapPin size={13} strokeWidth={2} />
-              Balance ({player.currency}) {Number(player.balance).toFixed(2)}
-            </p>
-
-            <AmountField
-              currency={player.currency}
-              value={amount}
-              onChange={setAmount}
-              hint={`min. ${min.toFixed(2)}`}
-            />
-
-            <div className="px-4 pt-5">
               <button
                 onClick={startGateway}
                 disabled={!canSubmit}
-                className="w-full rounded-lg py-3.5 text-[16px] font-bold transition-colors"
+                className="mt-4 w-full rounded-[5px] py-3 text-[15px] font-black transition-colors"
                 style={
                   canSubmit
                     ? { background: "var(--accent)", color: "var(--accent-ink)" }
                     : { background: "var(--surface)", color: "var(--text-muted)" }
                 }
               >
-                {busy ? "Starting…" : "Top Up Now"}
+                {busy ? "Starting…" : value > 0 ? `Deposit ${formatMoney(value, player.currency)}` : "Deposit"}
               </button>
-            </div>
-          </>
-        ) : (
-          <form onSubmit={submitManual}>
-            <div className="mx-4 mt-4 rounded-lg bg-[var(--bg-elevated)] p-4">
-              <p className="text-[12px] text-[var(--text-muted)]">Send to</p>
-              <p className="mt-0.5 text-[20px] font-black tracking-wide text-[var(--accent)]">
-                {settings.deposit_account_number ?? "—"}
-              </p>
-              <p className="text-[12px] text-[var(--text-muted)]">
-                {settings.deposit_account_name ?? "BetZone"} ·{" "}
-                {settings.deposit_account_network ?? "Mobile Money"}
-              </p>
-            </div>
+            </>
+          ) : (
+            <form onSubmit={submitManual}>
+              <div className="rounded border border-dashed border-[var(--line)] bg-[var(--bg)] p-3">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--text-faint)]">Send to</p>
+                <p className="mt-1 text-[20px] font-black tabular-nums tracking-wide text-[var(--text-bright)]">
+                  {settings.deposit_account_number ?? "-"}
+                </p>
+                <p className="text-[12px] text-[var(--text-muted)]">
+                  {settings.deposit_account_name ?? "BetZone"} ·{" "}
+                  {settings.deposit_account_network ?? "Mobile money"}
+                </p>
+              </div>
 
-            <AmountField
-              currency={player.currency}
-              value={amount}
-              onChange={setAmount}
-              hint={`min. ${min.toFixed(2)}`}
-            />
+              <div className="mt-4">
+                <AmountField
+                  currency={player.currency}
+                  value={amount}
+                  onChange={setAmount}
+                  hint={`Min. ${min.toFixed(2)}`}
+                  quick={quick}
+                />
+              </div>
 
-            <div className="space-y-3 px-4 pt-3">
-              <label className="block">
-                <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[var(--text-faint)]">
+              <label className="mt-4 block">
+                <span className="mb-1.5 block text-[12px] font-bold text-[var(--text-muted)]">
                   Number you sent from
                 </span>
                 <input
                   name="senderNumber"
                   type="tel"
                   defaultValue={player.phone}
-                  className="w-full rounded-lg bg-[var(--surface-2)] px-3 py-2.5 text-[14px] outline-none focus:ring-1 focus:ring-[var(--accent)]"
+                  className="w-full rounded-[5px] border border-[var(--field-line)] bg-[var(--input)] px-3 py-2.5 text-[14px] tabular-nums text-[var(--input-ink)] outline-none focus:border-[var(--accent)]"
                 />
               </label>
 
-              <label className="flex cursor-pointer items-center gap-2 rounded-lg bg-[var(--surface-2)] px-3 py-3 text-[13px] text-[var(--text-muted)]">
+              <label className="mt-3 flex cursor-pointer items-center gap-2 rounded-[5px] border border-dashed border-[var(--field-line)] px-3 py-3 text-[13px] font-semibold text-[var(--text-muted)] hover:border-[var(--accent)]">
                 <Upload size={16} strokeWidth={1.9} />
-                Screenshot of the transfer
+                Attach a screenshot of the transfer
                 <input name="screenshot" type="file" accept="image/*" className="sr-only" />
               </label>
 
               <button
                 type="submit"
                 disabled={!canSubmit}
-                className="w-full rounded-lg py-3.5 text-[16px] font-bold"
+                className="mt-4 w-full rounded-[5px] py-3 text-[15px] font-black"
                 style={
                   canSubmit
                     ? { background: "var(--accent)", color: "var(--accent-ink)" }
@@ -365,117 +379,104 @@ export default function DepositPage() {
               >
                 {busy ? "Sending…" : "I have sent the money"}
               </button>
-            </div>
-          </form>
-        )}
+            </form>
+          )}
 
-        {/* Feedback */}
-        <div className="space-y-2 px-4 pt-3">
-          {tooSmall && (
-            <p className="text-[12px] text-[var(--lose)]">
-              The minimum deposit is {formatMoney(min, player.currency)}.
-            </p>
-          )}
-          {tooBig && (
-            <p className="text-[12px] text-[var(--lose)]">
-              The most you can send in one transaction is {formatMoney(max, player.currency)}.
-            </p>
-          )}
-          {status && (
-            <p className="rounded-lg bg-[var(--pending)]/15 px-3 py-2.5 text-[12px] text-[var(--pending)]">
-              {status}
-            </p>
-          )}
-          {error && (
-            <p className="rounded-lg bg-[var(--lose-bg)] px-3 py-2.5 text-[12px] text-[var(--lose)]">{error}</p>
+          {/* Feedback */}
+          {(tooSmall || tooBig || status || error) && (
+            <div className="mt-3 space-y-2">
+              {tooSmall && (
+                <p className="text-[12px] text-[var(--lose)]">
+                  The minimum deposit is {formatMoney(min, player.currency)}.
+                </p>
+              )}
+              {tooBig && (
+                <p className="text-[12px] text-[var(--lose)]">
+                  The most you can send in one transaction is {formatMoney(max, player.currency)}.
+                </p>
+              )}
+              {status && (
+                <p className="rounded bg-[var(--pending)]/15 px-3 py-2.5 text-[12px] font-semibold text-[var(--pending)]">
+                  {status}
+                </p>
+              )}
+              {error && (
+                <p className="rounded bg-[var(--lose-bg)] px-3 py-2.5 text-[12px] text-[var(--lose)]">{error}</p>
+              )}
+            </div>
           )}
         </div>
 
         {/* The rules, read from the same config the endpoint enforces. */}
-        <ol className="mt-6 space-y-2 px-4 pb-10 text-[13px] leading-relaxed text-[var(--text-muted)]">
-          <li>
-            1. The maximum amount per transaction is{" "}
-            <strong className="text-[var(--accent)]">{formatMoney(max, player.currency)}</strong>. To
-            deposit more than that, make multiple payments.
-          </li>
-          <li>
-            2. The minimum you can deposit is{" "}
-            <strong className="text-[var(--accent)]">{formatMoney(min, player.currency)}</strong>
-            {firstDeposit > min && (
-              <>
-                , and your first deposit must be at least{" "}
-                <strong className="text-[var(--accent)]">
-                  {formatMoney(firstDeposit, player.currency)}
-                </strong>
-              </>
+        <div className="mt-4 rounded-md border border-[var(--line)] p-4">
+          <h2 className="text-[13px] font-black text-[var(--text-bright)]">Good to know</h2>
+          <ul className="mt-2 space-y-1.5 text-[12px] leading-relaxed text-[var(--text-muted)]">
+            <li>
+              Most per transaction:{" "}
+              <strong className="tabular-nums text-[var(--text)]">{formatMoney(max, player.currency)}</strong>.
+              To deposit more, make several payments.
+            </li>
+            <li>
+              Least per deposit:{" "}
+              <strong className="tabular-nums text-[var(--text)]">{formatMoney(min, player.currency)}</strong>
+              {firstDeposit > min && (
+                <>
+                  . Your first deposit must be at least{" "}
+                  <strong className="tabular-nums text-[var(--text)]">
+                    {formatMoney(firstDeposit, player.currency)}
+                  </strong>
+                </>
+              )}
+              .
+            </li>
+            <li>There are no fees on deposits.</li>
+            <li>You can only withdraw to the mobile number you registered with.</li>
+          </ul>
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-[12px] font-bold">
+            <Link href="/how-to-play" className="inline-flex items-center gap-1 text-[var(--accent)]">
+              <CircleHelp size={13} strokeWidth={2} />
+              How deposits work
+            </Link>
+            {whatsapp && (
+              <a
+                href={`https://wa.me/${whatsapp.replace(/\D/g, "")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[var(--accent)]"
+              >
+                Payment problem? Chat on WhatsApp
+              </a>
             )}
-            .
-          </li>
-          <li>3. There are no transaction fees. The deposit is free.</li>
-          <li>
-            4. You can only withdraw to the mobile number you used to create your account.
-          </li>
-        </ol>
-
-        {whatsapp && (
-          <a
-            href={`https://wa.me/${whatsapp.replace(/\D/g, "")}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mx-4 mb-10 block rounded-lg py-3 text-center text-[12px] font-bold text-[var(--accent)] ring-1 ring-[var(--line)]"
-          >
-            Payment problem? Chat on WhatsApp
-          </a>
-        )}
+          </div>
+        </div>
       </div>
-    </div>
-  );
-}
-
-function DepositHeader({ onBack }: { onBack: () => void }) {
-  return (
-    <header className="sticky top-0 z-40 bg-[var(--chrome)]">
-      <div className="mx-auto flex h-[52px] max-w-2xl items-center gap-3 px-4">
-        <button onClick={onBack} aria-label="Back" className="text-white">
-          <ArrowLeft size={22} strokeWidth={2} />
-        </button>
-        <h1 className="flex-1 text-[19px] font-bold text-white">Deposit</h1>
-        <Link href="/how-to-play" aria-label="Help" className="text-white">
-          <CircleHelp size={20} strokeWidth={1.9} />
-        </Link>
-        <Link href="/" aria-label="Home" className="text-white">
-          <Home size={20} strokeWidth={1.9} />
-        </Link>
-      </div>
-    </header>
+    </Page>
   );
 }
 
 function SwitchRow({
+  label,
   icon,
   value,
   action,
-  muted,
   onAction,
 }: {
+  label: string;
   icon: React.ReactNode;
   value: React.ReactNode;
   action: string;
-  muted?: boolean;
   onAction: () => void;
 }) {
   return (
-    <div className="mx-4 mt-3 flex items-center gap-3 rounded-lg bg-[var(--bg-elevated)] px-3 py-3.5 ring-1 ring-[var(--line)]">
-      {icon}
-      <span className="flex-1 text-[15px]">{value}</span>
-      <button
-        onClick={onAction}
-        className="flex items-center gap-0.5 text-[14px] font-medium"
-        style={{ color: muted ? "var(--text-muted)" : "var(--accent)" }}
-      >
-        {action}
-        <ChevronRight size={16} strokeWidth={2.2} />
-      </button>
+    <div>
+      <p className="mb-1.5 text-[12px] font-bold text-[var(--text-muted)]">{label}</p>
+      <div className="flex items-center gap-3 rounded-[5px] border border-[var(--field-line)] bg-[var(--input)] px-3 py-2.5">
+        {icon}
+        <span className="flex-1 text-[14px] font-semibold">{value}</span>
+        <button onClick={onAction} type="button" className="text-[12px] font-bold text-[var(--accent)]">
+          {action}
+        </button>
+      </div>
     </div>
   );
 }
@@ -485,15 +486,17 @@ function AmountField({
   value,
   onChange,
   hint,
+  quick,
 }: {
   currency: string;
   value: string;
   onChange: (v: string) => void;
   hint: string;
+  quick: number[];
 }) {
   return (
-    <div className="mx-4 mt-2 flex items-center gap-3 rounded-lg bg-[var(--bg-elevated)] px-3 py-3.5 ring-1 ring-[var(--line)]">
-      <label htmlFor="amount" className="shrink-0 text-[15px] text-[var(--text-bright)]">
+    <div>
+      <label htmlFor="amount" className="mb-1.5 block text-[12px] font-bold text-[var(--text-muted)]">
         Amount ({currency})
       </label>
       <input
@@ -503,8 +506,34 @@ function AmountField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={hint}
-        className="min-w-0 flex-1 bg-transparent text-right text-[16px] font-bold outline-none placeholder:font-normal placeholder:text-[var(--text-muted)]"
+        className="w-full rounded-[5px] border border-[var(--field-line)] bg-[var(--input)] px-3 py-2.5 text-[18px] font-black tabular-nums text-[var(--input-ink)] outline-none placeholder:text-[14px] placeholder:font-normal placeholder:text-[var(--input-placeholder)] focus:border-[var(--accent)]"
       />
+      {quick.length > 0 && (
+        <div className="mt-2 grid grid-cols-4 gap-1.5">
+          {quick.map((a) => {
+            const on = Number(value) === a;
+            return (
+              <button
+                key={a}
+                type="button"
+                onClick={() => onChange(String(a))}
+                className="rounded border py-1.5 text-[12px] font-bold tabular-nums"
+                style={
+                  on
+                    ? {
+                        borderColor: "var(--accent)",
+                        background: "color-mix(in srgb, var(--accent) 12%, transparent)",
+                        color: "var(--text-bright)",
+                      }
+                    : { borderColor: "var(--line)", color: "var(--text)" }
+                }
+              >
+                {a.toLocaleString()}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

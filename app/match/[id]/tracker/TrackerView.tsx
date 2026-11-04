@@ -4,10 +4,12 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, RefreshCw } from "lucide-react";
+import { ArrowLeft, ArrowLeftRight, MonitorPlay, RefreshCw } from "lucide-react";
 import type { FeedMatch } from "@/lib/fixtures";
 import type { TrackerEvent, TrackerStat } from "@/lib/tracker";
 import { PitchTracker } from "@/components/PitchTracker";
+import { Page } from "@/components/Shell";
+import { BallIcon } from "@/components/icons";
 
 const POLL_MS = 20_000;
 
@@ -79,52 +81,56 @@ export function TrackerView({ id }: { id: string }) {
   })();
 
   return (
-    <div className="min-h-screen bg-[var(--bg)]">
-      <header className="sticky top-0 z-40 bg-[var(--surface)]">
-        <div className="mx-auto flex h-[48px] max-w-2xl items-center gap-3 px-4">
-          <button onClick={() => router.back()} aria-label="Back" className="text-[var(--text-bright)]">
-            <ArrowLeft size={22} strokeWidth={2} />
-          </button>
-          <h1 className="flex-1 text-[17px] font-bold text-[var(--text-bright)]">Match Tracker</h1>
-          <button
-            onClick={() => setNonce((n) => n + 1)}
-            aria-label="Refresh"
-            className="text-[var(--text-muted)]"
-          >
-            <RefreshCw size={16} strokeWidth={2} />
-          </button>
-        </div>
-      </header>
+    <Page>
+      <div className="mx-auto flex max-w-2xl items-center gap-2 px-3 pt-3">
+        <button
+          onClick={() => router.back()}
+          aria-label="Back"
+          className="-ml-1 rounded p-1 text-[var(--text-bright)] hover:bg-[var(--surface)]"
+        >
+          <ArrowLeft size={20} strokeWidth={2} />
+        </button>
+        <h1 className="flex-1 text-[20px] font-black text-[var(--text-bright)]">Match tracker</h1>
+        <button
+          onClick={() => setNonce((n) => n + 1)}
+          aria-label="Refresh"
+          className="rounded p-1.5 text-[var(--text-muted)] hover:bg-[var(--surface)]"
+        >
+          <RefreshCw size={16} strokeWidth={2} />
+        </button>
+      </div>
 
       {error ? (
         <div className="p-10 text-center">
           <p className="text-[14px] text-[var(--text-muted)]">{error}</p>
           <Link
             href={`/match/${id}`}
-            className="mt-4 inline-block rounded-lg bg-[var(--accent)] px-5 py-2.5 text-[13px] font-black text-[var(--accent-ink)]"
+            className="mt-4 inline-block rounded bg-[var(--accent)] px-5 py-2.5 text-[13px] font-black text-[var(--accent-ink)]"
           >
             Match details
           </Link>
         </div>
       ) : !data ? (
-        <div className="animate-pulse space-y-3 p-4">
-          <div className="h-28 rounded-lg bg-[var(--bg-elevated)]" />
-          <div className="h-56 rounded-lg bg-[var(--bg-elevated)]" />
+        <div className="mx-auto max-w-2xl animate-pulse space-y-2 p-3">
+          <div className="h-28 rounded-md bg-[var(--bg-elevated)]" />
+          <div className="h-56 rounded-md bg-[var(--bg-elevated)]" />
         </div>
       ) : (
-        <div className="mx-auto max-w-2xl pb-12">
+        <div className="mx-auto max-w-2xl pb-6">
           {match && (
             <>
-              <section className="flex items-center justify-between gap-2 bg-[var(--surface)] px-4 py-4">
+              <section className="mx-3 mt-3 flex items-center justify-between gap-2 rounded-md bg-[var(--chrome)] px-4 py-4">
                 <Side name={match.homeTeam} crest={match.homeCrest} />
                 <div className="shrink-0 text-center">
-                  <p className="text-[12px] text-[var(--text-muted)]">
-                    {match.country} - {match.league}
+                  <p className="text-[11px] font-semibold text-white/60">
+                    {match.country ? `${match.country} · ` : ""}
+                    {match.league}
                   </p>
                   <p
-                    className="mt-0.5 text-[13px] font-bold"
-                    style={{ color: match.isLive ? "var(--live)" : "var(--text-muted)" }}
+                    className="mt-0.5 flex items-center justify-center gap-1 text-[13px] font-black"
+                    style={{ color: match.isLive ? "#ff5a52" : "rgba(255,255,255,0.65)" }}
                   >
+                    {match.isLive && <span className="live-dot h-1.5 w-1.5 rounded-full bg-[#ff5a52]" />}
                     {match.isLive ? match.minuteLabel : "Not started"}
                   </p>
                 </div>
@@ -146,10 +152,10 @@ export function TrackerView({ id }: { id: string }) {
             </>
           )}
 
-          <h2 className="px-4 pb-2 pt-4 text-[13px] font-bold text-[var(--text-bright)]">Timeline</h2>
+          <h2 className="px-4 pb-2 pt-3 text-[15px] font-black text-[var(--text-bright)]">Timeline</h2>
 
           {!data.events.length ? (
-            <p className="mx-4 rounded-lg bg-[var(--bg-elevated)] p-8 text-center text-[13px] text-[var(--text-muted)]">
+            <p className="mx-3 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] p-8 text-center text-[13px] text-[var(--text-muted)]">
               Nothing has happened yet.
             </p>
           ) : (
@@ -165,10 +171,10 @@ export function TrackerView({ id }: { id: string }) {
           {/* Statistics, only where the feed actually has them. */}
           {data.stats.length > 0 && (
             <>
-              <h2 className="px-4 pb-2 pt-6 text-[13px] font-bold text-[var(--text-bright)]">
+              <h2 className="px-4 pb-2 pt-6 text-[15px] font-black text-[var(--text-bright)]">
                 Statistics
               </h2>
-              <div className="mx-4 space-y-3 rounded-lg bg-[var(--bg-elevated)] p-4">
+              <div className="mx-3 space-y-3 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] p-4">
                 {data.stats.map((s) => (
                   <StatRow key={s.label} stat={s} />
                 ))}
@@ -176,17 +182,17 @@ export function TrackerView({ id }: { id: string }) {
             </>
           )}
 
-          <div className="px-4 pt-6">
+          <div className="px-3 pt-6">
             <Link
               href={`/match/${id}`}
-              className="block rounded-lg py-3 text-center text-[13px] font-bold text-[var(--accent)] ring-1 ring-[var(--accent)]"
+              className="block rounded bg-[var(--accent)] py-3 text-center text-[13px] font-black text-[var(--accent-ink)]"
             >
               Match details and odds
             </Link>
           </div>
         </div>
       )}
-    </div>
+    </Page>
   );
 }
 
@@ -201,20 +207,21 @@ function Side({ name, crest }: { name: string; crest: string | null }) {
         className="h-11 w-11 object-contain"
         unoptimized
       />
-      <span className="line-clamp-2 text-center text-[12px] font-medium leading-tight text-[var(--text)]">
+      <span className="line-clamp-2 text-center text-[12px] font-bold leading-tight text-white">
         {name}
       </span>
     </div>
   );
 }
 
-const ICON: Record<string, string> = {
-  goal: "⚽",
-  card: "▮",
-  sub: "⇄",
-  var: "▣",
-  other: "•",
-};
+/** One drawn mark per event kind, so the timeline needs no emoji. */
+function EventMark({ kind }: { kind: string }) {
+  if (kind === "goal") return <BallIcon size={14} strokeWidth={2} />;
+  if (kind === "card") return <span className="block h-3 w-2 rounded-[1px] bg-current" />;
+  if (kind === "sub") return <ArrowLeftRight size={12} strokeWidth={2.4} />;
+  if (kind === "var") return <MonitorPlay size={12} strokeWidth={2.2} />;
+  return <span className="block h-1.5 w-1.5 rounded-full bg-current" />;
+}
 
 function TimelineRow({ event }: { event: TrackerEvent }) {
   const home = event.side === "home";
@@ -222,7 +229,7 @@ function TimelineRow({ event }: { event: TrackerEvent }) {
 
   const body = (
     <div
-      className="max-w-[46%] rounded-lg bg-[var(--bg-elevated)] px-3 py-2"
+      className="max-w-[46%] rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-3 py-2"
       style={{ textAlign: home ? "right" : "left" }}
     >
       <p className="text-[12px] font-semibold text-[var(--text)]">{event.player ?? event.detail}</p>
@@ -239,7 +246,7 @@ function TimelineRow({ event }: { event: TrackerEvent }) {
     event.kind === "goal"
       ? { background: "var(--accent)", color: "var(--accent-ink)" }
       : event.kind === "card"
-        ? { background: red ? "var(--lose)" : "var(--pending)", color: "#2a1a00" }
+        ? { background: "var(--surface-2)", color: red ? "var(--lose)" : "var(--pending)" }
         : { background: "var(--surface-2)", color: "var(--text)" };
 
   return (
@@ -248,12 +255,12 @@ function TimelineRow({ event }: { event: TrackerEvent }) {
 
       <span className="z-10 flex shrink-0 flex-col items-center px-2">
         <span
-          className="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold"
+          className="flex h-6 w-6 items-center justify-center rounded-full"
           style={badge}
         >
-          {ICON[event.kind] ?? "•"}
+          <EventMark kind={event.kind} />
         </span>
-        <span className="mt-0.5 text-[10px] font-bold text-[var(--text-muted)]">
+        <span className="mt-0.5 text-[10px] font-bold tabular-nums text-[var(--text-muted)]">
           {event.minute}
           {event.extra ? `+${event.extra}` : ""}
         </span>
@@ -279,9 +286,9 @@ function StatRow({ stat }: { stat: TrackerStat }) {
   return (
     <div>
       <div className="flex items-center justify-between text-[12px]">
-        <span className="font-bold text-[var(--text)]">{stat.home ?? "-"}</span>
+        <span className="font-bold tabular-nums text-[var(--text)]">{stat.home ?? "-"}</span>
         <span className="text-[var(--text-muted)]">{stat.label}</span>
-        <span className="font-bold text-[var(--text)]">{stat.away ?? "-"}</span>
+        <span className="font-bold tabular-nums text-[var(--text)]">{stat.away ?? "-"}</span>
       </div>
       <div className="mt-1 flex h-1 overflow-hidden rounded-full bg-[var(--surface-2)]">
         <span className="h-full bg-[var(--accent)]" style={{ width: `${share}%` }} />

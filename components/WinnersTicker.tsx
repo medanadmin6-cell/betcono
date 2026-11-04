@@ -41,20 +41,17 @@ export function WinnersTicker() {
   }, []);
 
   return (
-    <div className="flex items-center gap-3 overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-3 py-2">
-      <span className="flex shrink-0 items-center gap-1.5 rounded-lg border border-[var(--lose)]/30 bg-[var(--lose)]/20 px-2 py-0.5 text-[10px] font-black text-[var(--lose)]">
-        <span className="live-dot h-2 w-2 rounded-full bg-[var(--lose)]" />
-        LIVE TICKER
+    <div className="flex items-center gap-3 overflow-hidden rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-3 py-1.5">
+      <span className="shrink-0 text-[10px] font-black uppercase tracking-wider text-[var(--text-muted)]">
+        Recent wins
       </span>
       <div className="relative flex flex-1 items-center overflow-hidden">
         {/* Two copies of the row so the -50% crawl loops without a seam. */}
-        <div className="marquee flex items-center gap-8 whitespace-nowrap text-[12px] font-semibold">
+        <div className="marquee flex items-center gap-7 whitespace-nowrap text-[12px] font-semibold">
           {[...items, ...items].map((w, i) => (
-            <span key={`${w.id}-${i}`} className="flex items-center gap-2.5">
-              <span className="font-bold text-[var(--text)]">🎉 {w.number}</span>
-              <span className="rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-2.5 py-0.5 font-black tracking-tight text-[var(--accent)]">
-                {w.amount} Won
-              </span>
+            <span key={`${w.id}-${i}`} className="flex items-center gap-2">
+              <span className="tabular-nums text-[var(--text-muted)]">{w.number}</span>
+              <span className="font-black tabular-nums text-[var(--accent)]">{w.amount}</span>
             </span>
           ))}
         </div>

@@ -79,17 +79,16 @@ export default function PartnerPage() {
           <Image src="/logo.svg" alt="BetZone" width={160} height={35} priority />
         </Link>
 
-        <div className="mb-4 flex gap-1.5">
+        <div className="mb-4 flex border-b border-[var(--line)]">
           {(["login", "register"] as const).map((m) => (
             <button
               key={m}
               onClick={() => setMode(m)}
-              className="flex-1 rounded-lg py-2 text-[12px] font-bold capitalize"
-              style={
+              className={`-mb-px flex-1 border-b-2 py-2.5 text-[13px] font-black ${
                 mode === m
-                  ? { background: "var(--accent)", color: "var(--accent-ink)" }
-                  : { background: "var(--surface)", color: "var(--text-muted)" }
-              }
+                  ? "border-[var(--accent)] text-[var(--text-bright)]"
+                  : "border-transparent text-[var(--text-muted)]"
+              }`}
             >
               {m === "login" ? "Partner login" : "Become a partner"}
             </button>
@@ -179,20 +178,20 @@ function PartnerAuth({ mode, onDone }: { mode: "login" | "register"; onDone: () 
         />
       </Field>
 
-      {error && <p className="rounded-lg bg-[var(--lose)]/15 px-3 py-2 text-[12px] text-[var(--lose)]">{error}</p>}
-      {message && <p className="rounded-lg bg-[var(--win)]/15 px-3 py-2 text-[12px] text-[var(--win)]">{message}</p>}
+      {error && <p className="rounded bg-[var(--lose-bg)] px-3 py-2 text-[12px] text-[var(--lose)]">{error}</p>}
+      {message && <p className="rounded bg-[var(--win)]/15 px-3 py-2 text-[12px] text-[var(--win)]">{message}</p>}
 
       <button
         type="submit"
         disabled={busy}
-        className="w-full rounded-lg bg-[var(--accent)] py-3 text-[14px] font-black text-[var(--accent-ink)] disabled:opacity-50"
+        className="w-full rounded bg-[var(--accent)] py-3 text-[14px] font-black text-[var(--accent-ink)] disabled:opacity-50"
       >
         {busy ? "Working…" : mode === "login" ? "Sign in" : "Create partner account"}
       </button>
 
       {mode === "register" && (
         <p className="text-center text-[11px] text-[var(--text-faint)]">
-          You earn 70% of every deposit your players make — not just their first.
+          You earn 70% of every deposit your players make, not just their first.
         </p>
       )}
     </form>
@@ -242,7 +241,7 @@ function PartnerDashboard({ data, onReload }: { data: Dashboard; onReload: () =>
       </header>
 
       {!partner.approved && (
-        <p className="rounded-lg bg-[var(--pending)]/15 px-4 py-3 text-[12px] text-[var(--pending)]">
+        <p className="rounded-md border border-[var(--pending)] bg-[var(--pending)]/10 px-4 py-3 text-[12px] text-[var(--text)]">
           Your account is waiting for operator approval. You can sign in, but commission is not paid
           on deposits until you are approved.
         </p>
@@ -251,20 +250,20 @@ function PartnerDashboard({ data, onReload }: { data: Dashboard; onReload: () =>
       {partner.approved ? (
         <Link
           href="/admin/custom-matches"
-          className="flex items-center justify-between rounded-lg bg-[var(--bg-elevated)] px-4 py-3 ring-1 ring-[var(--line)]"
+          className="flex items-center justify-between rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-4 py-3 hover:border-[var(--accent)]"
         >
           <span>
-            <span className="block text-[13px] font-bold">Custom matches</span>
+            <span className="block text-[13px] font-black text-[var(--text-bright)]">Custom matches</span>
             <span className="block text-[11px] text-[var(--text-faint)]">
               Create and manage house fixtures
             </span>
           </span>
-          <span className="text-[12px] font-black text-[var(--accent)]">Open →</span>
+          <span className="text-[12px] font-black text-[var(--accent)]">Open</span>
         </Link>
       ) : (
-        <div className="flex items-center justify-between rounded-lg bg-[var(--bg-elevated)] px-4 py-3 opacity-60 ring-1 ring-[var(--line)]">
+        <div className="flex items-center justify-between rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-4 py-3 opacity-60">
           <span>
-            <span className="block text-[13px] font-bold">Custom matches</span>
+            <span className="block text-[13px] font-black text-[var(--text-bright)]">Custom matches</span>
             <span className="block text-[11px] text-[var(--text-faint)]">
               Create and manage house fixtures
             </span>
@@ -273,18 +272,18 @@ function PartnerDashboard({ data, onReload }: { data: Dashboard; onReload: () =>
         </div>
       )}
 
-      <section className="rounded-lg bg-gradient-to-br from-[var(--surface)] to-[var(--surface-2)] p-4">
-        <p className="text-[11px] uppercase tracking-wide text-[var(--text-faint)]">Your referral code</p>
-        <p className="text-[28px] font-black tracking-[0.15em] text-[var(--accent)]">
+      <section className="rounded-md bg-[var(--chrome)] p-4 text-white">
+        <p className="text-[11px] font-bold uppercase tracking-wide text-white/60">Your referral code</p>
+        <p className="text-[28px] font-black tracking-[0.15em] text-[#9ff611]">
           {partner.referral_code}
         </p>
         <div className="mt-2 flex items-center gap-2">
-          <code className="flex-1 truncate rounded-lg bg-[var(--bg)] px-2 py-1.5 text-[11px] text-[var(--text-muted)]">
+          <code className="flex-1 truncate rounded bg-white/10 px-2 py-1.5 text-[11px] text-white/80">
             {link}
           </code>
           <button
             onClick={() => void copyText(link)}
-            className="rounded-lg bg-[var(--accent)] px-3 py-1.5 text-[11px] font-black text-[var(--accent-ink)]"
+            className="rounded bg-[#9ff611] px-3 py-1.5 text-[11px] font-black text-[#071a33]"
           >
             Copy
           </button>
@@ -306,8 +305,8 @@ function PartnerDashboard({ data, onReload }: { data: Dashboard; onReload: () =>
         <Card label="Earned all time" value={<Money totals={partner.lifetime} />} />
       </div>
 
-      <section className="overflow-hidden rounded-lg bg-[var(--bg-elevated)]">
-        <h2 className="border-b border-[var(--line)] px-4 py-2.5 text-[13px] font-bold">
+      <section className="overflow-hidden rounded-md border border-[var(--line)] bg-[var(--bg-elevated)]">
+        <h2 className="border-b border-[var(--line)] px-4 py-2.5 text-[13px] font-black text-[var(--text-bright)]">
           Where to pay you
         </h2>
         <form onSubmit={savePayout} className="grid gap-2 p-4 sm:grid-cols-3">
@@ -331,7 +330,7 @@ function PartnerDashboard({ data, onReload }: { data: Dashboard; onReload: () =>
           />
           <button
             type="submit"
-            className="rounded-lg bg-[var(--accent)] py-2 text-[12px] font-black text-[var(--accent-ink)] sm:col-span-3"
+            className="rounded bg-[var(--accent)] py-2.5 text-[13px] font-black text-[var(--accent-ink)] sm:col-span-3"
           >
             Save payout details
           </button>
@@ -339,8 +338,8 @@ function PartnerDashboard({ data, onReload }: { data: Dashboard; onReload: () =>
         </form>
       </section>
 
-      <section className="overflow-hidden rounded-lg bg-[var(--bg-elevated)]">
-        <h2 className="border-b border-[var(--line)] px-4 py-2.5 text-[13px] font-bold">
+      <section className="overflow-hidden rounded-md border border-[var(--line)] bg-[var(--bg-elevated)]">
+        <h2 className="border-b border-[var(--line)] px-4 py-2.5 text-[13px] font-black text-[var(--text-bright)]">
           Your players
         </h2>
         {!players.length ? (
@@ -355,7 +354,7 @@ function PartnerDashboard({ data, onReload }: { data: Dashboard; onReload: () =>
                   <p className="text-[13px] font-semibold">{p.name}</p>
                   <p className="text-[11px] text-[var(--text-faint)]">{p.phone}</p>
                 </div>
-                <p className="text-[13px] font-bold">
+                <p className="text-[13px] font-black text-[var(--text-bright)]">
                   {p.currency} {Number(p.total_deposited).toFixed(2)}
                 </p>
               </li>
@@ -364,8 +363,8 @@ function PartnerDashboard({ data, onReload }: { data: Dashboard; onReload: () =>
         )}
       </section>
 
-      <section className="overflow-hidden rounded-lg bg-[var(--bg-elevated)]">
-        <h2 className="border-b border-[var(--line)] px-4 py-2.5 text-[13px] font-bold">
+      <section className="overflow-hidden rounded-md border border-[var(--line)] bg-[var(--bg-elevated)]">
+        <h2 className="border-b border-[var(--line)] px-4 py-2.5 text-[13px] font-black text-[var(--text-bright)]">
           Commission history
         </h2>
         {!commissions.length ? (
@@ -395,7 +394,7 @@ function PartnerDashboard({ data, onReload }: { data: Dashboard; onReload: () =>
 }
 
 const inputClass =
-  "w-full rounded-lg bg-[var(--surface-2)] px-3 py-2.5 text-[13px] outline-none focus:ring-1 focus:ring-[var(--accent)]";
+  "w-full rounded border border-[var(--field-line)] bg-[var(--input)] px-3 py-2.5 text-[13px] text-[var(--input-ink)] outline-none placeholder:text-[var(--input-placeholder)] focus:border-[var(--accent)]";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -410,16 +409,16 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 function Card({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="rounded-lg bg-[var(--bg-elevated)] p-4">
+    <div className="rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] p-4">
       <p className="text-[10px] uppercase tracking-wide text-[var(--text-faint)]">{label}</p>
-      <div className="mt-0.5 text-[18px] font-black">{value}</div>
+      <div className="mt-0.5 text-[18px] font-black tabular-nums text-[var(--text-bright)]">{value}</div>
     </div>
   );
 }
 
 function Money({ totals }: { totals: Record<string, number> }) {
   const entries = Object.entries(totals ?? {}).filter(([, v]) => v);
-  if (!entries.length) return <span className="text-[var(--text-faint)]">—</span>;
+  if (!entries.length) return <span className="text-[var(--text-faint)]">-</span>;
   return (
     <>
       {entries.map(([currency, amount]) => (

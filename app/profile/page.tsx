@@ -56,20 +56,20 @@ export default function ProfilePage() {
   return (
     <Page>
       <div className="px-4 py-4 md:mx-auto md:max-w-2xl md:px-5">
-        <h1 className="text-[18px] font-black">Personal page</h1>
+        <h1 className="text-[18px] font-black text-[var(--text-bright)]">Personal details</h1>
 
-        <section className="mt-3 overflow-hidden rounded-lg bg-[var(--bg-elevated)]">
+        <section className="mt-3 overflow-hidden rounded-md border border-[var(--line)] bg-[var(--bg-elevated)]">
           <Field label="Name" value={u?.name ?? player.name} />
           <Field label="Phone" value={player.phone} />
-          <Field label="Email" value={u?.email ?? "—"} />
-          <Field label="Country" value={data?.country.name ?? "—"} />
+          <Field label="Email" value={u?.email ?? "-"} />
+          <Field label="Country" value={data?.country.name ?? "-"} />
           <Field label="Wallet currency" value={player.currency} />
           <Field label="Loyalty tier" value={`${tier.current.name} · ${tier.points.toLocaleString()} pts`} />
         </section>
 
-        <h2 className="mt-6 text-[15px] font-bold">Account standing</h2>
+        <h2 className="mt-6 text-[15px] font-black text-[var(--text-bright)]">Account standing</h2>
 
-        <section className="mt-2 overflow-hidden rounded-lg bg-[var(--bg-elevated)]">
+        <section className="mt-2 overflow-hidden rounded-md border border-[var(--line)] bg-[var(--bg-elevated)]">
           <div className="flex items-start gap-3 border-b border-[var(--line)] px-4 py-3.5">
             <span style={{ color: unlocked ? "var(--win)" : "var(--pending)" }}>
               {unlocked ? (
@@ -79,16 +79,16 @@ export default function ProfilePage() {
               )}
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-[13px] font-semibold">
+              <p className="text-[13px] font-bold text-[var(--text-bright)]">
                 Withdrawals {unlocked ? "unlocked" : "locked"}
               </p>
               <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">
-                {data?.withdrawal.progress.label ?? "—"}
+                {data?.withdrawal.progress.label ?? "-"}
               </p>
               {data && (
-                <div className="mt-2 h-1 overflow-hidden rounded-full bg-[var(--surface-2)]">
+                <div className="mt-2 h-1 overflow-hidden bg-[var(--surface-2)]">
                   <div
-                    className="h-full rounded-full bg-[var(--accent)]"
+                    className="h-full bg-[var(--accent)]"
                     style={{
                       width: `${Math.min(
                         100,
@@ -105,7 +105,7 @@ export default function ProfilePage() {
           <Field label="Withdrawn" value={formatMoney(Number(u?.total_withdrawn ?? 0), player.currency)} />
         </section>
 
-        <nav className="mt-6 overflow-hidden rounded-lg bg-[var(--bg-elevated)]">
+        <nav className="mt-6 overflow-hidden rounded-md border border-[var(--line)] bg-[var(--bg-elevated)]">
           {[
             { href: "/transactions", label: "Transactions" },
             { href: "/my-bets", label: "Bet history" },
@@ -115,7 +115,7 @@ export default function ProfilePage() {
             <Link
               key={item.href}
               href={item.href}
-              className="flex items-center justify-between border-b border-[var(--line)] px-4 py-3.5 text-[13px] last:border-0"
+              className="flex items-center justify-between border-b border-[var(--line)] px-4 py-3 text-[13px] font-semibold last:border-0 hover:bg-[var(--surface-3)]"
             >
               {item.label}
               <ChevronRight size={16} strokeWidth={2} className="text-[var(--text-faint)]" />
@@ -124,7 +124,7 @@ export default function ProfilePage() {
         </nav>
 
         <p className="mt-4 px-1 text-[11px] leading-relaxed text-[var(--text-faint)]">
-          To change your name, phone number or country, contact support — these are tied to how
+          To change your name, phone number or country, contact support. These are tied to how
           payments reach you.
         </p>
       </div>
@@ -136,7 +136,7 @@ function Field({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between border-b border-[var(--line)] px-4 py-3 last:border-0">
       <span className="text-[12px] text-[var(--text-muted)]">{label}</span>
-      <span className="text-[13px] font-medium">{value}</span>
+      <span className="text-[13px] font-semibold tabular-nums text-[var(--text-bright)]">{value}</span>
     </div>
   );
 }

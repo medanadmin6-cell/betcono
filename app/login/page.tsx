@@ -5,7 +5,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useSession } from "@/lib/store";
 import { getCountry, normalisePhone } from "@/lib/countries";
-import { CountryBar, PhoneField, PasswordField, PrimaryButton } from "@/components/AuthFields";
+import {
+  AuthLayout,
+  CountryBar,
+  PhoneField,
+  PasswordField,
+  PrimaryButton,
+} from "@/components/AuthFields";
 
 function LoginForm() {
   const router = useRouter();
@@ -53,51 +59,50 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg)]">
-      <div className="mx-auto w-full max-w-[455px] px-6 pb-16 pt-5">
-        <CountryBar
-          country={country}
-          onChange={setCountryCode}
-          onClose={() => router.push("/")}
-        />
+    <AuthLayout
+      title="Log in"
+      subtitle="Use the mobile number you registered with."
+      onClose={() => router.push("/")}
+      footer={
+        <div className="space-y-3 text-center text-[13px] text-[var(--text-muted)]">
+          <p>
+            New to BetZone?{" "}
+            <Link href="/register" className="font-bold text-[var(--accent)]">
+              Create an account
+            </Link>
+          </p>
+          <p>
+            To deactivate or reactivate your account,{" "}
+            <Link href="/account-status" className="font-bold text-[var(--accent)]">
+              go to account status
+            </Link>
+            .
+          </p>
+        </div>
+      }
+    >
+      <form onSubmit={submit} className="space-y-4">
+        <CountryBar country={country} onChange={setCountryCode} />
+        <PhoneField country={country} value={phone} onChange={setPhone} autoFocus />
+        <PasswordField value={password} onChange={setPassword} />
 
-        <form onSubmit={submit} className="mt-8 space-y-4">
-          <PhoneField country={country} value={phone} onChange={setPhone} autoFocus />
-          <PasswordField value={password} onChange={setPassword} />
-
-          {error && (
-            <p className="rounded-lg bg-[var(--lose-bg)] px-3 py-2.5 text-[13px] text-[var(--lose)]">
-              {error}
-            </p>
-          )}
-
-          <div className="pt-2">
-            <PrimaryButton type="submit" disabled={busy}>
-              {busy ? "Signing in…" : "Login"}
-            </PrimaryButton>
-          </div>
-        </form>
-
-        <div className="mt-5 flex items-center justify-between">
-          <Link href="/forgot-password" className="text-[15px] font-medium text-[var(--accent)]">
-            Forgot Password ?
-          </Link>
-          <Link href="/register" className="text-[15px] font-medium text-[var(--accent)]">
-            Create New Account
+        <div className="flex justify-end">
+          <Link href="/forgot-password" className="text-[12px] font-bold text-[var(--accent)]">
+            Forgot password?
           </Link>
         </div>
 
-        <p className="mt-10 text-center text-[15px] text-[var(--text-muted)]">Or</p>
+        {error && (
+          <p className="rounded bg-[var(--lose-bg)] px-3 py-2.5 text-[13px] text-[var(--lose)]">
+            {error}
+          </p>
+        )}
 
-        <p className="mt-8 text-[15px] leading-relaxed text-[var(--text-muted)]">
-          To deactivate or reactivate your account{" "}
-          <Link href="/account-status" className="font-medium text-[var(--accent)]">
-            click here
-          </Link>{" "}
-          .
-        </p>
-      </div>
-    </div>
+        <PrimaryButton type="submit" disabled={busy}>
+          {busy ? "Logging in…" : "Log in"}
+        </PrimaryButton>
+      </form>
+    </AuthLayout>
   );
 }
 

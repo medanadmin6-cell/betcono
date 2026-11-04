@@ -4,7 +4,6 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Page } from "@/components/Shell";
-import { BetSlip } from "@/components/BetSlip";
 import { useSlip, type SlipLeg } from "@/lib/store";
 
 /** Load a booking code and drop its selections straight into the slip. */
@@ -69,7 +68,7 @@ function LoadCodeForm() {
   };
 
   return (
-    <Page>
+    <Page rails>
       <div className="mx-auto max-w-sm space-y-4 py-6">
         <h1 className="text-[18px] font-black">Load a booking code</h1>
         <p className="text-[13px] text-[var(--text-muted)]">
@@ -82,7 +81,8 @@ function LoadCodeForm() {
             onChange={(e) => setCode(e.target.value.toUpperCase())}
             placeholder="ABC123"
             maxLength={6}
-            className="w-full rounded-lg bg-[var(--surface-2)] px-3 py-4 text-center text-[24px] font-black tracking-[0.25em] outline-none focus:ring-1 focus:ring-[var(--accent)]"
+            aria-label="Booking code"
+            className="w-full rounded-md border border-[var(--field-line)] bg-[var(--input)] px-3 py-4 text-center text-[24px] font-black tracking-[0.25em] text-[var(--input-ink)] outline-none focus:border-[var(--accent)]"
           />
 
           {error && (
@@ -102,14 +102,12 @@ function LoadCodeForm() {
           <button
             type="submit"
             disabled={busy || code.trim().length < 4}
-            className="w-full rounded-lg bg-[var(--accent)] py-3 text-[14px] font-black text-[var(--accent-ink)] disabled:opacity-50"
+            className="w-full rounded-md bg-[var(--accent)] py-3 text-[14px] font-black text-[var(--accent-ink)] disabled:opacity-50"
           >
             {busy ? "Loading…" : "Load code"}
           </button>
         </form>
       </div>
-
-      <BetSlip />
     </Page>
   );
 }

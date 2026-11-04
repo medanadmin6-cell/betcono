@@ -17,7 +17,7 @@ export default function HowToPlayPage() {
   return (
     <Page>
       <div className="px-4 py-4 md:mx-auto md:max-w-2xl md:px-5">
-        <h1 className="text-[20px] font-black">How to play</h1>
+        <h1 className="text-[20px] font-black text-[var(--text-bright)]">How to play</h1>
 
         <Section title="Placing a bet">
           <p>
@@ -26,7 +26,7 @@ export default function HowToPlayPage() {
           </p>
           <p>
             The price is re-read from the board when you submit, so a slip left open will never be
-            struck at a stale price — if it moved, you are told rather than charged the old one.
+            struck at a stale price. If it moved, you are told rather than charged the old one.
           </p>
           <p>
             Tap <strong>Book</strong> instead of Place bet to save the slip under a short code that
@@ -47,7 +47,7 @@ export default function HowToPlayPage() {
 
         <Section title="Withdrawals">
           <p>
-            Withdrawals unlock after <strong>three separate qualifying deposits</strong> — not one
+            Withdrawals unlock after <strong>three separate qualifying deposits</strong>, not one
             large one. Deposits are counted, not added up, so paying the whole amount at once
             unlocks nothing.
           </p>
@@ -60,7 +60,7 @@ export default function HowToPlayPage() {
         <Section title="When bets settle" id="settlement">
           <p>
             Match result, goals, corners, handicaps and half-time markets settle automatically as
-            soon as the match finishes — usually within about half a minute.
+            soon as the match finishes, usually within about half a minute.
           </p>
           <p>
             Some outcomes cannot be decided automatically. A whole line that lands exactly (over 2
@@ -72,9 +72,9 @@ export default function HowToPlayPage() {
         <Section title="Loyalty tiers" id="loyalty">
           <p>
             You earn one tier point for every unit you stake. Points come from turnover, not from
-            deposits — funding an account you never play earns nothing.
+            deposits. Funding an account you never play earns nothing.
           </p>
-          <div className="mt-2 overflow-hidden rounded-lg bg-[var(--bg-elevated)]">
+          <div className="mt-2 overflow-hidden rounded-md border border-[var(--line)] bg-[var(--bg-elevated)]">
             <table className="w-full text-left text-[13px]">
               <thead>
                 <tr className="border-b border-[var(--line)] text-[10px] uppercase tracking-wide text-[var(--text-faint)]">
@@ -87,9 +87,9 @@ export default function HowToPlayPage() {
                 {TIERS.map((t) => (
                   <tr key={t.name}>
                     <td className="px-3 py-2 font-semibold">{t.name}</td>
-                    <td className="px-3 py-2">{t.at.toLocaleString()}</td>
-                    <td className="px-3 py-2 text-[var(--accent)]">
-                      {t.rewardRate ? `${(t.rewardRate * 100).toFixed(1)}%` : "—"}
+                    <td className="px-3 py-2 tabular-nums">{t.at.toLocaleString()}</td>
+                    <td className="px-3 py-2 font-semibold tabular-nums text-[var(--accent)]">
+                      {t.rewardRate ? `${(t.rewardRate * 100).toFixed(1)}%` : "-"}
                     </td>
                   </tr>
                 ))}
@@ -108,7 +108,7 @@ export default function HowToPlayPage() {
               href={`https://wa.me/${whatsapp.replace(/\D/g, "")}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-2 inline-block rounded-lg bg-[var(--accent)] px-5 py-2.5 text-[13px] font-black text-[var(--accent-ink)]"
+              className="mt-2 inline-block rounded bg-[var(--accent)] px-5 py-2.5 text-[13px] font-black text-[var(--accent-ink)]"
             >
               Message us on WhatsApp
             </a>
@@ -149,7 +149,7 @@ function Section({
 }) {
   return (
     <section id={id} className="mt-6 scroll-mt-16">
-      <h2 className="mb-2 text-[15px] font-bold text-[var(--text-bright)]">{title}</h2>
+      <h2 className="mb-2 text-[15px] font-black text-[var(--text-bright)]">{title}</h2>
       <div className="space-y-2 text-[13px] leading-relaxed text-[var(--text-muted)]">{children}</div>
     </section>
   );

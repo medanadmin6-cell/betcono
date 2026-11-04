@@ -80,7 +80,7 @@ export function PitchTracker({
   const homeShare = possession ? possession.home : 50;
 
   return (
-    <div className="overflow-hidden rounded-2xl bg-[var(--bg-elevated)]">
+    <div className="overflow-hidden rounded-md border border-[var(--line)] bg-[var(--bg-elevated)]">
       {/* Score strip */}
       <div className="flex items-center justify-between gap-2 px-3 py-2.5">
         <span className="min-w-0 flex-1 truncate text-[12px] font-semibold">{homeTeam}</span>
@@ -89,13 +89,13 @@ export function PitchTracker({
             {scoreHome} - {scoreAway}
           </span>
           <span
-            className="rounded-lg px-1.5 py-0.5 text-[10px] font-black"
+            className="rounded-sm px-1.5 text-[10px] font-black uppercase leading-[16px]"
             style={{
               background: isLive ? "var(--live)" : "var(--surface-2)",
               color: isLive ? "#fff" : "var(--text-muted)",
             }}
           >
-            {isLive ? minuteLabel : "PRE"}
+            {isLive ? minuteLabel : "Pre-match"}
           </span>
         </span>
         <span className="min-w-0 flex-1 truncate text-right text-[12px] font-semibold">{awayTeam}</span>
@@ -104,14 +104,7 @@ export function PitchTracker({
       {/* The pitch */}
       <div className="relative">
         <svg viewBox="0 0 100 62" className="block w-full" role="img" aria-label="Match pitch">
-          <defs>
-            <linearGradient id="turf" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stopColor="#16351C" />
-              <stop offset="1" stopColor="#0F2415" />
-            </linearGradient>
-          </defs>
-
-          <rect width="100" height="62" fill="url(#turf)" />
+          <rect width="100" height="62" fill="#133019" />
 
           {/* Mown stripes */}
           {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
@@ -207,8 +200,8 @@ export function PitchTracker({
 
         {celebrating && (
           <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
-            <span className="rounded-full bg-[var(--accent)] px-4 py-1.5 text-[15px] font-black text-[var(--accent-ink)]">
-              GOAL
+            <span className="rounded bg-[#9ff611] px-4 py-1.5 text-[15px] font-black uppercase tracking-wider text-[#071a33]">
+              Goal
             </span>
           </span>
         )}
@@ -218,9 +211,9 @@ export function PitchTracker({
       {possession ? (
         <div className="px-3 py-2.5">
           <div className="flex items-center justify-between text-[11px]">
-            <span className="font-bold text-[var(--accent)]">{possession.home}%</span>
+            <span className="font-bold tabular-nums text-[var(--accent)]">{possession.home}%</span>
             <span className="text-[var(--text-muted)]">Possession</span>
-            <span className="font-bold text-[var(--hint)]">{possession.away}%</span>
+            <span className="font-bold tabular-nums text-[var(--hint)]">{possession.away}%</span>
           </div>
           <div className="mt-1 flex h-1 overflow-hidden rounded-full bg-[var(--surface-2)]">
             <span className="h-full bg-[var(--accent)]" style={{ width: `${homeShare}%` }} />
@@ -230,7 +223,7 @@ export function PitchTracker({
       ) : (
         <p className="px-3 py-2 text-[10px] leading-relaxed text-[var(--text-faint)]">
           Markers are real events at their real minute. Live possession is not reported for this
-          match, and the ball is not positionally tracked — it moves when a goal goes in.
+          match, and the ball is not positionally tracked. It moves when a goal goes in.
         </p>
       )}
 
@@ -239,7 +232,7 @@ export function PitchTracker({
           Latest:{" "}
           <span className="font-semibold text-[var(--text)]">
             {latest.minute}&apos; {latest.detail}
-            {latest.player ? ` — ${latest.player}` : ""}
+            {latest.player ? `, ${latest.player}` : ""}
           </span>{" "}
           <span className="text-[var(--text-faint)]">
             ({latest.side === "home" ? homeTeam : awayTeam})

@@ -12,7 +12,7 @@ import { copyText } from "@/lib/clipboard";
  *
  * Shown once per ticket. Which tickets have already been celebrated is kept in
  * browser storage, so a settled win is announced when the player next opens the
- * app and never again after that — a modal that reappears on every visit stops
+ * app and never again after that. A modal that reappears on every visit stops
  * being a celebration and becomes an obstacle.
  */
 
@@ -141,9 +141,11 @@ export function WinCelebration({
       </button>
 
       <div className="relative flex w-full max-w-sm flex-col items-center">
-        <p className="win-line text-[40px] font-black leading-none tracking-tight text-white">YOU WON</p>
+        <p className="win-line text-[36px] font-black uppercase leading-none tracking-tight text-white">
+          You won
+        </p>
         <p
-          className="win-line mt-2 text-[30px] font-black leading-none text-[var(--accent)]"
+          className="win-line mt-2 text-[30px] font-black leading-none tabular-nums text-[#9ff611]"
           style={{ animationDelay: "0.12s" }}
         >
           {formatMoney(amount, currency)}
@@ -152,29 +154,29 @@ export function WinCelebration({
         {/* Two wrappers: one throws the cup up, the other keeps it breathing. */}
         <div className="win-cup mt-2">
           <div className="win-cup-float">
-            <Trophy animated size={230} className="drop-shadow-[0_0_28px_rgba(159,246,17,0.35)]" />
+            <Trophy animated size={230} />
           </div>
         </div>
 
         <p className="win-line -mt-2 text-[13px] text-white/70" style={{ animationDelay: "0.75s" }}>
-          Ticket:{" "}
-          <span className="font-bold tracking-wider text-[var(--accent)]">{code}</span>
+          Ticket{" "}
+          <span className="font-bold tracking-wider text-[#9ff611]">{code}</span>
         </p>
 
         <div className="win-line mt-6 grid w-full grid-cols-2 gap-3" style={{ animationDelay: "0.85s" }}>
           <Link
             href={`/my-bets/${code}`}
             onClick={onClose}
-            className="rounded-lg py-3 text-center text-[15px] font-bold text-[var(--accent)] ring-1 ring-[var(--accent)]"
+            className="rounded py-3 text-center text-[14px] font-bold text-white ring-1 ring-white/40 hover:bg-white/10"
           >
-            Details
+            View ticket
           </Link>
           <button
             onClick={share}
-            className="flex items-center justify-center gap-2 rounded-lg bg-[var(--accent)] py-3 text-[15px] font-black text-[var(--accent-ink)]"
+            className="flex items-center justify-center gap-2 rounded bg-[#9ff611] py-3 text-[14px] font-black text-[#071a33]"
           >
             {copied ? <Check size={16} strokeWidth={2.6} /> : <Share2 size={16} strokeWidth={2.2} />}
-            {copied ? "Copied" : "Show Off"}
+            {copied ? "Copied" : "Share"}
           </button>
         </div>
       </div>

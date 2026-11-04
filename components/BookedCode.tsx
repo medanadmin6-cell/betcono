@@ -9,7 +9,7 @@ import { copyText } from "@/lib/clipboard";
  * The booking receipt: a navy masthead the colour of the app's chrome, the
  * code writ large with copy and download beside it, the total odds, a worked
  * example bet, then every selection. The ticket keeps its own literal colours
- * in both themes — BetZone navy and cool white with a lime accent, a
+ * in both themes (BetZone navy and cool white with a lime accent), as a
  * branded artifact, not chrome.
  */
 export function BookedCode({
@@ -31,7 +31,7 @@ export function BookedCode({
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const link = `${origin}/load-code?code=${code}`;
   const imageUrl = `/api/bookings/${code}/image`;
-  const message = `Load my BetZone code ${code} — ${link}`;
+  const message = `Load my BetZone code ${code}: ${link}`;
 
   const totalOdds = legs.reduce((acc, l) => acc * l.odds, 1);
   const exampleStake = 10;
@@ -77,14 +77,15 @@ export function BookedCode({
       {/* Navy masthead */}
       <div className="flex items-center justify-between bg-[#071a33] px-4 py-2.5 text-[#f4f8fc]">
         <span className="flex items-center gap-2">
-          <Ticket size={22} strokeWidth={2.4} />
-          <span className="text-[16px] font-black tracking-wide">BETZONE</span>
-          <span className="text-[13px] font-bold">🇬🇭 Ghana</span>
+          <Ticket size={20} strokeWidth={2.4} className="text-[#9ff611]" />
+          <span className="text-[16px] font-black tracking-tight">
+            Bet<span className="text-[#9ff611]">Zone</span>
+          </span>
         </span>
         <span className="flex items-center gap-3">
           <span className="text-right">
-            <span className="block text-[15px] font-black leading-tight">Betslip</span>
-            <span className="block text-[11px] font-semibold">
+            <span className="block text-[13px] font-black leading-tight">Booked slip</span>
+            <span className="block text-[11px] font-semibold tabular-nums text-[#b7c9dc]">
               {new Date().toLocaleString("en-GB", {
                 day: "2-digit",
                 month: "2-digit",
@@ -97,25 +98,27 @@ export function BookedCode({
           <button
             onClick={onDone}
             aria-label="Back to slip"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15"
+            className="flex h-8 w-8 items-center justify-center rounded bg-white/15"
           >
             <X size={18} strokeWidth={2.4} />
           </button>
         </span>
       </div>
 
-      {/* Ticket body — literal dark, in both themes */}
+      {/* Ticket body: literal dark, in both themes */}
       <div className="bg-[#04101f] px-4 pb-4 pt-4">
-        <h2 className="text-center text-[15px] font-bold text-[#f4f8fc]">Booking Code</h2>
+        <h2 className="text-center text-[12px] font-bold uppercase tracking-[0.18em] text-[#b7c9dc]">
+          Booking code
+        </h2>
 
-        <div className="mt-1 flex items-center justify-center gap-3">
+        <div className="mt-1.5 flex items-center justify-center gap-2">
           <span className="text-[32px] font-black leading-none tracking-[0.06em] text-[#9ff611]">
             {code}
           </span>
           <button
             onClick={() => copy(code, "code")}
             aria-label="Copy booking code"
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0e2a4d] text-[#f4f8fc]"
+            className="flex h-9 w-9 items-center justify-center rounded-[5px] bg-[#0e2a4d] text-[#f4f8fc]"
           >
             {copied === "code" ? (
               <Check size={19} strokeWidth={2.6} className="text-[#9ff611]" />
@@ -127,7 +130,7 @@ export function BookedCode({
             href={imageUrl}
             download={`betzone-${code}.png`}
             aria-label="Download ticket"
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0e2a4d] text-[#f4f8fc]"
+            className="flex h-9 w-9 items-center justify-center rounded-[5px] bg-[#0e2a4d] text-[#f4f8fc]"
           >
             <Download size={19} strokeWidth={2} />
           </a>
@@ -146,36 +149,36 @@ export function BookedCode({
         </p>
 
         {/* Total odds */}
-        <div className="mt-3 rounded-lg border-b-4 border-[#9ff611] bg-[#0e2a4d] px-4 py-3">
+        <div className="mt-3 rounded-md border-l-4 border-[#9ff611] bg-[#0e2a4d] px-4 py-3">
           <div className="flex items-center justify-between">
-            <span className="text-[16px] font-semibold text-[#f4f8fc]">Odds</span>
-            <span className="text-[24px] font-black leading-none text-white">
+            <span className="text-[14px] font-semibold text-[#f4f8fc]">Total odds</span>
+            <span className="text-[24px] font-black leading-none tabular-nums text-white">
               {money(totalOdds)}
             </span>
           </div>
         </div>
 
         {/* Example bet */}
-        <div className="mt-3 overflow-hidden rounded-lg">
+        <div className="mt-3 overflow-hidden rounded-md">
           <div className="bg-[#f4f8fc] px-4 py-2">
-            <span className="text-[15px] font-black text-[#0a6b40]">Example Bet</span>
+            <span className="text-[13px] font-black text-[#0a6b40]">Example bet</span>
           </div>
-          <div className="space-y-2 bg-white px-4 py-3">
-            <div className="flex items-center justify-between text-[15px] text-[#071a33]">
+          <div className="space-y-1.5 bg-white px-4 py-3">
+            <div className="flex items-center justify-between text-[14px] text-[#071a33]">
               <span>Stake</span>
-              <span className="font-semibold">{money(exampleStake)}</span>
+              <span className="font-bold tabular-nums">{money(exampleStake)}</span>
             </div>
-            <div className="flex items-center justify-between text-[15px] text-[#071a33]">
+            <div className="flex items-center justify-between text-[14px] text-[#071a33]">
               <span>Payout</span>
-              <span className="font-semibold">{money(examplePayout)}</span>
+              <span className="font-bold tabular-nums">{money(examplePayout)}</span>
             </div>
           </div>
         </div>
 
         {/* Selections */}
-        <div className="mt-3 overflow-hidden rounded-lg">
+        <div className="mt-3 overflow-hidden rounded-md">
           <div className="bg-[#f4f8fc] px-4 py-2">
-            <span className="text-[15px] font-black text-[#0a6b40]">Selections</span>
+            <span className="text-[13px] font-black text-[#0a6b40]">Selections</span>
           </div>
           <ul className="divide-y divide-[#eef2f7] bg-white">
             {legs.map((l) => (
@@ -185,14 +188,14 @@ export function BookedCode({
                     <span className="flex h-4 w-4 items-center justify-center rounded-full border-2 border-[#0a6b40]">
                       <span className="h-1.5 w-1.5 rounded-full bg-[#0a6b40]" />
                     </span>
-                    <span className="text-[16px] font-black text-[#071a33]">{l.outcomeLabel}</span>
+                    <span className="text-[14px] font-black text-[#071a33]">{l.outcomeLabel}</span>
                   </span>
-                  <span className="text-[16px] font-black text-[#071a33]">{money(l.odds)}</span>
+                  <span className="text-[14px] font-black tabular-nums text-[#071a33]">{money(l.odds)}</span>
                 </div>
-                <p className="mt-1 pl-6 text-[14px] text-[#4c667f]">
-                  {l.homeTeam} vs {l.awayTeam}
+                <p className="mt-0.5 pl-6 text-[13px] text-[#4c667f]">
+                  {l.homeTeam} v {l.awayTeam}
                 </p>
-                <p className="pl-6 text-[13px] text-[#8aa0b4]">{l.marketLabel}</p>
+                <p className="pl-6 text-[12px] text-[#8aa0b4]">{l.marketLabel}</p>
               </li>
             ))}
           </ul>
@@ -202,7 +205,7 @@ export function BookedCode({
       {/* Sharing, on the sheet's own tokens */}
       <div className="px-5 pb-5 pt-4">
         <div className="flex items-center justify-between">
-          <span className="text-[14px] text-[var(--text-bright)]">Share Code on Personal Page</span>
+          <span className="text-[13px] font-semibold text-[var(--text-bright)]">Show this code on my profile</span>
           <button
             role="switch"
             aria-checked={shared}
@@ -226,13 +229,13 @@ export function BookedCode({
             icon={<XLogo />}
           />
           <ShareAction
-            label="Whatsapp"
+            label="WhatsApp"
             href={`https://wa.me/?text=${encodeURIComponent(message)}`}
             icon={<WhatsAppLogo />}
           />
-          <ShareAction label="Share In App" onClick={shareInApp} icon={<Share2 size={19} strokeWidth={2} />} />
+          <ShareAction label="Share" onClick={shareInApp} icon={<Share2 size={19} strokeWidth={2} />} />
           <ShareAction
-            label={copied === "link" ? "Copied" : "Copy Link"}
+            label={copied === "link" ? "Copied" : "Copy link"}
             onClick={() => copy(link, "link")}
             icon={copied === "link" ? <Check size={19} strokeWidth={2.4} /> : <Link2 size={19} strokeWidth={2} />}
           />
@@ -246,7 +249,7 @@ export function BookedCode({
 
         <button
           onClick={onDone}
-          className="mt-4 w-full py-2 text-[13px] font-semibold text-[var(--text-muted)]"
+          className="mt-4 w-full rounded border border-[var(--line)] py-2.5 text-[13px] font-bold text-[var(--text)]"
         >
           Back to slip
         </button>
@@ -270,7 +273,7 @@ function ShareAction({
 }) {
   const body = (
     <>
-      <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#071a33]">
+      <span className="flex h-10 w-10 items-center justify-center rounded-md border border-[var(--line)] bg-[var(--bg)] text-[var(--text-bright)]">
         {icon}
       </span>
       <span className="text-center text-[11px] leading-tight text-[var(--text)]">{label}</span>

@@ -52,8 +52,8 @@ const POLL_MS = 30_000;
 
 const STATUS_STYLE: Record<string, { bg: string; fg: string; label: string }> = {
   pending: { bg: "var(--pending)", fg: "#3a2500", label: "Open" },
-  won: { bg: "var(--win)", fg: "#052e16", label: "Won" },
-  lost: { bg: "var(--lose)", fg: "#450a12", label: "Lost" },
+  won: { bg: "var(--win)", fg: "#ffffff", label: "Won" },
+  lost: { bg: "var(--lose)", fg: "#ffffff", label: "Lost" },
   cashed_out: { bg: "var(--pending)", fg: "#3a2500", label: "Cashed out" },
   void: { bg: "var(--surface-2)", fg: "var(--text)", label: "Void" },
 };
@@ -175,8 +175,8 @@ export default function MyBetsPage() {
 
   const openFilters = [
     { key: "all", label: "All" },
-    { key: "cashout", label: "Cashout Available" },
-    { key: "live", label: "Live Games" },
+    { key: "cashout", label: "Cash out available" },
+    { key: "live", label: "Live" },
   ];
   const historyFilters = [
     { key: "all", label: "All" },
@@ -187,42 +187,50 @@ export default function MyBetsPage() {
 
   return (
     <Page>
-      {/* File tabs, attached to the content below them */}
-      <div className="flex items-end gap-1 px-2 pt-3 md:px-5">
-        {(
-          [
-            { key: "open", label: `Open Bets (${open.length})` },
-            { key: "history", label: "Bet History" },
-          ] as const
-        ).map((t) => (
-          <button
-            key={t.key}
-            onClick={() => {
-              setTab(t.key);
-              setFilter("all");
-            }}
-            className={`rounded-t-xl px-5 py-3 text-[14px] font-black transition-colors ${
-              tab === t.key
-                ? "bg-[var(--bg-elevated)] text-[var(--text-bright)]"
-                : "bg-[var(--surface-3)] text-[var(--text-muted)]"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
+      <div className="px-3 pt-4 md:mx-auto md:max-w-3xl md:px-5">
+        <h1 className="text-[20px] font-black text-[var(--text-bright)]">My bets</h1>
+
+        <div className="mt-3 flex border-b border-[var(--line)]">
+          {(
+            [
+              { key: "open", label: `Open (${open.length})` },
+              { key: "history", label: "History" },
+            ] as const
+          ).map((t) => (
+            <button
+              key={t.key}
+              onClick={() => {
+                setTab(t.key);
+                setFilter("all");
+              }}
+              className={`-mb-px border-b-2 px-4 py-2.5 text-[14px] font-black transition-colors ${
+                tab === t.key
+                  ? "border-[var(--accent)] text-[var(--text-bright)]"
+                  : "border-transparent text-[var(--text-muted)] hover:text-[var(--text)]"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="space-y-3 bg-[var(--bg-elevated)] px-2 pb-4 pt-3 md:px-5">
-        {/* Filter chips */}
-        <div className="scroll-x flex gap-1.5">
+      <div className="space-y-2.5 px-3 pb-4 pt-3 md:mx-auto md:max-w-3xl md:px-5">
+        {/* Filters */}
+        <div
+          className="scroll-x inline-flex max-w-full rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] p-0.5"
+          role="tablist"
+        >
           {(tab === "open" ? openFilters : historyFilters).map((f) => (
             <button
               key={f.key}
+              role="tab"
+              aria-selected={filter === f.key}
               onClick={() => setFilter(f.key)}
-              className={`whitespace-nowrap rounded-xl border px-3.5 py-1.5 text-[13px] font-bold transition-colors ${
+              className={`whitespace-nowrap rounded-[4px] px-3 py-1.5 text-[12px] font-bold transition-colors ${
                 filter === f.key
-                  ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]"
-                  : "border-[var(--line)] bg-[var(--bg)] text-[var(--text)]"
+                  ? "bg-[var(--accent)] text-[var(--accent-ink)]"
+                  : "text-[var(--text-muted)] hover:text-[var(--text)]"
               }`}
             >
               {f.label}
@@ -232,10 +240,10 @@ export default function MyBetsPage() {
 
         {/* Cashout banner */}
         {tab === "open" && anyCashout && !bannerDismissed && (
-          <div className="rounded-xl border border-[var(--line)] bg-[var(--bg)] p-3.5">
+          <div className="rounded-md border border-[var(--accent)] bg-[var(--bg-elevated)] p-3">
             <div className="flex items-start justify-between gap-3">
-              <p className="text-[16px] font-black text-[var(--text-bright)]">
-                Cashout available now!
+              <p className="text-[14px] font-black text-[var(--text-bright)]">
+                Cash out is available on an open bet
               </p>
               <button
                 onClick={() => setBannerDismissed(true)}
@@ -262,12 +270,12 @@ export default function MyBetsPage() {
         {tickets === null ? (
           <div className="space-y-2">
             {[0, 1, 2].map((i) => (
-              <div key={i} className="h-28 rounded-xl bg-[var(--bg)] opacity-60" />
+              <div key={i} className="h-28 rounded-md bg-[var(--bg-elevated)] opacity-60" />
             ))}
           </div>
         ) : tab === "open" ? (
           shownOpen.length === 0 ? (
-            <p className="rounded-xl bg-[var(--bg)] p-10 text-center text-[var(--text-muted)]">
+            <p className="rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] p-10 text-center text-[13px] text-[var(--text-muted)]">
               No open bets here.
             </p>
           ) : (
@@ -281,7 +289,7 @@ export default function MyBetsPage() {
             ))
           )
         ) : shownHistory.length === 0 ? (
-          <p className="rounded-xl bg-[var(--bg)] p-10 text-center text-[var(--text-muted)]">
+          <p className="rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] p-10 text-center text-[13px] text-[var(--text-muted)]">
             No tickets here yet.
           </p>
         ) : (
@@ -319,11 +327,17 @@ function OpenTicketCard({
   const offer = detail?.cashout;
 
   return (
-    <article className="overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--bg)]">
-      <div className="border-b border-[var(--line)] px-4 py-3">
-        <h3 className="text-[16px] font-black text-[var(--text-bright)]">
-          {legs.length === 1 ? "Singles" : `Multiple (${legs.length})`}
+    <article className="overflow-hidden rounded-md border border-[var(--line)] bg-[var(--bg-elevated)]">
+      <div className="flex items-center gap-2 border-b border-[var(--line)] px-4 py-2.5">
+        <h3 className="text-[14px] font-black text-[var(--text-bright)]">
+          {legs.length === 1 ? "Single" : `Multiple (${legs.length})`}
         </h3>
+        <span className="rounded-sm bg-[var(--pending)] px-1.5 text-[10px] font-black uppercase leading-[16px] text-[#3a2500]">
+          Open
+        </span>
+        <span className="ml-auto text-[11px] font-bold tracking-wider text-[var(--text-faint)]">
+          {ticket.code}
+        </span>
       </div>
 
       {expanded && (
@@ -333,23 +347,24 @@ function OpenTicketCard({
             return (
               <li key={`${l.match_id}-${l.market}-${l.outcome}`} className="px-4 py-3">
                 <div className="flex items-start gap-2.5">
-                  <Clock size={17} strokeWidth={2} className="mt-0.5 shrink-0 text-[var(--text-muted)]" />
+                  <Clock size={15} strokeWidth={2} className="mt-0.5 shrink-0 text-[var(--text-faint)]" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-[15px] font-black text-[var(--text-bright)]">
-                      {l.outcome} @ {Number(l.odds).toFixed(2)}{" "}
+                    <p className="text-[13px] font-black text-[var(--text-bright)]">
+                      {l.outcome}{" "}
+                      <span className="tabular-nums">@ {Number(l.odds).toFixed(2)}</span>{" "}
                       <span className="font-semibold text-[var(--text-muted)]">
                         {marketName(l.market)}
                       </span>
                     </p>
                     {live && (
-                      <span className="mt-1 inline-flex items-center gap-1.5 rounded-lg bg-[var(--lose)] px-2 py-0.5 text-[12px] font-black italic text-white">
+                      <span className="mt-1 inline-flex items-center gap-1.5 rounded-sm bg-[var(--lose)] px-1.5 text-[11px] font-black leading-[18px] tabular-nums text-white">
                         <span className="live-dot h-1.5 w-1.5 rounded-full bg-white" />
-                        LIVE {l.liveHome ?? 0}:{l.liveAway ?? 0}{" "}
+                        Live {l.liveHome ?? 0}:{l.liveAway ?? 0}{" "}
                         {l.minuteLabel ? `${l.minuteLabel}` : ""}
                       </span>
                     )}
-                    <p className="mt-1 text-[14px] font-bold text-[var(--text-bright)] underline decoration-[var(--text-faint)] underline-offset-2">
-                      {l.home_team} <span className="font-normal text-[var(--text-muted)]">vs</span>{" "}
+                    <p className="mt-1 text-[13px] font-semibold text-[var(--text)]">
+                      {l.home_team} <span className="font-normal text-[var(--text-faint)]">v</span>{" "}
                       {l.away_team}
                     </p>
                     {l.kickoff && (
@@ -372,38 +387,41 @@ function OpenTicketCard({
 
       <button
         onClick={() => setExpanded((e) => !e)}
-        className="flex w-full items-center justify-end gap-1 px-4 py-2.5 text-[13px] font-bold text-[var(--text)]"
+        aria-expanded={expanded}
+        className="flex w-full items-center justify-end gap-1 px-4 py-2 text-[12px] font-bold text-[var(--text-muted)]"
       >
-        {expanded ? "Hide Match Details" : "Show Match Details"}
+        {expanded ? "Hide selections" : "Show selections"}
         {expanded ? (
-          <ChevronUp size={15} strokeWidth={2.4} />
+          <ChevronUp size={14} strokeWidth={2.4} />
         ) : (
-          <ChevronDown size={15} strokeWidth={2.4} />
+          <ChevronDown size={14} strokeWidth={2.4} />
         )}
       </button>
 
-      <dl className="space-y-1.5 border-t border-[var(--line)] px-4 py-3 text-[15px]">
+      <dl className="space-y-1 border-t border-[var(--line)] px-4 py-2.5 text-[13px]">
         <div className="flex items-center justify-between">
-          <dt className="text-[var(--text)]">Stake</dt>
-          <dd className="font-semibold text-[var(--text-bright)]">
+          <dt className="text-[var(--text-muted)]">Stake</dt>
+          <dd className="font-bold tabular-nums text-[var(--text-bright)]">
             {Number(ticket.stake).toFixed(2)}
           </dd>
         </div>
         <div className="flex items-center justify-between">
-          <dt className="text-[var(--text)]">Pot. Win</dt>
-          <dd className="font-black text-[var(--accent)]">
+          <dt className="text-[var(--text-muted)]">Potential win</dt>
+          <dd className="font-black tabular-nums text-[var(--accent)]">
             {Number(ticket.potential_win).toFixed(2)}
           </dd>
         </div>
       </dl>
 
       {offer?.available ? (
-        <button
-          onClick={onCashout}
-          className="w-full bg-[var(--accent)] py-3.5 text-[15px] font-black text-[var(--accent-ink)]"
-        >
-          Cashout {formatMoney(offer.amount, ticket.currency)}
-        </button>
+        <div className="px-4 pb-3">
+          <button
+            onClick={onCashout}
+            className="w-full rounded bg-[var(--accent)] py-2.5 text-[14px] font-black tabular-nums text-[var(--accent-ink)]"
+          >
+            Cash out {formatMoney(offer.amount, ticket.currency)}
+          </button>
+        </div>
       ) : (
         <Link
           href={`/my-bets/${ticket.code}`}
@@ -438,7 +456,7 @@ function HistoryTicketCard({
           </p>
         </div>
         <span
-          className="rounded-lg px-2 py-0.5 text-[10px] font-black uppercase"
+          className="rounded-sm px-1.5 text-[10px] font-black uppercase leading-[16px]"
           style={{ background: style.bg, color: style.fg }}
         >
           {style.label}
@@ -448,17 +466,17 @@ function HistoryTicketCard({
       <dl className="mt-2 grid grid-cols-3 gap-2 text-[12px]">
         <div>
           <dt className="text-[10px] text-[var(--text-faint)]">Stake</dt>
-          <dd className="font-bold">{formatMoney(Number(ticket.stake), ticket.currency)}</dd>
+          <dd className="font-bold tabular-nums">{formatMoney(Number(ticket.stake), ticket.currency)}</dd>
         </div>
         <div>
           <dt className="text-[10px] text-[var(--text-faint)]">Odds</dt>
-          <dd className="font-bold">{Number(ticket.total_odds).toFixed(2)}</dd>
+          <dd className="font-bold tabular-nums">{Number(ticket.total_odds).toFixed(2)}</dd>
         </div>
         <div>
           <dt className="text-[10px] text-[var(--text-faint)]">
             {ticket.status === "won" || ticket.status === "cashed_out" ? "Paid out" : "To win"}
           </dt>
-          <dd className="font-bold text-[var(--accent)]">
+          <dd className="font-bold tabular-nums text-[var(--accent)]">
             {formatMoney(Number(ticket.payout ?? ticket.potential_win), ticket.currency)}
           </dd>
         </div>
@@ -467,7 +485,7 @@ function HistoryTicketCard({
   );
 
   return (
-    <article className="overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--bg)]">
+    <article className="overflow-hidden rounded-md border border-[var(--line)] bg-[var(--bg-elevated)]">
       {ticket.status === "won" ? (
         <button
           onClick={() => onCelebrate(ticket)}

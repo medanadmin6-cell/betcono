@@ -4,24 +4,15 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import {
-  Calendar,
-  Gamepad2,
-  ShieldCheck,
-  Ticket,
-  Grid3x3,
-  Search,
-  type LucideIcon,
-} from "lucide-react";
+import { Ticket, ShieldCheck, Wallet, CircleHelp, type LucideIcon } from "lucide-react";
 import { useSlip, type SlipLeg } from "@/lib/store";
-import { BallIcon } from "@/components/icons";
 
 /**
- * The home page furniture above the board, mirroring the reference: the hero
- * banner carousel, the square sport tiles, the sport pills, and the search +
- * filter bar that drives the events board.
+ * The home page furniture around the board: the promo banner, the phone-only
+ * shortcut tiles, the section heading every block shares, and the filter that
+ * cuts the board by day.
  *
- * Promo photography lives in public/promo under the Pexels licence — see the
+ * Promo photography lives in public/promo under the Pexels licence; see the
  * CREDITS file there. Swapping one is a file replacement, not a code change.
  */
 
@@ -31,6 +22,7 @@ interface Banner {
   art: string;
   title: string;
   kicker: string;
+  cta: string;
   href: string;
 }
 
@@ -38,25 +30,29 @@ const BANNERS: Banner[] = [
   {
     art: "/promo/stadium.jpg",
     kicker: "Football every day",
-    title: "Back greatness — bet on the world's game",
+    title: "Every big league, priced before kickoff",
+    cta: "See today's games",
     href: "/?tab=today",
   },
   {
     art: "/promo/welcome-bonus.jpg",
-    kicker: "Welcome Bonus",
+    kicker: "Welcome bonus",
     title: "GH₵100 on your first deposit",
+    cta: "Create an account",
     href: "/register",
   },
   {
     art: "/promo/best-odds.jpg",
-    kicker: "Bet like a champion",
-    title: "Boosted odds every day",
+    kicker: "Boosted odds",
+    title: "Better prices on selected matches daily",
+    cta: "View boosted",
     href: "/?tab=boosted",
   },
   {
     art: "/promo/live-now.jpg",
-    kicker: "Live now",
-    title: "Bet in play, cash out fast",
+    kicker: "In play",
+    title: "Follow the score and bet as it happens",
+    cta: "Go to live",
     href: "/?tab=live",
   },
 ];
@@ -65,136 +61,119 @@ export function HeroBanner() {
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
-    const timer = setInterval(() => setIndex((i) => (i + 1) % BANNERS.length), 6000);
+    const timer = setInterval(() => setIndex((i) => (i + 1) % BANNERS.length), 7000);
     return () => clearInterval(timer);
   }, []);
 
   return (
-    <div className="mx-2.5 my-3 md:mx-5">
-      <div className="relative overflow-hidden rounded-2xl border border-[var(--line)] shadow-xl">
-        <div
-          className="flex transition-transform duration-700 ease-in-out"
-          style={{ transform: `translateX(-${index * 100}%)` }}
-        >
-          {BANNERS.map((b) => (
-            <Link
-              key={b.title}
-              href={b.href}
-              className="relative aspect-[16/9] w-full shrink-0 sm:aspect-[21/9]"
-              aria-label={`${b.kicker} — ${b.title}`}
-            >
-              <Image src={b.art} alt="" fill sizes="100vw" className="object-cover" />
-              <span className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-              <span className="absolute inset-x-0 bottom-0 p-4 sm:p-6">
-                <span className="block text-[13px] font-black uppercase tracking-wider text-[var(--accent)] sm:text-[15px]">
-                  {b.kicker}
-                </span>
-                <span className="block text-[17px] font-black text-white sm:text-[22px]">
-                  {b.title}
-                </span>
-              </span>
-            </Link>
-          ))}
-        </div>
-
-        <div className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5">
-          {BANNERS.map((b, i) => (
-            <button
-              key={b.title}
-              onClick={() => setIndex(i)}
-              aria-label={`Go to banner ${i + 1}`}
-              className={`h-1.5 rounded-full transition-all ${
-                i === index ? "w-6 bg-[var(--accent)]" : "w-1.5 bg-zinc-600"
-              }`}
+    <div className="relative overflow-hidden rounded-md bg-[var(--chrome)]">
+      <div
+        className="flex transition-transform duration-700 ease-in-out"
+        style={{ transform: `translateX(-${index * 100}%)` }}
+      >
+        {BANNERS.map((b, i) => (
+          <Link
+            key={b.title}
+            href={b.href}
+            tabIndex={i === index ? 0 : -1}
+            className="relative block aspect-[2.2/1] w-full shrink-0 sm:aspect-[3.4/1]"
+            aria-label={`${b.kicker}: ${b.title}`}
+          >
+            <Image
+              src={b.art}
+              alt=""
+              fill
+              sizes="(min-width: 1280px) 60vw, 100vw"
+              className="object-cover"
+              priority={i === 0}
             />
-          ))}
-        </div>
+            {/* A flat scrim on the text side keeps the copy legible on any photo. */}
+            <span className="absolute inset-y-0 left-0 w-full bg-[#071a33]/70 sm:w-[58%]" />
+            <span className="absolute inset-y-0 left-0 flex max-w-[85%] flex-col justify-center p-4 sm:max-w-[52%] sm:p-7">
+              <span className="text-[11px] font-black uppercase tracking-wider text-[#9ff611] sm:text-[12px]">
+                {b.kicker}
+              </span>
+              <span className="mt-1 text-[18px] font-black leading-tight text-white sm:text-[26px]">
+                {b.title}
+              </span>
+              <span className="mt-3 inline-flex w-fit rounded-[5px] bg-[#9ff611] px-3 py-1.5 text-[12px] font-black text-[#071a33]">
+                {b.cta}
+              </span>
+            </span>
+          </Link>
+        ))}
+      </div>
+
+      <div className="absolute bottom-2.5 right-3 z-10 flex items-center gap-1">
+        {BANNERS.map((b, i) => (
+          <button
+            key={b.title}
+            onClick={() => setIndex(i)}
+            aria-label={`Show banner ${i + 1}`}
+            aria-current={i === index}
+            className={`h-1 transition-all ${i === index ? "w-5 bg-[#9ff611]" : "w-2.5 bg-white/40"}`}
+          />
+        ))}
       </div>
     </div>
   );
 }
 
-// ------------------------------------------------------------- sport tiles
+// --------------------------------------------------------- shortcut tiles
 
-const TILES: {
-  label: string;
-  href: string;
-  Icon: LucideIcon | typeof BallIcon;
-  hot?: boolean;
-  active?: boolean;
-}[] = [
-  { label: "Soccer", href: "/", Icon: BallIcon, active: true },
-  { label: "Today", href: "/?tab=today", Icon: Calendar },
-  { label: "Games", href: "/games", Icon: Gamepad2, hot: true },
-  { label: "Verify Bet", href: "/my-bets", Icon: ShieldCheck },
-  { label: "Booking Codes", href: "/load-code", Icon: Ticket },
-  { label: "All", href: "/az", Icon: Grid3x3 },
+const SHORTCUTS: { label: string; href: string; Icon: LucideIcon }[] = [
+  { label: "Load code", href: "/load-code", Icon: Ticket },
+  { label: "Check bet", href: "/my-bets", Icon: ShieldCheck },
+  { label: "Deposit", href: "/deposit", Icon: Wallet },
+  { label: "How to play", href: "/how-to-play", Icon: CircleHelp },
 ];
 
-export function SportTiles() {
+/** Phone and tablet only; the sidebar carries these on desktop. */
+export function Shortcuts() {
   return (
-    <div className="scroll-x mx-2.5 flex items-center gap-1.5 pb-1 md:mx-5">
-      {TILES.map(({ label, href, Icon, hot, active }) => (
+    <div className="grid grid-cols-4 gap-1.5 lg:hidden">
+      {SHORTCUTS.map(({ label, href, Icon }) => (
         <Link
           key={label}
           href={href}
-          className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl px-3.5 py-2 text-[12px] font-bold transition-all ${
-            active
-              ? "bg-[var(--accent)] text-[var(--accent-ink)] shadow-md shadow-lime-400/20"
-              : "border border-[var(--line)] bg-[var(--bg-elevated)] text-[var(--text-muted)]"
-          }`}
+          className="flex flex-col items-center gap-1 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] py-2.5 text-[11px] font-bold text-[var(--text)]"
         >
-          <Icon size={15} strokeWidth={2.2} />
+          <Icon size={18} strokeWidth={2} className="text-[var(--accent)]" />
           {label}
-          {hot && (
-            <span className="rounded-full bg-[var(--lose)] px-1.5 py-px text-[8px] font-black text-white">
-              HOT
-            </span>
-          )}
         </Link>
       ))}
     </div>
   );
 }
 
-// ------------------------------------------------------------- sport pills
+// -------------------------------------------------------- section heading
 
-const PILLS = [
-  { label: "Soccer", href: "/", active: true },
-  { label: "Live", href: "/?tab=live" },
-  { label: "Today", href: "/?tab=today" },
-  { label: "Tomorrow", href: "/?tab=tomorrow" },
-  { label: "Best Odds", href: "/?tab=boosted" },
-];
-
-export function SportPills() {
+export function SectionHeading({
+  title,
+  aside,
+  live,
+}: {
+  title: string;
+  aside?: React.ReactNode;
+  live?: boolean;
+}) {
   return (
-    <div className="scroll-x mx-2.5 flex items-center gap-1.5 pb-1 pt-2 md:mx-5">
-      {PILLS.map((p) => (
-        <Link
-          key={p.label}
-          href={p.href}
-          className={`whitespace-nowrap rounded-xl px-4 py-1.5 text-[12px] font-bold transition-all ${
-            p.active
-              ? "bg-[var(--accent)] text-[var(--accent-ink)] shadow-md shadow-lime-400/20"
-              : "border border-[var(--line)] bg-[var(--bg-elevated)] text-[var(--text-muted)]"
-          }`}
-        >
-          {p.label}
-        </Link>
-      ))}
+    <div className="mb-2 flex items-center gap-2">
+      {live && <span className="live-dot h-2 w-2 rounded-full bg-[var(--live)]" />}
+      <h2 className="text-[15px] font-black tracking-tight text-[var(--text-bright)]">{title}</h2>
+      {aside && <div className="ml-auto">{aside}</div>}
     </div>
   );
 }
 
-// ------------------------------------------------------------- filter bar
+// ------------------------------------------------------------- day filter
 
 const FILTERS: { key: string; label: string }[] = [
   { key: "", label: "All" },
-  { key: "today", label: "📅 Today" },
-  { key: "live", label: "🔴 Live" },
-  { key: "tomorrow", label: "⏳ Tomorrow" },
-  { key: "boosted", label: "🔥 Best Odds" },
+  { key: "live", label: "Live" },
+  { key: "today", label: "Today" },
+  { key: "tomorrow", label: "Tomorrow" },
+  { key: "boosted", label: "Boosted" },
 ];
 
 export function FilterBar({
@@ -204,44 +183,27 @@ export function FilterBar({
   active: string;
   onChange: (key: string) => void;
 }) {
-  const router = useRouter();
-  const [q, setQ] = useState("");
-
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (q.trim()) router.push(`/search?q=${encodeURIComponent(q.trim())}`);
-  };
-
   return (
-    <div className="mx-2.5 flex flex-col gap-2 py-2 sm:flex-row sm:items-center md:mx-5">
-      <form onSubmit={submit} className="relative flex-1">
-        <Search
-          size={15}
-          strokeWidth={2.2}
-          className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-faint)]"
-        />
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search teams or leagues..."
-          className="w-full rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] py-2.5 pl-10 pr-4 text-[12px] font-semibold text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-faint)] focus:border-[var(--accent)]"
-        />
-      </form>
-      <div className="scroll-x flex items-center gap-1.5">
-        {FILTERS.map((f) => (
-          <button
-            key={f.key}
-            onClick={() => onChange(f.key)}
-            className={`whitespace-nowrap rounded-xl px-3 py-2 text-[12px] font-extrabold transition-all ${
-              active === f.key
-                ? "bg-[var(--accent)] text-[var(--accent-ink)] shadow-md shadow-lime-400/20"
-                : "border border-[var(--line)] bg-[var(--bg-elevated)] text-[var(--text-muted)]"
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
+    <div
+      className="scroll-x mb-2 inline-flex max-w-full rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] p-0.5"
+      role="tablist"
+      aria-label="Filter matches"
+    >
+      {FILTERS.map((f) => (
+        <button
+          key={f.key}
+          role="tab"
+          aria-selected={active === f.key}
+          onClick={() => onChange(f.key)}
+          className={`whitespace-nowrap rounded-[4px] px-3 py-1.5 text-[12px] font-bold transition-colors ${
+            active === f.key
+              ? "bg-[var(--accent)] text-[var(--accent-ink)]"
+              : "text-[var(--text-muted)] hover:text-[var(--text)]"
+          }`}
+        >
+          {f.label}
+        </button>
+      ))}
     </div>
   );
 }
@@ -280,21 +242,21 @@ export function LoadCodeWidget() {
   };
 
   return (
-    <div className="mx-2.5 mt-2 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] p-2.5 md:mx-5">
-      <form onSubmit={submit} className="flex items-center gap-2 rounded-lg bg-[var(--bg)] p-1.5">
+    <div className="rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] p-2.5">
+      <form onSubmit={submit} className="flex items-center gap-2">
         <input
           value={code}
           onChange={(e) => setCode(e.target.value.toUpperCase())}
-          placeholder="Paste any booking code"
+          placeholder="Paste a booking code"
           maxLength={10}
-          className="min-w-0 flex-1 bg-transparent px-2 text-[14px] text-[var(--text)] outline-none placeholder:text-[var(--text-faint)]"
+          className="min-w-0 flex-1 rounded border border-[var(--field-line)] bg-[var(--input)] px-2.5 py-2 text-[13px] text-[var(--input-ink)] outline-none placeholder:text-[var(--input-placeholder)] focus:border-[var(--accent)]"
         />
         <button
           type="submit"
           disabled={busy || !code.trim()}
-          className="shrink-0 rounded-lg bg-[var(--accent)] px-3 py-2 text-[13px] font-bold text-[var(--accent-ink)] disabled:opacity-50"
+          className="shrink-0 rounded bg-[var(--accent)] px-3 py-2 text-[13px] font-bold text-[var(--accent-ink)] disabled:opacity-50"
         >
-          {busy ? "…" : "Load Code"}
+          {busy ? "…" : "Load"}
         </button>
       </form>
       {error && (
@@ -303,7 +265,7 @@ export function LoadCodeWidget() {
           {ticket && (
             <>
               {" "}
-              <Link href={`/my-bets/${ticket}`} className="font-bold text-[var(--accent)] underline">
+              <Link href={`/my-bets/${ticket}`} className="font-bold underline">
                 Open it in My Bets
               </Link>
             </>

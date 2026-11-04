@@ -7,17 +7,17 @@ import { useSlip, type SlipLeg } from "@/lib/store";
 import type { FeedMatch } from "@/lib/fixtures";
 
 /**
- * The featured match carousel.
+ * The featured match strip.
  *
- * A wider treatment than the board row: crests and team names on either side, a
- * kickoff column between them, and three full-width outcome buttons where the
- * label sits left and the price sits right in the accent.
+ * A wider treatment than the board row: crests and names on either side, the
+ * score or kickoff between them, and three outcome buttons with the label on
+ * the left and the price on the right.
  */
 export function FeaturedMatches({ matches }: { matches: FeedMatch[] }) {
   if (!matches.length) return null;
 
   return (
-    <div className="scroll-x flex snap-x snap-mandatory gap-2 px-2.5 pb-1 md:gap-3 md:px-5">
+    <div className="scroll-x -mx-2.5 flex snap-x snap-mandatory gap-2 px-2.5 pb-1 md:mx-0 md:px-0">
       {matches.map((m) => (
         <FeaturedCard key={m.id} match={m} />
       ))}
@@ -50,36 +50,33 @@ function FeaturedCard({ match }: { match: FeedMatch }) {
   };
 
   return (
-    <article
-      className="w-[300px] shrink-0 snap-start overflow-hidden rounded-2xl p-3 md:w-[380px] md:p-4"
-      style={{ background: "linear-gradient(135deg, #241F4E 0%, #1C1A31 60%)" }}
-    >
-      <Link href={`/match/${match.id}`} className="block">
-        <p className="truncate text-[11px] text-[var(--text-muted)]">
-          {match.country} - {match.league}
+    <article className="w-[286px] shrink-0 snap-start rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] p-3 md:w-[320px]">
+      <Link href={`/match/${match.id}`} className="flex items-center gap-2">
+        <p className="min-w-0 flex-1 truncate text-[11px] font-semibold text-[var(--text-muted)]">
+          {match.league}
         </p>
+        {match.isLive ? (
+          <span className="flex items-center gap-1 text-[11px] font-black text-[var(--live)]">
+            <span className="live-dot h-1.5 w-1.5 rounded-full bg-[var(--live)]" />
+            {match.minuteLabel}
+          </span>
+        ) : (
+          <span className="text-[11px] font-semibold tabular-nums text-[var(--text-muted)]">
+            {kickoff.toLocaleDateString([], { day: "2-digit", month: "short" })}{" "}
+            {kickoff.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })}
+          </span>
+        )}
       </Link>
 
-      <div className="mt-2.5 flex items-start justify-between gap-1">
-        <Side name={match.homeTeam} crest={match.homeCrest} href={`/match/${match.id}`} />
+      <Link href={`/match/${match.id}`} className="mt-2.5 flex items-center gap-2">
+        <Side name={match.homeTeam} crest={match.homeCrest} />
+        <span className="shrink-0 px-1 text-[18px] font-black tabular-nums text-[var(--text-bright)]">
+          {match.isLive ? `${match.scoreHome ?? 0} : ${match.scoreAway ?? 0}` : "v"}
+        </span>
+        <Side name={match.awayTeam} crest={match.awayCrest} />
+      </Link>
 
-        <div className="flex shrink-0 flex-col items-center gap-1 pt-1.5">
-          {match.isLive ? (
-            <span className="text-[12px] font-bold text-[var(--live)]">{match.minuteLabel}</span>
-          ) : (
-            <span className="text-[12px] font-medium text-[var(--text)]">
-              {kickoff.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })}
-              {" | "}
-              {kickoff.toLocaleDateString([], { day: "2-digit", month: "2-digit" })}
-            </span>
-          )}
-          <span className="text-[11px] font-bold text-[var(--accent)]">1X2</span>
-        </div>
-
-        <Side name={match.awayTeam} crest={match.awayCrest} href={`/match/${match.id}`} />
-      </div>
-
-      <div className="mt-3 grid grid-cols-3 gap-1.5">
+      <div className="mt-3 grid grid-cols-3 gap-1">
         {["1", "X", "2"].map((outcome) => {
           const price = market?.prices.find((p) => p.outcome === outcome);
           const isOn = selected?.market === "1x2" && selected?.outcome === outcome;
@@ -90,19 +87,20 @@ function FeaturedCard({ match }: { match: FeedMatch }) {
               key={outcome}
               disabled={disabled}
               onClick={() => price && pick(outcome, price.odds, price.label)}
-              className="flex h-[40px] items-center justify-between rounded-lg px-3 disabled:opacity-40 md:h-[46px] md:px-4"
+              className="flex h-9 items-center justify-between rounded-[5px] px-2.5 disabled:opacity-40"
               style={{
-                background: isOn ? "var(--accent)" : "var(--surface-3)",
+                background: isOn ? "var(--accent)" : "var(--odds-btn)",
                 color: isOn ? "var(--accent-ink)" : "var(--text-muted)",
               }}
+              aria-pressed={isOn}
               aria-label={`${match.homeTeam} v ${match.awayTeam}, ${outcome}, ${price?.odds ?? "unavailable"}`}
             >
-              <span className="text-[13px] font-medium">{outcome}</span>
+              <span className="text-[11px] font-bold">{outcome}</span>
               <span
-                className="text-[15px] font-black"
-                style={{ color: isOn ? "var(--accent-ink)" : "var(--accent)" }}
+                className="text-[13px] font-black tabular-nums"
+                style={{ color: isOn ? "var(--accent-ink)" : "var(--text-bright)" }}
               >
-                {match.isLocked ? <Lock size={14} strokeWidth={2} /> : price ? price.odds.toFixed(2) : "—"}
+                {match.isLocked ? <Lock size={13} strokeWidth={2} /> : price ? price.odds.toFixed(2) : "-"}
               </span>
             </button>
           );
@@ -112,20 +110,20 @@ function FeaturedCard({ match }: { match: FeedMatch }) {
   );
 }
 
-function Side({ name, crest, href }: { name: string; crest: string | null; href: string }) {
+function Side({ name, crest }: { name: string; crest: string | null }) {
   return (
-    <Link href={href} className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
+    <span className="flex min-w-0 flex-1 flex-col items-center gap-1">
       <Image
         src={crest || "/crest-fallback.svg"}
         alt=""
-        width={40}
-        height={40}
-        className="h-10 w-10 object-contain"
+        width={32}
+        height={32}
+        className="h-8 w-8 object-contain"
         unoptimized
       />
-      <span className="line-clamp-2 text-center text-[12px] font-bold leading-tight text-[var(--text-bright)]">
+      <span className="line-clamp-1 text-center text-[12px] font-bold leading-tight text-[var(--text-bright)]">
         {name}
       </span>
-    </Link>
+    </span>
   );
 }

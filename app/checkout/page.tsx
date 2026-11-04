@@ -150,7 +150,7 @@ function CheckoutInner() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[var(--bg)] px-4 py-12">
-      <div className="w-full max-w-sm rounded-2xl bg-[var(--bg-elevated)] p-6 ring-1 ring-[var(--line)] shadow-xl">
+      <div className="w-full max-w-sm rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] p-6">
         <div className="flex justify-center">
           <Image src="/logo.svg" alt="BetZone" width={120} height={26} priority />
         </div>
@@ -166,7 +166,7 @@ function CheckoutInner() {
             <p className="text-[14px] font-bold">This payment link is not valid.</p>
             <Link
               href="/deposit"
-              className="mt-4 inline-block rounded-xl bg-[var(--accent)] px-5 py-2.5 text-[13px] font-black text-[var(--accent-ink)]"
+              className="mt-4 inline-block rounded-[5px] bg-[var(--accent)] px-5 py-2.5 text-[13px] font-black text-[var(--accent-ink)]"
             >
               Start a deposit
             </Link>
@@ -176,16 +176,16 @@ function CheckoutInner() {
         {session && stage !== "loading" && stage !== "missing" && (
           <div className="mt-5 text-center">
             <p className="text-[12px] text-[var(--text-muted)]">Deposit</p>
-            <p className="font-display mt-0.5 text-[34px] leading-none text-[var(--text-bright)]">
+            <p className="mt-1 text-[32px] font-black leading-none tabular-nums text-[var(--text-bright)]">
               {money(session.amount, session.currency)}
             </p>
-            <p className="mt-1 text-[11px] text-[var(--text-faint)]">Ref {session.reference}</p>
+            <p className="mt-1.5 text-[11px] tabular-nums text-[var(--text-faint)]">Ref {session.reference}</p>
           </div>
         )}
 
         {stage === "number" && (
           <form onSubmit={sendPrompt} className="mt-6 space-y-3">
-            <label className="block text-[12px] font-bold" htmlFor="momo">
+            <label className="block text-[12px] font-bold text-[var(--text-muted)]" htmlFor="momo">
               Mobile money number
             </label>
             <input
@@ -195,15 +195,15 @@ function CheckoutInner() {
               onChange={(e) => setPhone(e.target.value)}
               placeholder="0241234567"
               required
-              className="w-full rounded-xl bg-[var(--input)] px-3.5 py-3 text-[14px] text-[var(--input-ink)] ring-1 ring-[var(--field-line)] outline-none placeholder:text-[var(--input-placeholder)] focus:ring-2 focus:ring-[var(--accent)]"
+              className="w-full rounded-[5px] bg-[var(--input)] px-3.5 py-3 text-[14px] text-[var(--input-ink)] border border-[var(--field-line)] outline-none placeholder:text-[var(--input-placeholder)] focus:border-[var(--accent)]"
             />
             {error && (
-              <p className="rounded-lg bg-[var(--lose)]/15 px-3 py-2 text-[12px] text-[var(--lose)]">{error}</p>
+              <p className="rounded bg-[var(--lose-bg)] px-3 py-2 text-[12px] text-[var(--lose)]">{error}</p>
             )}
             <button
               type="submit"
               disabled={busy}
-              className="w-full rounded-xl bg-[var(--accent)] py-3 text-[14px] font-black text-[var(--accent-ink)] disabled:opacity-50"
+              className="w-full rounded-[5px] bg-[var(--accent)] py-3 text-[14px] font-black text-[var(--accent-ink)] disabled:opacity-50"
             >
               {busy ? "Sending…" : "Pay now"}
             </button>
@@ -212,7 +212,7 @@ function CheckoutInner() {
 
         {stage === "waiting" && (
           <div className="mt-6">
-            <div className="flex items-start gap-3 rounded-xl bg-[var(--surface-3)] px-3.5 py-3">
+            <div className="flex items-start gap-3 rounded-[5px] border border-[var(--line)] bg-[var(--bg)] px-3.5 py-3">
               <Smartphone size={18} className="mt-0.5 shrink-0 text-[var(--accent)]" />
               <div>
                 <p className="text-[13px] font-bold">Approve on your phone</p>
@@ -224,7 +224,7 @@ function CheckoutInner() {
             </div>
 
             <form onSubmit={submitCode} className="mt-4 space-y-2">
-              <label className="block text-[12px] font-bold" htmlFor="otp">
+              <label className="block text-[12px] font-bold text-[var(--text-muted)]" htmlFor="otp">
                 Got a code instead? Enter it here
               </label>
               <div className="flex gap-2">
@@ -234,12 +234,12 @@ function CheckoutInner() {
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
                   placeholder="Enter code"
-                  className="min-w-0 flex-1 rounded-xl bg-[var(--input)] px-3.5 py-2.5 text-[14px] tracking-[0.2em] text-[var(--input-ink)] ring-1 ring-[var(--field-line)] outline-none placeholder:tracking-normal placeholder:text-[var(--input-placeholder)] focus:ring-2 focus:ring-[var(--accent)]"
+                  className="min-w-0 flex-1 rounded-[5px] bg-[var(--input)] px-3.5 py-2.5 text-[14px] tracking-[0.2em] text-[var(--input-ink)] border border-[var(--field-line)] outline-none placeholder:tracking-normal placeholder:text-[var(--input-placeholder)] focus:border-[var(--accent)]"
                 />
                 <button
                   type="submit"
                   disabled={codeBusy || !code.trim()}
-                  className="shrink-0 rounded-xl bg-[var(--accent)] px-4 text-[13px] font-black text-[var(--accent-ink)] disabled:opacity-50"
+                  className="shrink-0 rounded-[5px] bg-[var(--accent)] px-4 text-[13px] font-black text-[var(--accent-ink)] disabled:opacity-50"
                 >
                   {codeBusy ? "…" : "Verify"}
                 </button>
@@ -247,12 +247,12 @@ function CheckoutInner() {
             </form>
 
             {error && (
-              <p className="mt-3 rounded-lg bg-[var(--lose)]/15 px-3 py-2 text-[12px] text-[var(--lose)]">{error}</p>
+              <p className="mt-3 rounded bg-[var(--lose-bg)] px-3 py-2 text-[12px] text-[var(--lose)]">{error}</p>
             )}
 
             <div className="mt-4 flex items-center justify-center gap-2 text-[12px] text-[var(--text-faint)]">
               <Loader2 size={14} className="animate-spin" />
-              Waiting for the network to confirm…
+              Waiting for your network to confirm…
             </div>
           </div>
         )}
@@ -277,7 +277,7 @@ function CheckoutInner() {
             </p>
             <Link
               href="/deposit"
-              className="mt-4 inline-block rounded-xl bg-[var(--accent)] px-5 py-2.5 text-[13px] font-black text-[var(--accent-ink)]"
+              className="mt-4 inline-block rounded-[5px] bg-[var(--accent)] px-5 py-2.5 text-[13px] font-black text-[var(--accent-ink)]"
             >
               Try again
             </Link>

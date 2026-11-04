@@ -5,13 +5,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft, Bell, Home, Search, Ticket, Flame, PlayCircle, LineChart,
-  Star, Info, ChevronDown, ChevronRight, Lock,
+  ArrowLeft, Zap, PlayCircle, LineChart, Star, ChevronDown, ChevronRight, Lock,
 } from "lucide-react";
-import { BetSlip } from "@/components/BetSlip";
-import { SlipButton } from "@/components/Shell";
-import { useSlip, useSession, type SlipLeg } from "@/lib/store";
-import { formatMoney } from "@/lib/countries";
+import { Page } from "@/components/Shell";
+import { useSlip, type SlipLeg } from "@/lib/store";
 import type { FeedMatch } from "@/lib/fixtures";
 import type { Market, MarketGroup } from "@/lib/odds";
 import { MARKET_FILTERS } from "@/lib/markets";
@@ -65,10 +62,30 @@ export function MatchDetail({ id }: { id: string }) {
   const visibleFilters = MARKET_FILTERS.filter((f) => f.key === "all" || present.has(f.key));
 
   return (
-    <>
-      <DetailHeader onBack={() => router.back()} />
+    <Page rails>
+      <div className="-mt-1 mb-1 flex items-center gap-2">
+        <button
+          onClick={() => router.back()}
+          aria-label="Back"
+          className="-ml-1 rounded p-1 text-[var(--text-bright)] hover:bg-[var(--surface)]"
+        >
+          <ArrowLeft size={20} strokeWidth={2} />
+        </button>
+        {match && (
+          <nav className="min-w-0 truncate text-[12px] text-[var(--text-muted)]">
+            <Link href="/" className="hover:underline">
+              Football
+            </Link>
+            {" / "}
+            <Link href={`/search?q=${encodeURIComponent(match.league)}`} className="hover:underline">
+              {match.country ? `${match.country} · ` : ""}
+              {match.league}
+            </Link>
+          </nav>
+        )}
+      </div>
 
-      <main className="w-full pb-24">
+      <div>
         {error ? (
           <div className="p-10 text-center">
             <p className="text-[14px] text-[var(--text-muted)]">{error}</p>
@@ -83,31 +100,19 @@ export function MatchDetail({ id }: { id: string }) {
           <DetailSkeleton />
         ) : (
           <>
-            {match.bestOdds && (
-              <div className="px-2.5 pt-2.5 md:px-5">
-                <span
-                  className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-black text-white"
-                  style={{ background: "linear-gradient(90deg,#d42b23,#9ff611)" }}
-                >
-                  <Flame size={12} strokeWidth={2.4} />
-                  Top Odds
-                </span>
-              </div>
-            )}
+            <div className="overflow-hidden rounded-md bg-[var(--chrome)] text-white">
+              {match.bestOdds && (
+                <div className="px-4 pt-3">
+                  <span className="inline-flex items-center gap-1 rounded-sm bg-[#9ff611] px-1.5 text-[10px] font-black uppercase leading-[18px] text-[#071a33]">
+                    <Zap size={11} strokeWidth={2.6} />
+                    Boosted odds
+                  </span>
+                </div>
+              )}
+              <MatchHead match={match} />
+            </div>
 
-            <nav className="px-2.5 pt-2.5 text-[12px] text-[var(--text-muted)] md:px-5 md:text-[13px]">
-              <Link href="/" className="underline">
-                Football
-              </Link>
-              {" / "}
-              <Link href={`/search?q=${encodeURIComponent(match.league)}`} className="underline">
-                {match.country} - {match.league}
-              </Link>
-            </nav>
-
-            <MatchHead match={match} />
-
-            <div className="mt-2 flex items-center justify-between bg-[var(--bg-elevated)] px-3 py-2.5 md:px-5">
+            <div className="mt-2 flex items-center justify-between rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-3 py-2.5 md:px-4">
               <span className="flex items-center gap-2 text-[12px] text-[var(--text)]">
                 <PlayCircle size={16} strokeWidth={1.8} className="text-[var(--accent)]" />
                 {match.isLive
@@ -125,44 +130,27 @@ export function MatchDetail({ id }: { id: string }) {
               </Link>
             </div>
 
-            <Watermark />
-
-            <div className="scroll-x flex items-center gap-2 px-2.5 pb-3 md:px-5">
-              <button
-                onClick={() => setFilter("all")}
-                aria-label="Starred markets"
-                className="flex h-8 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--bg-elevated)] text-[var(--accent)]"
-              >
-                <Star size={15} strokeWidth={2} fill="currentColor" />
-              </button>
+            <div className="scroll-x mt-3 flex border-b border-[var(--line)]">
               {visibleFilters.map((f) => (
                 <button
                   key={f.key}
                   onClick={() => setFilter(f.key)}
-                  className="h-8 shrink-0 rounded-full px-4 text-[13px] font-medium"
-                  style={
+                  className={`-mb-px shrink-0 border-b-2 px-3 py-2 text-[13px] font-bold ${
                     filter === f.key
-                      ? { background: "var(--accent)", color: "var(--accent-ink)" }
-                      : { background: "var(--bg-elevated)", color: "var(--text)" }
-                  }
+                      ? "border-[var(--accent)] text-[var(--text-bright)]"
+                      : "border-transparent text-[var(--text-muted)] hover:text-[var(--text)]"
+                  }`}
                 >
                   {f.label}
                 </button>
               ))}
-              <Link
-                href="/search"
-                aria-label="Search"
-                className="ml-auto flex h-8 w-8 shrink-0 items-center justify-center text-[var(--text-bright)]"
-              >
-                <Search size={18} strokeWidth={2} />
-              </Link>
             </div>
 
-            <p className="px-2.5 pb-2 text-[11px] text-[var(--text-faint)] md:px-5">
+            <p className="py-2 text-[11px] text-[var(--text-faint)]">
               {all.length} market{all.length === 1 ? "" : "s"}
             </p>
 
-            <div className="space-y-2 px-2.5 md:space-y-3 md:px-5">
+            <div className="space-y-2">
               {markets.map((m, i) => (
                 <MarketCard
                   key={m.key}
@@ -179,71 +167,36 @@ export function MatchDetail({ id }: { id: string }) {
             </div>
           </>
         )}
-      </main>
-
-      <SlipBar />
-      <SlipButton />
-      <BetSlip />
-    </>
-  );
-}
-
-function DetailHeader({ onBack }: { onBack: () => void }) {
-  const player = useSession((s) => s.player);
-  const legs = useSlip((s) => s.legs);
-
-  return (
-    <header className="sticky top-0 z-40 bg-[var(--surface)]">
-      <div className="flex h-[44px] w-full items-center gap-3 px-2.5 md:px-5">
-        <button onClick={onBack} aria-label="Back" className="text-[var(--text-bright)]">
-          <ArrowLeft size={22} strokeWidth={2} />
-        </button>
-        <h1 className="flex-1 text-[16px] font-bold text-[var(--text-bright)]">Details</h1>
-
-        <Link href="/my-bets" aria-label="My bets" className="text-[var(--text-bright)]">
-          <Bell size={19} strokeWidth={1.8} />
-        </Link>
-
-        <button
-          onClick={() => useSlip.getState().setOpen(true)}
-          aria-label={`Bet slip, ${legs.length}`}
-          className="relative text-[var(--text-bright)]"
-        >
-          <Ticket size={19} strokeWidth={1.8} />
-          <span className="absolute -right-1.5 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[9px] font-black text-[var(--accent-ink)]">
-            {legs.length}
-          </span>
-        </button>
-
-        <Link href={player ? "/account" : "/"} aria-label="Home" className="text-[var(--text-bright)]">
-          <Home size={19} strokeWidth={1.8} />
-        </Link>
       </div>
-    </header>
+    </Page>
   );
 }
 
+/** The scoreboard, on the navy chrome in both themes. */
 function MatchHead({ match }: { match: FeedMatch }) {
   const d = new Date(match.kickoff);
 
   return (
-    <div className="flex items-start justify-between gap-2 px-4 py-4 md:px-16 md:py-7 lg:px-32">
+    <div className="flex items-start justify-between gap-2 px-4 py-5 md:px-10 md:py-7">
       <TeamSide name={match.homeTeam} crest={match.homeCrest} />
 
-      <div className="flex shrink-0 flex-col items-center pt-3">
+      <div className="flex shrink-0 flex-col items-center pt-2">
         {match.isLive ? (
           <>
-            <span className="text-[22px] font-black text-[var(--text-bright)] md:text-[28px]">
-              {match.scoreHome ?? 0} - {match.scoreAway ?? 0}
+            <span className="text-[26px] font-black tabular-nums text-white md:text-[32px]">
+              {match.scoreHome ?? 0} : {match.scoreAway ?? 0}
             </span>
-            <span className="mt-1 text-[13px] font-bold text-[var(--live)]">{match.minuteLabel}</span>
+            <span className="mt-1 flex items-center gap-1 text-[12px] font-black text-[#ff5a52]">
+              <span className="live-dot h-1.5 w-1.5 rounded-full bg-[#ff5a52]" />
+              {match.minuteLabel}
+            </span>
           </>
         ) : (
           <>
-            <span className="text-[13px] text-[var(--text-muted)]">
+            <span className="text-[12px] font-semibold text-white/65">
               {d.toLocaleDateString([], { day: "numeric", month: "short", weekday: "long" })}
             </span>
-            <span className="mt-1 text-[22px] font-bold text-[var(--text-bright)] md:text-[26px]">
+            <span className="mt-1 text-[24px] font-black tabular-nums text-white md:text-[28px]">
               {d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })}
             </span>
           </>
@@ -263,22 +216,12 @@ function TeamSide({ name, crest }: { name: string; crest: string | null }) {
         alt=""
         width={56}
         height={56}
-        className="h-14 w-14 object-contain md:h-16 md:w-16"
+        className="h-12 w-12 object-contain md:h-14 md:w-14"
         unoptimized
       />
-      <span className="text-center text-[13px] leading-tight text-[var(--text)] underline decoration-[var(--text-faint)] underline-offset-2">
+      <span className="text-center text-[13px] font-bold leading-tight text-white md:text-[14px]">
         {name}
       </span>
-    </div>
-  );
-}
-
-function Watermark() {
-  return (
-    <div className="flex items-center gap-3 px-6 py-4 md:px-5">
-      <span className="h-px flex-1 bg-[var(--line)]" />
-      <span className="text-[10px] font-bold tracking-[0.3em] text-[var(--text-faint)]">BetZone</span>
-      <span className="h-px flex-1 bg-[var(--line)]" />
     </div>
   );
 }
@@ -319,22 +262,25 @@ function MarketCard({
   };
 
   return (
-    <section className="overflow-hidden rounded-xl bg-[var(--bg-elevated)]">
-      <header className="flex items-center gap-2 px-3 py-2.5 md:px-4 md:py-3">
+    <section className="overflow-hidden rounded-md border border-[var(--line)] bg-[var(--bg-elevated)]">
+      <header className="flex items-center gap-2 px-3 py-2.5 md:px-4">
         <button
           onClick={onToggle}
-          aria-label={collapsed ? "Expand market" : "Collapse market"}
-          className="text-[var(--accent)]"
+          aria-expanded={!collapsed}
+          className="flex min-w-0 flex-1 items-center gap-2 text-left"
         >
-          {collapsed ? <ChevronRight size={16} strokeWidth={2.4} /> : <ChevronDown size={16} strokeWidth={2.4} />}
+          {collapsed ? (
+            <ChevronRight size={16} strokeWidth={2.4} className="shrink-0 text-[var(--text-muted)]" />
+          ) : (
+            <ChevronDown size={16} strokeWidth={2.4} className="shrink-0 text-[var(--text-muted)]" />
+          )}
+          <h2 className="truncate text-[13px] font-bold text-[var(--text-bright)]">{market.label}</h2>
+          {market.badge && (
+            <span className="rounded-sm px-1 text-[10px] font-black leading-[16px] text-[var(--accent)] ring-1 ring-[var(--accent)]">
+              {market.badge}
+            </span>
+          )}
         </button>
-        <h2 className="text-[14px] font-medium text-[var(--text-bright)]">{market.label}</h2>
-        {market.badge && (
-          <span className="rounded-full px-1.5 py-0.5 text-[10px] font-black text-[var(--accent)] ring-1 ring-[var(--accent)]">
-            {market.badge}
-          </span>
-        )}
-        <Info size={13} strokeWidth={2} className="text-[var(--text-faint)]" />
 
         <button
           onClick={onStar}
@@ -368,13 +314,14 @@ function MarketCard({
                 onClick={() => pick(p.outcome, p.odds, p.label)}
                 className={
                   market.dense
-                    ? "flex h-[42px] items-center justify-between rounded-lg px-2 disabled:opacity-60"
-                    : "flex h-[46px] items-center justify-between rounded-lg px-3 disabled:opacity-60 md:h-[54px] md:px-5"
+                    ? "flex h-[40px] items-center justify-between rounded-[5px] px-2 disabled:opacity-60"
+                    : "flex h-[44px] items-center justify-between rounded-[5px] px-3 disabled:opacity-60 md:h-[48px] md:px-4"
                 }
                 style={{
-                  background: isOn ? "var(--accent)" : "var(--surface-3)",
-                  color: isOn ? "var(--accent-ink)" : "var(--text)",
+                  background: isOn ? "var(--accent)" : "var(--odds-btn)",
+                  color: isOn ? "var(--accent-ink)" : "var(--text-muted)",
                 }}
+                aria-pressed={isOn}
                 aria-label={`${market.label}, ${p.label}, ${locked ? "locked" : p.odds}`}
               >
                 <span className={market.dense ? "truncate text-[12px]" : "truncate text-[13px] md:text-[15px]"}>
@@ -384,8 +331,12 @@ function MarketCard({
                   <Lock size={14} strokeWidth={2} />
                 ) : (
                   <span
-                    className={market.dense ? "text-[12px] font-bold" : "text-[15px] font-bold md:text-[18px]"}
-                    style={{ color: isOn ? "var(--accent-ink)" : "var(--accent)" }}
+                    className={
+                      market.dense
+                        ? "text-[12px] font-black tabular-nums"
+                        : "text-[14px] font-black tabular-nums md:text-[15px]"
+                    }
+                    style={{ color: isOn ? "var(--accent-ink)" : "var(--text-bright)" }}
                   >
                     {p.odds.toFixed(2)}
                   </span>
@@ -399,50 +350,13 @@ function MarketCard({
   );
 }
 
-/** Bottom bar: what is on the slip, and the way to open it. */
-function SlipBar() {
-  const legs = useSlip((s) => s.legs);
-  const totalOdds = useSlip((s) => s.totalOdds);
-  const setOpen = useSlip((s) => s.setOpen);
-  const player = useSession((s) => s.player);
-
-  if (!legs.length) return null;
-
-  return (
-    <div className="fixed inset-x-0 bottom-0 z-30 border-t border-[var(--line)] bg-[var(--bg-elevated)] px-3 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] md:px-5">
-      <div className="flex w-full items-center gap-3">
-        <div className="min-w-0 flex-1">
-          <p className="text-[12px] text-[var(--text-muted)]">
-            {legs.length} selection{legs.length === 1 ? "" : "s"}
-          </p>
-          <p className="text-[14px] font-bold">
-            {totalOdds().toFixed(2)}
-            {player && (
-              <span className="ml-2 text-[12px] font-normal text-[var(--text-muted)]">
-                bal {formatMoney(Number(player.balance), player.currency)}
-              </span>
-            )}
-          </p>
-        </div>
-        <button
-          onClick={() => setOpen(true)}
-          className="rounded-lg bg-[var(--accent)] px-6 py-2.5 text-[14px] font-bold text-[var(--accent-ink)]"
-        >
-          Bet slip
-        </button>
-      </div>
-    </div>
-  );
-}
-
 function DetailSkeleton() {
   return (
-    <div className="animate-pulse space-y-3 p-3">
-      <div className="h-4 w-40 rounded-lg bg-[var(--bg-elevated)]" />
-      <div className="h-28 rounded-lg bg-[var(--bg-elevated)]" />
-      <div className="h-9 rounded-lg bg-[var(--bg-elevated)]" />
+    <div className="animate-pulse space-y-2">
+      <div className="h-32 rounded-md bg-[var(--surface)]" />
+      <div className="h-10 rounded-md bg-[var(--bg-elevated)]" />
       {[0, 1, 2].map((i) => (
-        <div key={i} className="h-[92px] rounded-xl bg-[var(--bg-elevated)]" />
+        <div key={i} className="h-[92px] rounded-md bg-[var(--bg-elevated)]" />
       ))}
     </div>
   );

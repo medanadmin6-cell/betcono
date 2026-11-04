@@ -1,49 +1,38 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Page } from "@/components/Shell";
-import { MatchList } from "@/components/MatchList";
-import { BetSlip } from "@/components/BetSlip";
+import { MatchList, filterMatches } from "@/components/MatchList";
 import { SupportChat } from "@/components/SupportChat";
 import { WinnersTicker } from "@/components/WinnersTicker";
-import { HeroBanner, SportTiles, SportPills, FilterBar } from "@/components/home/Panels";
+import { HeroBanner, Shortcuts, SectionHeading, FilterBar } from "@/components/home/Panels";
+import { FeaturedMatches } from "@/components/home/FeaturedMatches";
 import { RecommendedCodes } from "@/components/home/RecommendedCodes";
 import { NewsStrip } from "@/components/home/NewsStrip";
-import type { FeedMatch } from "@/lib/fixtures";
+import { useFeed } from "@/lib/feed";
+import { useNow } from "@/lib/now";
 
-const POLL_MS = 30_000;
+const TAB_TITLES: Record<string, string> = {
+  live: "Live now",
+  today: "Today",
+  tomorrow: "Tomorrow",
+  boosted: "Boosted odds",
+  soon: "Starting soon",
+  upcoming: "Upcoming",
+};
 
 /**
- * The home page, laid out like the reference: hero banner, sport tiles, sport
- * pills, the live winners ticker, then a search + filter bar over one full
- * events board.
+ * The home page: banner, shortcuts, a featured strip (live games, or the next
+ * kickoffs when nothing is in play), recommended codes, then the full board
+ * under a day filter. A `?tab=` in the URL skips the furniture and shows the
+ * board on that cut alone.
  */
 export function HomeBoard() {
   const tab = useSearchParams().get("tab");
-  const [feed, setFeed] = useState<FeedMatch[] | null>(null);
+  const { matches: feed } = useFeed();
   const [filter, setFilter] = useState("");
-
-  // The home page shares one poll with the board below it.
-  useEffect(() => {
-    let alive = true;
-    const load = async () => {
-      try {
-        const res = await fetch("/api/fixtures", { cache: "no-store" });
-        if (!res.ok) return;
-        const json = await res.json();
-        if (alive) setFeed(json.matches ?? []);
-      } catch {
-        /* the board below renders its own error state */
-      }
-    };
-    load();
-    const timer = setInterval(load, POLL_MS);
-    return () => {
-      alive = false;
-      clearInterval(timer);
-    };
-  }, []);
+  const now = useNow();
 
   /** Boosted prices lead the board; both passes are stable, so the custom-match
       ordering inside `MatchList` survives this. */
@@ -52,53 +41,68 @@ export function HomeBoard() {
     return [...feed.filter((m) => m.bestOdds), ...feed.filter((m) => !m.bestOdds)];
   }, [feed]);
 
-  // A tab in the URL means the player came from a chip or a nav link and wants
-  // the full board on that cut, not the home furniture.
+  const featured = useMemo(() => {
+    if (!feed) return { live: false, list: [] };
+    const live = feed.filter((m) => m.isLive && !m.isLocked);
+    if (live.length) return { live: true, list: live.slice(0, 8) };
+    const next = filterMatches(feed, "upcoming", now)
+      .slice()
+      .sort((a, b) => new Date(a.kickoff).getTime() - new Date(b.kickoff).getTime());
+    return { live: false, list: next.slice(0, 8) };
+  }, [feed, now]);
+
+  const count = useMemo(
+    () => (homeFeed ? filterMatches(homeFeed, filter, now).length : null),
+    [homeFeed, filter, now],
+  );
+
+  // A tab in the URL means the player came from a section link and wants the
+  // full board on that cut, not the home furniture.
   if (tab) {
     return (
-      <Page>
-        <div className="px-2 pt-2 md:px-5 md:pt-4">
-          <MatchList tab={tab} />
-        </div>
-        <BetSlip />
+      <Page rails>
+        <SectionHeading title={TAB_TITLES[tab] ?? "Matches"} live={tab === "live"} />
+        <MatchList tab={tab} />
         <SupportChat />
       </Page>
     );
   }
 
   return (
-    <Page>
-      <HeroBanner />
-      <SportTiles />
-      <SportPills />
-
-      <div className="mx-2.5 mt-2 md:mx-5">
+    <Page rails>
+      <div className="space-y-4">
+        <HeroBanner />
+        <Shortcuts />
         <WinnersTicker />
+
+        {featured.list.length > 0 && (
+          <section>
+            <SectionHeading
+              title={featured.live ? "Live now" : "Starting next"}
+              live={featured.live}
+            />
+            <FeaturedMatches matches={featured.list} />
+          </section>
+        )}
+
+        <RecommendedCodes />
+
+        <section>
+          <SectionHeading
+            title="Football"
+            aside={
+              <span className="text-[11px] font-bold text-[var(--text-faint)]">
+                {count === null ? "Loading…" : `${count} events`}
+              </span>
+            }
+          />
+          <FilterBar active={filter} onChange={setFilter} />
+          <MatchList tab={filter} matches={homeFeed} />
+        </section>
+
+        <NewsStrip />
       </div>
 
-      <RecommendedCodes />
-
-      <FilterBar active={filter} onChange={setFilter} />
-
-      <div className="mx-2.5 mb-2 flex items-center justify-between md:mx-5">
-        <div className="flex items-center gap-2">
-          <span className="h-2.5 w-2.5 animate-ping rounded-full bg-[var(--lose)]" />
-          <h2 className="text-[14px] font-black uppercase tracking-tight text-[var(--text-bright)]">
-            Soccer Events &amp; Markets
-          </h2>
-        </div>
-        <span className="text-[11px] font-extrabold text-[var(--accent)]">
-          {feed === null ? "Loading matches…" : `${feed.length} events`}
-        </span>
-      </div>
-
-      <div className="px-2 md:px-5">
-        <MatchList tab={filter} matches={homeFeed} />
-      </div>
-
-      <NewsStrip />
-
-      <BetSlip />
       <SupportChat />
     </Page>
   );

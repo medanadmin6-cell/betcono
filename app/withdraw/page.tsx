@@ -99,7 +99,7 @@ export default function WithdrawPage() {
       // Awaiting an operator reads differently from already on its way, so the
       // heading follows the endpoint rather than assuming one of them.
       setSubmitted({
-        title: json.status === "processing" ? "Pending Request" : "Withdrawal sent",
+        title: json.status === "processing" ? "Request pending" : "Withdrawal sent",
         message: json.message,
       });
       if (typeof json.balance === "number") setBalance(json.balance);
@@ -143,20 +143,35 @@ export default function WithdrawPage() {
         />
       )}
 
-      <div className="mx-auto max-w-md space-y-3">
-        <h1 className="text-[18px] font-black">Withdraw</h1>
+      <div className="mx-auto max-w-lg space-y-3 px-4 py-5">
+        <h1 className="text-[20px] font-black text-[var(--text-bright)]">Withdraw</h1>
 
-        <div className="rounded-lg bg-[var(--bg-elevated)] p-4">
-          <p className="text-[11px] uppercase tracking-wide text-[var(--text-faint)]">Available</p>
-          <p className="text-[26px] font-black text-[var(--accent)]">
+        <div className="rounded-md bg-[var(--chrome)] p-4 text-white">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-white/60">Available to withdraw</p>
+          <p className="mt-0.5 text-[28px] font-black tabular-nums text-[#9ff611]">
             {formatMoney(Number(player.balance), player.currency)}
           </p>
-          {progress && <p className="mt-1 text-[11px] text-[var(--text-muted)]">{progress.label}</p>}
+          {progress && (
+            <div className="mt-2">
+              <p className="text-[11px] text-white/70">{progress.label}</p>
+              {progress.need > 0 && (
+                <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-white/15">
+                  <div
+                    className="h-full bg-[#9ff611]"
+                    style={{ width: `${Math.min(100, (progress.have / progress.need) * 100)}%` }}
+                  />
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        <form onSubmit={submit} className="space-y-3 rounded-lg bg-[var(--bg-elevated)] p-4">
+        <form
+          onSubmit={submit}
+          className="space-y-4 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] p-4"
+        >
           <label className="block">
-            <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[var(--text-faint)]">
+            <span className="mb-1.5 block text-[12px] font-bold text-[var(--text-muted)]">
               Amount ({country.currency})
             </span>
             <input
@@ -165,30 +180,28 @@ export default function WithdrawPage() {
               min={1}
               value={amount || ""}
               onChange={(e) => setAmount(Number(e.target.value))}
-              className="w-full rounded-lg bg-[var(--surface-2)] px-3 py-3 text-[20px] font-black outline-none focus:ring-1 focus:ring-[var(--accent)]"
+              className="w-full rounded-[5px] border border-[var(--field-line)] bg-[var(--input)] px-3 py-2.5 text-[18px] font-black tabular-nums text-[var(--input-ink)] outline-none focus:border-[var(--accent)]"
             />
           </label>
 
           <label className="block">
-            <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[var(--text-faint)]">
+            <span className="mb-1.5 block text-[12px] font-bold text-[var(--text-muted)]">
               {country.payoutRail === "mobile" ? "Mobile money number" : "Account number"}
             </span>
             <input
               value={payoutNumber}
               onChange={(e) => setPayoutNumber(e.target.value)}
-              className="w-full rounded-lg bg-[var(--surface-2)] px-3 py-2.5 text-[14px] outline-none focus:ring-1 focus:ring-[var(--accent)]"
+              className="w-full rounded-[5px] border border-[var(--field-line)] bg-[var(--input)] px-3 py-2.5 text-[14px] tabular-nums text-[var(--input-ink)] outline-none focus:border-[var(--accent)]"
             />
           </label>
 
           {country.payoutRail === "bank" && (
             <label className="block">
-              <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[var(--text-faint)]">
-                Bank
-              </span>
+              <span className="mb-1.5 block text-[12px] font-bold text-[var(--text-muted)]">Bank</span>
               <input
                 value={payoutBank}
                 onChange={(e) => setPayoutBank(e.target.value)}
-                className="w-full rounded-lg bg-[var(--surface-2)] px-3 py-2.5 text-[14px] outline-none focus:ring-1 focus:ring-[var(--accent)]"
+                className="w-full rounded-[5px] border border-[var(--field-line)] bg-[var(--input)] px-3 py-2.5 text-[14px] text-[var(--input-ink)] outline-none focus:border-[var(--accent)]"
               />
             </label>
           )}
@@ -196,17 +209,17 @@ export default function WithdrawPage() {
           <button
             type="submit"
             disabled={busy || amount <= 0}
-            className="w-full rounded-lg bg-[var(--accent)] py-3 text-[14px] font-black text-[var(--accent-ink)] disabled:opacity-50"
+            className="w-full rounded-[5px] bg-[var(--accent)] py-3 text-[15px] font-black text-[var(--accent-ink)] disabled:opacity-50"
           >
             {busy ? "Submitting…" : "Request withdrawal"}
           </button>
         </form>
 
         {message && (
-          <p className="rounded-lg bg-[var(--win)]/15 px-3 py-2.5 text-[12px] text-[var(--win)]">{message}</p>
+          <p className="rounded bg-[var(--win)]/15 px-3 py-2.5 text-[12px] text-[var(--win)]">{message}</p>
         )}
         {error && (
-          <p className="rounded-lg bg-[var(--lose)]/15 px-3 py-2.5 text-[12px] text-[var(--lose)]">{error}</p>
+          <p className="rounded bg-[var(--lose-bg)] px-3 py-2.5 text-[12px] text-[var(--lose)]">{error}</p>
         )}
       </div>
     </Page>

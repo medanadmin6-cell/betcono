@@ -110,158 +110,148 @@ function AccountView() {
 
   return (
     <Page>
-      <div className="md:mx-auto md:max-w-3xl">
-        {/* Identity and tier standing, on the brand ground. */}
-        <header className="relative overflow-hidden bg-[var(--surface)] px-4 pb-4 pt-4">
+      <div className="space-y-3 px-4 py-4 md:mx-auto md:max-w-2xl">
+        {/* Identity, balance and tier standing, on the navy chrome in both themes. */}
+        <header className="relative overflow-hidden rounded-md bg-[#071a33] p-4 text-white">
           <ChipWatermark />
 
           <div className="relative flex items-start gap-3">
             <Image
               src="/avatar.svg"
               alt=""
-              width={56}
-              height={56}
-              className="h-14 w-14 shrink-0 rounded-full"
+              width={48}
+              height={48}
+              className="h-12 w-12 shrink-0 rounded-full"
             />
 
             <div className="min-w-0 flex-1">
               <Link href="/profile" className="flex items-center gap-1">
-                <span className="text-[17px] font-bold text-[var(--text-bright)]">
+                <span className="text-[16px] font-black tabular-nums text-white">
                   {maskPhone(player.phone)}
                 </span>
-                <ChevronRight size={16} strokeWidth={2.2} className="text-[var(--text-muted)]" />
+                <ChevronRight size={16} strokeWidth={2.2} className="text-white/60" />
               </Link>
 
-              <div className="mt-1.5 flex items-center gap-1.5">
-                <span className="text-[15px] font-black text-[var(--text-bright)]">
+              <div className="mt-1 flex items-center gap-1.5">
+                <span className="text-[13px] font-black tabular-nums text-white">
                   {tier.points.toLocaleString()}
                 </span>
-                <span className="text-[12px] text-[var(--text-muted)]">
-                  / {(tier.next?.at ?? tier.current.at).toLocaleString()} Tier Points
+                <span className="text-[11px] tabular-nums text-white/60">
+                  / {(tier.next?.at ?? tier.current.at).toLocaleString()} tier points
                 </span>
                 <Link href="/how-to-play" aria-label="About tier points">
-                  <Info size={12} strokeWidth={2} className="text-[var(--text-muted)]" />
+                  <Info size={12} strokeWidth={2} className="text-white/60" />
                 </Link>
-              </div>
-
-              <div className="relative mt-2 h-1 rounded-full bg-[var(--surface-2)]">
-                <div
-                  className="h-full rounded-full bg-[var(--accent)]"
-                  style={{ width: `${tier.progress * 100}%` }}
-                />
-                <span
-                  className="absolute top-1/2 h-3 w-3 -translate-y-1/2 rounded-full border-2 border-[var(--surface)] bg-[var(--accent)]"
-                  style={{ left: `calc(${tier.progress * 100}% - 6px)` }}
-                />
-              </div>
-
-              <div className="mt-1.5 flex justify-between text-[11px] text-[var(--text-muted)]">
-                <span>{tier.current.name}</span>
-                <span>
-                  {tier.next
-                    ? `${tier.toNext.toLocaleString()} Tier Points to ${tier.next.name}`
-                    : "Top tier reached"}
-                </span>
               </div>
             </div>
 
-            <Link href="/profile" aria-label="Settings" className="shrink-0 text-[var(--text-bright)]">
-              <Settings size={20} strokeWidth={1.8} />
+            <Link href="/profile" aria-label="Settings" className="shrink-0 rounded p-1 text-white/80 hover:bg-white/10">
+              <Settings size={19} strokeWidth={1.9} />
             </Link>
+          </div>
+
+          <div className="relative mt-3 h-1 bg-white/15">
+            <div className="h-full bg-[#9ff611]" style={{ width: `${tier.progress * 100}%` }} />
+          </div>
+          <div className="relative mt-1.5 flex justify-between text-[11px] text-white/60">
+            <span>{tier.current.name}</span>
+            <span className="tabular-nums">
+              {tier.next
+                ? `${tier.toNext.toLocaleString()} points to ${tier.next.name}`
+                : "Top tier reached"}
+            </span>
+          </div>
+
+          <div className="relative mt-4 border-t border-white/10 pt-3">
+            <p className="text-[11px] font-semibold text-white/60">Total balance</p>
+            <div className="mt-1 flex items-center gap-2">
+              <p className="text-[28px] font-black leading-none tabular-nums text-[#9ff611]">
+                {hidden ? "••••••" : formatMoney(balance, player.currency)}
+              </p>
+              <button
+                onClick={() => setHidden((h) => !h)}
+                aria-label={hidden ? "Show balance" : "Hide balance"}
+                className="rounded p-1 text-white/60 hover:text-white"
+              >
+                {hidden ? <EyeOff size={17} strokeWidth={1.9} /> : <Eye size={17} strokeWidth={1.9} />}
+              </button>
+            </div>
+
+            <div className="mt-3.5 grid grid-cols-2 gap-2">
+              <Link
+                href="/deposit"
+                className="flex items-center justify-center gap-2 rounded-[5px] bg-[#9ff611] py-2.5 text-[14px] font-black text-[#071a33]"
+              >
+                <Wallet size={17} strokeWidth={2.2} />
+                Deposit
+              </Link>
+              <Link
+                href="/withdraw"
+                className="flex items-center justify-center gap-2 rounded-[5px] py-2.5 text-[14px] font-black text-white ring-1 ring-white/35 hover:bg-white/10"
+              >
+                <Banknote size={17} strokeWidth={2.2} />
+                Withdraw
+              </Link>
+            </div>
           </div>
         </header>
 
-        {/* Balance and the two money actions. */}
-        <section className="bg-[var(--surface)] px-4 pb-4">
-          <p className="text-[12px] text-[var(--text-muted)]">Total Balance</p>
-          <div className="mt-0.5 flex items-center gap-2">
-            <button
-              onClick={() => setHidden((h) => !h)}
-              aria-label={hidden ? "Show balance" : "Hide balance"}
-              className="text-[var(--text-muted)]"
-            >
-              {hidden ? <EyeOff size={18} strokeWidth={1.8} /> : <Eye size={18} strokeWidth={1.8} />}
-            </button>
-            <p className="text-[28px] font-black leading-none text-[var(--text-bright)]">
-              {hidden ? "••••••" : formatMoney(balance, player.currency)}
-            </p>
-          </div>
-
-          <div className="mt-3.5 grid grid-cols-2 gap-3">
-            <Link
-              href="/deposit"
-              className="flex items-center justify-center gap-2 rounded-lg bg-[var(--accent)] py-3 text-[15px] font-bold text-[var(--accent-ink)]"
-            >
-              <Wallet size={18} strokeWidth={2} />
-              Deposit
-            </Link>
-            <Link
-              href="/withdraw"
-              className="flex items-center justify-center gap-2 rounded-lg py-3 text-[15px] font-bold text-[var(--accent)] ring-1 ring-[var(--accent)]"
-            >
-              <Banknote size={18} strokeWidth={2} />
-              Withdraw
-            </Link>
-          </div>
-        </section>
-
         {swept !== null && (
-          <p className="mx-4 mt-3 rounded-lg bg-[var(--win)]/15 px-3 py-2.5 text-[12px] text-[var(--win)]">
+          <p className="rounded-md border border-[var(--win)] bg-[var(--bg-elevated)] px-3 py-2.5 text-[12px] font-semibold text-[var(--win-2)]">
             We found {swept} completed deposit{swept === 1 ? "" : "s"} and credited your wallet.
           </p>
         )}
 
         <Link
           href="/how-to-play#loyalty"
-          className="mx-4 mt-3 flex items-center justify-between rounded-lg px-4 py-3.5"
-          style={{ background: "linear-gradient(100deg,#1b1c20,#3a2500)" }}
+          className="flex items-center justify-between rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-4 py-3"
         >
-          <span className="flex items-center gap-2">
-            <Trophy size={19} strokeWidth={1.9} className="text-[var(--accent)]" />
-            <span className="text-[15px] font-bold text-white">Loyalty Rewards</span>
+          <span className="flex items-center gap-2.5">
+            <Trophy size={18} strokeWidth={2} className="text-[var(--accent)]" />
+            <span className="text-[14px] font-bold text-[var(--text-bright)]">Loyalty rewards</span>
           </span>
           <span className="flex items-center gap-2">
             <span className="text-right">
-              <span className="block text-[10px] text-white/70">Potential Reward</span>
-              <span className="block text-[13px] font-bold text-[var(--accent)]">
+              <span className="block text-[10px] text-[var(--text-muted)]">Potential reward</span>
+              <span className="block text-[13px] font-black tabular-nums text-[var(--accent)]">
                 {formatMoney(tier.potentialReward, player.currency)}
               </span>
             </span>
-            <ChevronRight size={17} strokeWidth={2.2} className="text-white/80" />
+            <ChevronRight size={17} strokeWidth={2.2} className="text-[var(--text-faint)]" />
           </span>
         </Link>
 
-        <div className="mx-4 mt-3 grid grid-cols-2 gap-3">
-          <Tile href="/my-bets" icon={<ReceiptText size={22} strokeWidth={1.7} />} label="Bet History" />
+        <div className="grid grid-cols-2 gap-2">
+          <Tile href="/my-bets" icon={<ReceiptText size={20} strokeWidth={1.9} />} label="Bet history" />
           <Tile
             href="/transactions"
-            icon={<CircleDollarSign size={22} strokeWidth={1.7} />}
+            icon={<CircleDollarSign size={20} strokeWidth={1.9} />}
             label="Transactions"
           />
         </div>
 
-        <nav className="mt-4">
+        <nav className="overflow-hidden rounded-md border border-[var(--line)] bg-[var(--bg-elevated)]">
           {data?.partner && (
             <Row
               href="/partner"
-              icon={<Handshake size={19} strokeWidth={1.8} />}
+              icon={<Handshake size={18} strokeWidth={1.9} />}
               label="Partner dashboard"
               hint={`Code ${data.partner.referral_code}${data.partner.approved ? "" : " · awaiting approval"}`}
               accent
             />
           )}
-          <Row href="/profile" icon={<UserRound size={19} strokeWidth={1.8} />} label="Personal Page" />
-          <Row href="/how-to-play" icon={<Info size={19} strokeWidth={1.8} />} label="How to play" />
+          <Row href="/profile" icon={<UserRound size={18} strokeWidth={1.9} />} label="Personal details" />
+          <Row href="/how-to-play" icon={<Info size={18} strokeWidth={1.9} />} label="How to play" />
           <Row
             href="/how-to-play#support"
-            icon={<Headphones size={19} strokeWidth={1.8} />}
-            label="24/7 Customer Service"
+            icon={<Headphones size={18} strokeWidth={1.9} />}
+            label="Customer service"
             dot
           />
           {!data?.partner && (
             <Row
               href="/partner"
-              icon={<Handshake size={19} strokeWidth={1.8} />}
+              icon={<Handshake size={18} strokeWidth={1.9} />}
               label="Become a partner"
             />
           )}
@@ -272,7 +262,7 @@ function AccountView() {
             signOut();
             router.push("/");
           }}
-          className="mx-4 mt-5 flex w-[calc(100%-2rem)] items-center justify-center gap-2 rounded-lg py-3 text-[13px] font-bold text-[var(--lose)] ring-1 ring-[var(--line)]"
+          className="flex w-full items-center justify-center gap-2 rounded-[5px] border border-[var(--line)] py-2.5 text-[13px] font-bold text-[var(--lose)]"
         >
           <LogOut size={15} strokeWidth={2} />
           Log out
@@ -288,7 +278,7 @@ function AccountView() {
 function ChipWatermark() {
   return (
     <svg
-      className="pointer-events-none absolute -right-6 -top-6 h-40 w-40 text-white opacity-[0.05]"
+      className="pointer-events-none absolute -right-6 -top-6 h-40 w-40 text-white opacity-[0.04]"
       viewBox="0 0 100 100"
       aria-hidden="true"
     >
@@ -313,10 +303,10 @@ function Tile({ href, icon, label }: { href: string; icon: React.ReactNode; labe
   return (
     <Link
       href={href}
-      className="flex flex-col items-center gap-2 rounded-lg bg-[var(--bg-elevated)] py-4 text-[var(--text-bright)]"
+      className="flex flex-col items-center gap-1.5 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] py-3.5 text-[var(--text-bright)] hover:bg-[var(--surface-3)]"
     >
-      {icon}
-      <span className="text-[12px] font-medium">{label}</span>
+      <span className="text-[var(--accent)]">{icon}</span>
+      <span className="text-[12px] font-bold">{label}</span>
     </Link>
   );
 }
@@ -339,12 +329,11 @@ function Row({
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 border-b border-[var(--line)] px-4 py-3.5"
-      style={accent ? { background: "var(--bg-elevated)" } : undefined}
+      className="flex items-center gap-3 border-b border-[var(--line)] px-4 py-3 last:border-0 hover:bg-[var(--surface-3)]"
     >
       <span style={{ color: accent ? "var(--accent)" : "var(--text-muted)" }}>{icon}</span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[14px]">{label}</span>
+        <span className="block text-[14px] font-semibold text-[var(--text)]">{label}</span>
         {hint && <span className="block text-[11px] text-[var(--text-muted)]">{hint}</span>}
       </span>
       {dot && <span className="h-1.5 w-1.5 rounded-full bg-[var(--win)]" />}

@@ -42,16 +42,16 @@ export function NewsStrip() {
   if (!items?.length) return null;
 
   return (
-    <section className="mx-2.5 mb-4 mt-4 md:mx-5">
+    <section>
       <div className="mb-2 flex items-center gap-2">
         <Newspaper size={15} className="text-[var(--accent)]" />
-        <h2 className="text-[14px] font-black uppercase tracking-tight text-[var(--text-bright)]">
-          Football News
+        <h2 className="text-[15px] font-black tracking-tight text-[var(--text-bright)]">
+          Football news
         </h2>
         <span className="text-[10px] font-bold text-[var(--text-faint)]">via BBC Sport</span>
       </div>
 
-      <div className="overflow-hidden rounded-xl bg-[var(--bg-elevated)] ring-1 ring-[var(--line)]">
+      <div className="overflow-hidden rounded-md border border-[var(--line)] bg-[var(--bg-elevated)]">
         {items.slice(0, 6).map((item) => (
           <a
             key={item.link}

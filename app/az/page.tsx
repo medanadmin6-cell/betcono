@@ -1,24 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import { Page } from "@/components/Shell";
-import type { FeedMatch } from "@/lib/fixtures";
+import { useFeed } from "@/lib/feed";
 
 /** Every competition on the board, grouped by country. */
 export default function AzMenuPage() {
-  const [feed, setFeed] = useState<FeedMatch[] | null>(null);
-
-  useEffect(() => {
-    let alive = true;
-    fetch("/api/fixtures", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : { matches: [] }))
-      .then((j) => alive && setFeed(j.matches ?? []))
-      .catch(() => alive && setFeed([]));
-    return () => {
-      alive = false;
-    };
-  }, []);
+  const { matches: feed } = useFeed();
 
   const byCountry = useMemo(() => {
     const map = new Map<string, Map<string, number>>();
@@ -31,8 +20,8 @@ export default function AzMenuPage() {
   }, [feed]);
 
   return (
-    <Page>
-      <h1 className="px-3 py-3 text-[15px] font-black md:px-5 md:text-[17px]">A-Z Menu</h1>
+    <Page rails>
+      <h1 className="mb-3 text-[17px] font-black text-[var(--text-bright)]">All competitions</h1>
 
       {feed === null ? (
         <p className="p-8 text-center text-[13px] text-[var(--text-muted)]">Loading…</p>
@@ -41,11 +30,14 @@ export default function AzMenuPage() {
           Nothing on the board right now.
         </p>
       ) : (
-        <div className="space-y-2 px-2 md:grid md:grid-cols-2 md:gap-3 md:space-y-0 md:px-5 lg:grid-cols-3">
+        <div className="space-y-2 md:grid md:grid-cols-2 md:gap-2 md:space-y-0 2xl:grid-cols-3">
           {byCountry.map(([country, leagues]) => (
-            <section key={country} className="overflow-hidden rounded-xl bg-[var(--bg-elevated)]">
-              <h2 className="bg-[var(--surface)] px-3 py-2 text-[12px] font-bold uppercase tracking-wide text-[var(--text-muted)]">
-                {country}
+            <section
+              key={country}
+              className="overflow-hidden rounded-md border border-[var(--line)] bg-[var(--bg-elevated)]"
+            >
+              <h2 className="bg-[var(--surface)] px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-[var(--text-muted)]">
+                {country || "International"}
               </h2>
               <ul className="divide-y divide-[var(--line)]">
                 {[...leagues.entries()]
@@ -54,10 +46,10 @@ export default function AzMenuPage() {
                     <li key={league}>
                       <Link
                         href={`/search?q=${encodeURIComponent(league)}`}
-                        className="flex items-center justify-between px-3 py-2.5 text-[13px]"
+                        className="flex items-center justify-between px-3 py-2.5 text-[13px] font-semibold hover:bg-[var(--surface-3)]"
                       >
                         <span>{league}</span>
-                        <span className="text-[11px] text-[var(--text-faint)]">{count}</span>
+                        <span className="text-[11px] tabular-nums text-[var(--text-faint)]">{count}</span>
                       </Link>
                     </li>
                   ))}

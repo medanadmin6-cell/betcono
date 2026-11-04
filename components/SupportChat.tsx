@@ -7,14 +7,14 @@ import { MessageCircle, X, ArrowLeft } from "lucide-react";
  * The in-app support assistant.
  *
  * It answers from a fixed script. It is not connected to a person or a model,
- * which is recorded in the README's Known gaps — so every answer ends somewhere
+ * which is recorded in the README's Known gaps, so every answer ends somewhere
  * a real human can be reached.
  */
 
 const SCRIPT: { q: string; a: string }[] = [
   {
     q: "How do I deposit?",
-    a: "Open Deposit, enter the amount and your mobile money number, then approve the prompt on your phone. If your market uses the manual rail, send to the displayed number and upload a screenshot — our team confirms it shortly after.",
+    a: "Open Deposit, enter the amount and your mobile money number, then approve the prompt on your phone. If your market uses the manual rail, send to the displayed number and upload a screenshot. Our team confirms it shortly after.",
   },
   {
     q: "When can I withdraw?",
@@ -22,19 +22,19 @@ const SCRIPT: { q: string; a: string }[] = [
   },
   {
     q: "My deposit has not shown up",
-    a: "Open your Account screen — that alone re-checks any payment that completed while you were away. If it is a manual deposit it stays pending until our team confirms it. Still stuck after 15 minutes? Message us on WhatsApp.",
+    a: "Open your Account screen. That alone re-checks any payment that completed while you were away. If it is a manual deposit it stays pending until our team confirms it. Still stuck after 15 minutes? Message us on WhatsApp.",
   },
   {
     q: "How does the welcome bonus work?",
-    a: "Your first confirmed deposit gets a one-time bonus credited straight to your balance. It is a gift — it does not count toward unlocking withdrawals.",
+    a: "Your first confirmed deposit gets a one-time bonus credited straight to your balance. It is a gift and does not count toward unlocking withdrawals.",
   },
   {
     q: "What is a booking code?",
-    a: "Tap Book on your slip instead of Place bet. You get a short code that anyone can load to get the same selections. Codes last 48 hours.",
+    a: "Tap Book bet on your slip instead of Place bet. You get a short code that anyone can load to get the same selections. Codes last 48 hours.",
   },
   {
     q: "When do my bets settle?",
-    a: "As soon as the match finishes — usually within about half a minute. If a leg cannot be judged automatically it stays pending for our team rather than being guessed at.",
+    a: "As soon as the match finishes, usually within about half a minute. If a leg cannot be judged automatically it stays pending for our team rather than being guessed at.",
   },
 ];
 
@@ -47,7 +47,7 @@ export function SupportChat() {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-[136px] right-3 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--surface-2)] text-[var(--text-bright)] shadow-lg ring-1 ring-[var(--line)]"
+        className="fixed bottom-[84px] right-3 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-[var(--chrome)] text-white shadow-md ring-1 ring-white/15 hover:ring-[#9ff611] lg:bottom-20 lg:right-6"
         aria-label="Open support"
       >
         <MessageCircle size={21} strokeWidth={1.8} />
@@ -56,13 +56,13 @@ export function SupportChat() {
   }
 
   return (
-    <div className="fixed bottom-[136px] right-3 z-20 flex max-h-[60vh] w-[min(20rem,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-xl bg-[var(--bg-elevated)] shadow-2xl ring-1 ring-[var(--line)]">
-      <header className="flex items-center justify-between bg-[var(--surface)] px-3 py-2.5">
+    <div className="fixed bottom-[84px] right-3 z-50 flex max-h-[60vh] w-[min(20rem,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] shadow-lg lg:bottom-20 lg:right-6">
+      <header className="flex items-center justify-between bg-[var(--chrome)] px-3 py-2.5 text-white">
         <div>
-          <p className="text-[13px] font-bold">BetZone help</p>
-          <p className="text-[10px] text-[var(--text-faint)]">Common questions</p>
+          <p className="text-[13px] font-black">BetZone help</p>
+          <p className="text-[10px] text-white/60">Common questions</p>
         </div>
-        <button onClick={() => setOpen(false)} aria-label="Close support" className="text-[var(--text-muted)]">
+        <button onClick={() => setOpen(false)} aria-label="Close support" className="text-white/70 hover:text-white">
           <X size={18} strokeWidth={2} />
         </button>
       </header>
@@ -73,17 +73,17 @@ export function SupportChat() {
             <button
               key={item.q}
               onClick={() => setAsked(i)}
-              className="w-full rounded-lg bg-[var(--surface-2)] px-3 py-2 text-left text-[12px] font-medium"
+              className="w-full rounded border border-[var(--line)] bg-[var(--bg)] px-3 py-2 text-left text-[12px] font-semibold hover:border-[var(--accent)]"
             >
               {item.q}
             </button>
           ))
         ) : (
           <>
-            <p className="ml-auto w-fit max-w-[85%] rounded-lg bg-[var(--accent)] px-3 py-2 text-[12px] font-semibold text-[var(--accent-ink)]">
+            <p className="ml-auto w-fit max-w-[85%] rounded bg-[var(--accent)] px-3 py-2 text-[12px] font-semibold text-[var(--accent-ink)]">
               {SCRIPT[asked].q}
             </p>
-            <p className="w-fit max-w-[90%] rounded-lg bg-[var(--surface-2)] px-3 py-2 text-[12px] leading-relaxed">
+            <p className="w-fit max-w-[90%] rounded bg-[var(--surface-2)] px-3 py-2 text-[12px] leading-relaxed">
               {SCRIPT[asked].a}
             </p>
             <button
