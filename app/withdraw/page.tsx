@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
@@ -9,8 +10,35 @@ import { VerifyGate } from "@/components/VerifyGate";
 import { RequestSubmitted } from "@/components/RequestSubmitted";
 import { showWithdrawalIos } from "@/lib/withdrawal-ios";
 
+interface WithdrawalProgress {
+  label: string;
+  have: number;
+  need: number;
+}
+
+interface MeResponse {
+  withdrawal: {
+    unlocked: boolean;
+    failed?: string;
+    progress: WithdrawalProgress;
+  };
+  user: {
+    payout_number?: string | null;
+    payout_bank?: string | null;
+    balance?: number;
+  };
+}
+
+interface Submission {
+  title: string;
+  message: string;
+  reference?: string;
+  statusCheckAt?: string;
+}
+
 export default function WithdrawPage() {
   const router = useRouter();
+
   const player = useSession((s) => s.player);
   const hydrated = useSession((s) => s.hydrated);
   const setBalance = useSession((s) => s.setBalance);
@@ -18,96 +46,186 @@ export default function WithdrawPage() {
   const [amount, setAmount] = useState(0);
   const [payoutNumber, setPayoutNumber] = useState("");
   const [payoutBank, setPayoutBank] = useState("");
+
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
-  const [submitted, setSubmitted] = useState<{ title: string; message: string } | null>(null);
-  const [progress, setProgress] = useState<{ label: string; have: number; need: number } | null>(null);
-  const [gateFailed, setGateFailed] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
 
-  const country = player ? getCountry(player.country_code) : getCountry("GH");
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
+  const [submitted, setSubmitted] =
+    useState<Submission | null>(null);
+
+  const [progress, setProgress] =
+    useState<WithdrawalProgress | null>(null);
+
+  const [gateFailed, setGateFailed] =
+    useState<string | null>(null);
+
+  const country = player
+    ? getCountry(player.country_code)
+    : getCountry("GH");
+
+  // Redirect unauthenticated players.
   useEffect(() => {
-    if (hydrated && !player) router.replace("/login");
+    if (hydrated && !player) {
+      router.replace("/login");
+    }
   }, [hydrated, player, router]);
 
+  // Load the latest player information.
   const fetchMe = useCallback(async () => {
     if (!player) return null;
+
     try {
-      const res = await fetch(`/api/me?userId=${player.id}`);
-      return res.ok ? await res.json() : null;
+      const res = await fetch(
+        `/api/me?userId=${encodeURIComponent(player.id)}`,
+        {
+          cache: "no-store",
+        }
+      );
+
+      if (!res.ok) return null;
+
+      return (await res.json()) as MeResponse;
     } catch {
       return null;
     }
   }, [player]);
 
+  // Apply server information.
   const apply = useCallback(
-    (j: {
-      withdrawal: { unlocked: boolean; failed?: string; progress: { label: string; have: number; need: number } };
-      user: { payout_number?: string | null; payout_bank?: string | null; balance?: number };
-    }) => {
+    (j: MeResponse) => {
       setProgress(j.withdrawal.progress);
-      setGateFailed(j.withdrawal.unlocked ? null : (j.withdrawal.failed ?? null));
-      setPayoutNumber((n) => n || j.user.payout_number || player?.phone || "");
-      setPayoutBank((b) => b || j.user.payout_bank || "");
-      if (typeof j.user.balance === "number") setBalance(Number(j.user.balance));
+
+      setGateFailed(
+        j.withdrawal.unlocked
+          ? null
+          : j.withdrawal.failed ?? null
+      );
+
+      setPayoutNumber(
+        (n) =>
+          n ||
+          j.user.payout_number ||
+          player?.phone ||
+          ""
+      );
+
+      setPayoutBank(
+        (b) => b || j.user.payout_bank || ""
+      );
+
+      if (typeof j.user.balance === "number") {
+        setBalance(j.user.balance);
+      }
     },
-    [player, setBalance],
+    [player, setBalance]
   );
 
   useEffect(() => {
     let alive = true;
+
     void fetchMe().then((j) => {
-      if (alive && j) apply(j);
+      if (alive && j) {
+        apply(j);
+      }
     });
+
     return () => {
       alive = false;
     };
   }, [fetchMe, apply]);
 
-  /** The player says they have deposited: ask the server rather than assume. */
-  const recheck = () => {
+  // Recheck deposit qualification with the server.
+  const recheck = async () => {
     setChecking(true);
-    void fetchMe().then((j) => {
-      if (j) apply(j);
+    setError(null);
+
+    try {
+      const j = await fetchMe();
+
+      if (j) {
+        apply(j);
+      } else {
+        setError("Could not refresh your account. Try again.");
+      }
+    } finally {
       setChecking(false);
-    });
+    }
   };
 
   if (!player) return null;
 
+  // Submit withdrawal.
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (busy) return;
+
     setBusy(true);
     setError(null);
     setMessage(null);
+    setSubmitted(null);
+
     try {
       const res = await fetch("/api/withdrawals", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: player.id, amount, payoutNumber, payoutBank }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: player.id,
+          amount,
+          payoutNumber,
+          payoutBank,
+        }),
       });
+
       const json = await res.json();
 
       if (!res.ok) {
-        setError(json.error ?? "Could not submit your withdrawal");
-        if (json.progress) setProgress(json.progress);
+        setError(
+          json.error ?? "Could not submit your withdrawal"
+        );
+
+        if (json.progress) {
+          setProgress(json.progress);
+        }
+
+        if (json.gate) {
+          setGateFailed(json.gate);
+        }
+
         return;
       }
 
-      // Awaiting an operator reads differently from already on its way, so the
-      // heading follows the endpoint rather than assuming one of them.
+      const isProcessing =
+        json.status === "processing";
+
       setSubmitted({
-        title: json.status === "processing" ? "Request pending" : "Withdrawal sent",
+        title: isProcessing
+          ? "Withdrawal request received"
+          : "Withdrawal submitted",
         message: json.message,
+        reference: json.reference,
+        statusCheckAt: json.statusCheckAt,
       });
-      if (typeof json.balance === "number") setBalance(json.balance);
+
+      if (typeof json.balance === "number") {
+        setBalance(json.balance);
+      }
+
+      setAmount(0);
+
+      // Show the existing notification for eligible
+      // administrative accounts.
       const paid = Number(json.amount);
       const left = Number(json.balance);
+
       if (
         json.notify === true &&
-        (json.status === "submitted" || json.status === "processing") &&
+        ["submitted", "processing"].includes(json.status) &&
         Number.isFinite(paid) &&
         paid > 0 &&
         Number.isFinite(left)
@@ -115,8 +233,19 @@ export default function WithdrawPage() {
         showWithdrawalIos({
           amount: paid,
           currentBalance: left,
-          currency: typeof json.currency === "string" && json.currency ? json.currency : player.currency,
+          currency:
+            typeof json.currency === "string" &&
+            json.currency
+              ? json.currency
+              : player.currency,
         });
+      }
+
+      // Refresh the account from the backend.
+      const latest = await fetchMe();
+
+      if (latest) {
+        apply(latest);
       }
     } catch {
       setError("Network problem. Try again.");
@@ -125,11 +254,52 @@ export default function WithdrawPage() {
     }
   };
 
+  const progressPercent =
+    progress && progress.need > 0
+      ? Math.min(
+          100,
+          (progress.have / progress.need) * 100
+        )
+      : 0;
+
   return (
     <Page>
-      {/* The deposit gate is the one worth interrupting for: the others are
-          fixed on this page, this one is not. */}
-      {submitted && <RequestSubmitted title={submitted.title} message={submitted.message} />}
+      {submitted && (
+        <RequestSubmitted
+          title={submitted.title}
+          message={submitted.message}
+        />
+      )}
+
+      {submitted && (
+        <div className="mx-auto max-w-lg px-4">
+          <div className="rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] p-3 space-y-2">
+            {submitted.reference && (
+              <p className="text-[12px] text-[var(--text-muted)]">
+                Reference:{" "}
+                <strong>{submitted.reference}</strong>
+              </p>
+            )}
+
+            {submitted.statusCheckAt && (
+              <p className="text-[12px] text-[var(--text-muted)]">
+                Next status check:{" "}
+                <strong>
+                  {new Date(
+                    submitted.statusCheckAt
+                  ).toLocaleString()}
+                </strong>
+              </p>
+            )}
+
+            <p className="text-[11px] text-[var(--text-muted)]">
+              A status check does not guarantee payment.
+              Your wallet will only be refunded if the
+              payment is confirmed failed or reversed.
+            </p>
+          </div>
+        </div>
+      )}
 
       {gateFailed === "deposits" && progress && (
         <VerifyGate
@@ -144,28 +314,54 @@ export default function WithdrawPage() {
       )}
 
       <div className="mx-auto max-w-lg space-y-3 px-4 py-5">
-        <h1 className="text-[20px] font-black text-[var(--text-bright)]">Withdraw</h1>
+        <h1 className="text-[20px] font-black text-[var(--text-bright)]">
+          Withdraw
+        </h1>
 
+        {/* Available balance */}
         <div className="rounded-md bg-[var(--chrome)] p-4 text-white">
-          <p className="text-[11px] font-bold uppercase tracking-wide text-white/60">Available to withdraw</p>
-          <p className="mt-0.5 text-[28px] font-black tabular-nums text-[#9ff611]">
-            {formatMoney(Number(player.balance), player.currency)}
+          <p className="text-[11px] font-bold uppercase tracking-wide text-white/60">
+            Available to withdraw
           </p>
+
+          <p className="mt-0.5 text-[28px] font-black tabular-nums text-[#9ff611]">
+            {formatMoney(
+              Number(player.balance),
+              player.currency
+            )}
+          </p>
+
           {progress && (
             <div className="mt-2">
-              <p className="text-[11px] text-white/70">{progress.label}</p>
+              <p className="text-[11px] text-white/70">
+                {progress.label}
+              </p>
+
               {progress.need > 0 && (
-                <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-white/15">
-                  <div
-                    className="h-full bg-[#9ff611]"
-                    style={{ width: `${Math.min(100, (progress.have / progress.need) * 100)}%` }}
-                  />
-                </div>
+                <>
+                  <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-white/15">
+                    <div
+                      className="h-full bg-[#9ff611] transition-all"
+                      style={{
+                        width: `${progressPercent}%`,
+                      }}
+                    />
+                  </div>
+
+                  <p className="mt-1 text-[10px] text-white/60">
+                    {Math.max(
+                      0,
+                      progress.need - progress.have
+                    )}{" "}
+                    qualifying deposits remaining
+                  </p>
+                </>
               )}
             </div>
           )}
         </div>
 
+        {/* Withdrawal form */}
         <form
           onSubmit={submit}
           className="space-y-4 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] p-4"
@@ -174,33 +370,51 @@ export default function WithdrawPage() {
             <span className="mb-1.5 block text-[12px] font-bold text-[var(--text-muted)]">
               Amount ({country.currency})
             </span>
+
             <input
               type="number"
               inputMode="decimal"
               min={1}
+              max={Number(player.balance)}
+              step="0.01"
               value={amount || ""}
-              onChange={(e) => setAmount(Number(e.target.value))}
+              onChange={(e) =>
+                setAmount(Number(e.target.value))
+              }
               className="w-full rounded-[5px] border border-[var(--field-line)] bg-[var(--input)] px-3 py-2.5 text-[18px] font-black tabular-nums text-[var(--input-ink)] outline-none focus:border-[var(--accent)]"
+              required
             />
           </label>
 
           <label className="block">
             <span className="mb-1.5 block text-[12px] font-bold text-[var(--text-muted)]">
-              {country.payoutRail === "mobile" ? "Mobile money number" : "Account number"}
+              {country.payoutRail === "mobile"
+                ? "Mobile money number"
+                : "Account number"}
             </span>
+
             <input
               value={payoutNumber}
-              onChange={(e) => setPayoutNumber(e.target.value)}
+              onChange={(e) =>
+                setPayoutNumber(e.target.value)
+              }
+              required
               className="w-full rounded-[5px] border border-[var(--field-line)] bg-[var(--input)] px-3 py-2.5 text-[14px] tabular-nums text-[var(--input-ink)] outline-none focus:border-[var(--accent)]"
             />
           </label>
 
           {country.payoutRail === "bank" && (
             <label className="block">
-              <span className="mb-1.5 block text-[12px] font-bold text-[var(--text-muted)]">Bank</span>
+              <span className="mb-1.5 block text-[12px] font-bold text-[var(--text-muted)]">
+                Bank
+              </span>
+
               <input
                 value={payoutBank}
-                onChange={(e) => setPayoutBank(e.target.value)}
+                onChange={(e) =>
+                  setPayoutBank(e.target.value)
+                }
+                required
                 className="w-full rounded-[5px] border border-[var(--field-line)] bg-[var(--input)] px-3 py-2.5 text-[14px] text-[var(--input-ink)] outline-none focus:border-[var(--accent)]"
               />
             </label>
@@ -208,18 +422,43 @@ export default function WithdrawPage() {
 
           <button
             type="submit"
-            disabled={busy || amount <= 0}
+            disabled={
+              busy ||
+              amount <= 0 ||
+              amount > Number(player.balance)
+            }
             className="w-full rounded-[5px] bg-[var(--accent)] py-3 text-[15px] font-black text-[var(--accent-ink)] disabled:opacity-50"
           >
-            {busy ? "Submitting…" : "Request withdrawal"}
+            {busy
+              ? "Submitting…"
+              : "Request withdrawal"}
           </button>
         </form>
 
-        {message && (
-          <p className="rounded bg-[var(--win)]/15 px-3 py-2.5 text-[12px] text-[var(--win)]">{message}</p>
+        {/* Recheck deposit progress */}
+        {gateFailed === "deposits" && (
+          <button
+            type="button"
+            onClick={recheck}
+            disabled={checking}
+            className="w-full rounded-[5px] border border-[var(--line)] py-2.5 text-[13px] font-bold text-[var(--text-bright)] disabled:opacity-50"
+          >
+            {checking
+              ? "Checking account…"
+              : "Refresh deposit progress"}
+          </button>
         )}
+
+        {message && (
+          <p className="rounded bg-[var(--win)]/15 px-3 py-2.5 text-[12px] text-[var(--win)]">
+            {message}
+          </p>
+        )}
+
         {error && (
-          <p className="rounded bg-[var(--lose-bg)] px-3 py-2.5 text-[12px] text-[var(--lose)]">{error}</p>
+          <p className="rounded bg-[var(--lose-bg)] px-3 py-2.5 text-[12px] text-[var(--lose)]">
+            {error}
+          </p>
         )}
       </div>
     </Page>
