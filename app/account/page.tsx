@@ -248,13 +248,6 @@ function AccountView() {
             label="Customer service"
             dot
           />
-          {!data?.partner && (
-            <Row
-              href="/partner"
-              icon={<Handshake size={18} strokeWidth={1.9} />}
-              label="Become a partner"
-            />
-          )}
         </nav>
 
         <button
