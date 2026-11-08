@@ -76,10 +76,10 @@ export async function GET(_req: Request, ctx: { params: Promise<{ code: string }
               fontWeight: 900,
             }}
           >
-            B
+            P
           </div>
           <div style={{ display: "flex", fontSize: 30, fontWeight: 900, color: "#f4f8fc" }}>
-            BETZONE
+            PEP STAKE
           </div>
           <div style={{ display: "flex", fontSize: 22, color: "#f4f8fc", marginLeft: "auto" }}>
             🇬🇭 Ghana

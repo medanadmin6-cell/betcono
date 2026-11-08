@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { LegalPage } from "@/components/LegalPage";
 
-export const metadata = { title: "Terms | BetZone" };
+export const metadata = { title: "Terms | Pep Stake" };
 
 export default function TermsPage() {
   return (
@@ -82,7 +82,7 @@ export default function TermsPage() {
           body: (
             <p>
               We may update these terms. The date at the top shows the latest version, and continuing
-              to use BetZone after a change means you accept it.
+              to use Pep Stake after a change means you accept it.
             </p>
           ),
         },

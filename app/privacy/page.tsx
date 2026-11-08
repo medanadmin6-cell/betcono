@@ -1,6 +1,6 @@
 import { LegalPage } from "@/components/LegalPage";
 
-export const metadata = { title: "Privacy | BetZone" };
+export const metadata = { title: "Privacy | Pep Stake" };
 
 export default function PrivacyPage() {
   return (

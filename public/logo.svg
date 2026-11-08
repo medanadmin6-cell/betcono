@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 44" role="img" aria-label="BetZone">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 248 44" role="img" aria-label="Pep Stake">
   <defs>
     <linearGradient id="stk" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#c6ff6a"/>
@@ -6,8 +6,8 @@
     </linearGradient>
   </defs>
   <rect x="0" y="4" width="36" height="36" rx="9" fill="url(#stk)"/>
-  <text x="18" y="31" text-anchor="middle" font-family="ui-sans-serif,system-ui,Segoe UI,Roboto,Arial,sans-serif" font-size="25" font-weight="800" fill="#071a33">B</text>
+  <text x="18" y="31" text-anchor="middle" font-family="ui-sans-serif,system-ui,Segoe UI,Roboto,Arial,sans-serif" font-size="25" font-weight="800" fill="#071a33">P</text>
   <text x="44" y="29" font-family="ui-sans-serif,system-ui,Segoe UI,Roboto,Arial,sans-serif" font-size="19" font-weight="800" letter-spacing="0.5">
-    <tspan fill="#071a33">Bet</tspan><tspan fill="#0a6b40">Zone</tspan>
+    <tspan fill="#071a33">Pep</tspan><tspan fill="#0a6b40"> Stake</tspan>
   </text>
 </svg>

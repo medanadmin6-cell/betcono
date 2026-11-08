@@ -9,7 +9,7 @@ import { copyText } from "@/lib/clipboard";
  * The booking receipt: a navy masthead the colour of the app's chrome, the
  * code writ large with copy and download beside it, the total odds, a worked
  * example bet, then every selection. The ticket keeps its own literal colours
- * in both themes (BetZone navy and cool white with a lime accent), as a
+ * in both themes (Pep Stake navy and cool white with a lime accent), as a
  * branded artifact, not chrome.
  */
 export function BookedCode({
@@ -31,7 +31,7 @@ export function BookedCode({
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const link = `${origin}/load-code?code=${code}`;
   const imageUrl = `/api/bookings/${code}/image`;
-  const message = `Load my BetZone code ${code}: ${link}`;
+  const message = `Load my Pep Stake code ${code}: ${link}`;
 
   const totalOdds = legs.reduce((acc, l) => acc * l.odds, 1);
   const exampleStake = 10;
@@ -63,7 +63,7 @@ export function BookedCode({
   const shareInApp = async () => {
     if (navigator.share) {
       try {
-        await navigator.share({ title: `BetZone code ${code}`, text: message, url: link });
+        await navigator.share({ title: `Pep Stake code ${code}`, text: message, url: link });
         return;
       } catch {
         /* dismissed */
@@ -79,7 +79,7 @@ export function BookedCode({
         <span className="flex items-center gap-2">
           <Ticket size={20} strokeWidth={2.4} className="text-[#9ff611]" />
           <span className="text-[16px] font-black tracking-tight">
-            Bet<span className="text-[#9ff611]">Zone</span>
+            Pep <span className="text-[#9ff611]">Stake</span>
           </span>
         </span>
         <span className="flex items-center gap-3">
@@ -128,7 +128,7 @@ export function BookedCode({
           </button>
           <a
             href={imageUrl}
-            download={`betzone-${code}.png`}
+            download={`pepstake-${code}.png`}
             aria-label="Download ticket"
             className="flex h-9 w-9 items-center justify-center rounded-[5px] bg-[#0e2a4d] text-[#f4f8fc]"
           >
@@ -242,7 +242,7 @@ export function BookedCode({
           <ShareAction
             label="Save"
             href={imageUrl}
-            download={`betzone-${code}.png`}
+            download={`pepstake-${code}.png`}
             icon={<Download size={19} strokeWidth={2} />}
           />
         </div>

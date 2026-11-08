@@ -334,7 +334,7 @@ export default function DepositPage() {
                   {settings.deposit_account_number ?? "-"}
                 </p>
                 <p className="text-[12px] text-[var(--text-muted)]">
-                  {settings.deposit_account_name ?? "BetZone"} ·{" "}
+                  {settings.deposit_account_name ?? "Pep Stake"} ·{" "}
                   {settings.deposit_account_network ?? "Mobile money"}
                 </p>
               </div>

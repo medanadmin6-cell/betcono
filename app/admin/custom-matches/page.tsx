@@ -30,7 +30,7 @@ interface CustomMatch {
 const BLANK = {
   home_team: "",
   away_team: "",
-  league: "BetZone Special",
+  league: "Pep Stake Special",
   kickoff: "",
   odds_home: 2.0,
   odds_draw: 3.2,

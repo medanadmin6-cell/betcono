@@ -86,12 +86,12 @@ export function WinCelebration({
   }, [onClose]);
 
   const share = async () => {
-    const text = `I just won ${formatMoney(amount, currency)} on BetZone. Ticket ${code}.`;
+    const text = `I just won ${formatMoney(amount, currency)} on Pep Stake. Ticket ${code}.`;
     const url = typeof window !== "undefined" ? window.location.origin : "";
 
     if (navigator.share) {
       try {
-        await navigator.share({ title: "BetZone win", text, url });
+        await navigator.share({ title: "Pep Stake win", text, url });
         return;
       } catch {
         /* dismissed */

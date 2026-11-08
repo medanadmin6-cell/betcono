@@ -59,7 +59,7 @@ export function SupportChat() {
     <div className="fixed bottom-[84px] right-3 z-50 flex max-h-[60vh] w-[min(20rem,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] shadow-lg lg:bottom-20 lg:right-6">
       <header className="flex items-center justify-between bg-[var(--chrome)] px-3 py-2.5 text-white">
         <div>
-          <p className="text-[13px] font-black">BetZone help</p>
+          <p className="text-[13px] font-black">Pep Stake help</p>
           <p className="text-[10px] text-white/60">Common questions</p>
         </div>
         <button onClick={() => setOpen(false)} aria-label="Close support" className="text-white/70 hover:text-white">

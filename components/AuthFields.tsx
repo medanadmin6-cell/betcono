@@ -50,10 +50,10 @@ export function AuthLayout({
     <div className="min-h-screen bg-[var(--bg)]">
       <header className="bg-[var(--chrome)]">
         <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between px-4">
-          <Link href="/" className="flex items-center gap-2" aria-label="BetZone home">
+          <Link href="/" className="flex items-center gap-2" aria-label="Pep Stake home">
             <BrandIcon size={26} className="text-[#9ff611]" />
             <span className="text-[18px] font-black tracking-tight text-white">
-              Bet<span className="text-[#9ff611]">Zone</span>
+              Pep <span className="text-[#9ff611]">Stake</span>
             </span>
           </Link>
           {onClose && (

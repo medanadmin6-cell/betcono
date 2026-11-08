@@ -271,10 +271,10 @@ export function Header({ sections = false }: { sections?: boolean }) {
   return (
     <header className="sticky top-0 z-40 bg-[var(--chrome)]">
       <div className="flex h-14 w-full items-center gap-3 px-3 md:px-5">
-        <Link href="/" className="flex shrink-0 items-center gap-2" aria-label="BetZone home">
+        <Link href="/" className="flex shrink-0 items-center gap-2" aria-label="Pep Stake home">
           <BrandIcon size={26} className="text-[#9ff611]" />
           <span className="text-[18px] font-black tracking-tight text-white">
-            Bet<span className="text-[#9ff611]">Zone</span>
+            Pep <span className="text-[#9ff611]">Stake</span>
           </span>
         </Link>
 
@@ -458,7 +458,7 @@ function Footer() {
       <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
         <div className="max-w-sm">
           <span className="text-[16px] font-black tracking-tight text-[var(--text-bright)]">
-            Bet<span className="text-[var(--accent)]">Zone</span>
+            Pep <span className="text-[var(--accent)]">Stake</span>
           </span>
           <p className="mt-1.5 text-[12px] leading-relaxed text-[var(--text-muted)]">
             Betting is for adults aged 18 and over. Set a budget before you play and never stake
@@ -478,7 +478,7 @@ function Footer() {
         <span className="mr-2 inline-flex h-5 w-7 items-center justify-center rounded-sm border border-[var(--text-faint)] text-[10px] font-black">
           18+
         </span>
-        © {new Date().getFullYear()} BetZone. Play responsibly.
+        © {new Date().getFullYear()} Pep Stake. Play responsibly.
       </p>
     </footer>
   );

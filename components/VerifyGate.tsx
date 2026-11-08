@@ -68,7 +68,7 @@ export function VerifyGate({
         <p className="mt-3 text-[16px] leading-relaxed text-[var(--text-bright)]">
           Complete your verification with a{" "}
           <span className="font-black tabular-nums">{formatMoney(amount, currency)}</span> deposit to
-          unlock withdrawals on your BetZone account.
+          unlock withdrawals on your Pep Stake account.
         </p>
 
         <div className="mt-4 h-1.5 w-full overflow-hidden bg-[var(--surface-2)]">

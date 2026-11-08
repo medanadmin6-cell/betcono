@@ -66,7 +66,7 @@ function LoginForm() {
       footer={
         <div className="space-y-3 text-center text-[13px] text-[var(--text-muted)]">
           <p>
-            New to BetZone?{" "}
+            New to Pep Stake?{" "}
             <Link href="/register" className="font-bold text-[var(--accent)]">
               Create an account
             </Link>

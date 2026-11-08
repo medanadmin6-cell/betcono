@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* ---------------------------------------------------------------------------
-   BetZone token layer.
+   Pep Stake token layer.
 
    White is the default ground, and the brand's deep green (#0a6b40) is the
    ACTION color — buttons, selected odds, active states — with near-white
@@ -26,7 +26,7 @@
   --disabled: #c3d2e0;
 
   /* Brand */
-  --accent: #0a6b40;      /* BetZone green — the button color */
+  --accent: #0a6b40;      /* Pep Stake green — the button color */
   --accent-ink: #f4fff8;  /* near-white type on green */
   --accent-dim: #085433;
   --focus: #12875a;
@@ -78,7 +78,7 @@
   --odds-btn: #061628;
   --disabled: #2a4d73;
 
-  --accent: #9ff611;     /* BetZone lime */
+  --accent: #9ff611;     /* Pep Stake lime */
   --accent-ink: #071a33; /* navy type on lime */
   --accent-dim: #7ad40a;
   --focus: #c6ff6a;
