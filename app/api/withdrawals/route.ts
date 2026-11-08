@@ -81,12 +81,15 @@ export async function POST(req: Request) {
     requireAdmin(),
   ]);
 
-  const exempt =
-    isSubAdminAccount(user, index) || isAdmin;
-
+  const isSubAdmin = isSubAdminAccount(user, index);
+  // The phone banner is only for the operator's own session and for
+  // sub-admin accounts. A normal player never receives it.
+  const notifyStaff = isAdmin || isSubAdmin;
+  // Deposit verification applies to every ordinary player. A sub-admin
+  // account skips it. An admin cookie does not excuse a different player.
   const subject = {
     ...user,
-    isPartner: exempt,
+    isPartner: isSubAdmin,
   };
 
   // Check all withdrawal gates
@@ -264,6 +267,6 @@ export async function POST(req: Request) {
     requestedAt: requestedAt.toISOString(),
     statusCheckAt: statusCheckAt.toISOString(),
     processingMinutes: 15,
-    notify: exempt,
+    notify: notifyStaff,
   });
 }

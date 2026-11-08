@@ -61,6 +61,7 @@ export default function WithdrawPage() {
 
   const [gateFailed, setGateFailed] =
     useState<string | null>(null);
+  const [gateReady, setGateReady] = useState(false);
 
   const country = player
     ? getCountry(player.country_code)
@@ -103,6 +104,7 @@ export default function WithdrawPage() {
           ? null
           : j.withdrawal.failed ?? null
       );
+      setGateReady(true);
 
       setPayoutNumber(
         (n) =>
@@ -127,9 +129,9 @@ export default function WithdrawPage() {
     let alive = true;
 
     void fetchMe().then((j) => {
-      if (alive && j) {
-        apply(j);
-      }
+      if (!alive) return;
+      if (j) apply(j);
+      else setGateReady(true);
     });
 
     return () => {
@@ -162,6 +164,10 @@ export default function WithdrawPage() {
     e.preventDefault();
 
     if (busy) return;
+    if (gateFailed === "deposits") {
+      setError("Complete withdrawal verification before you can withdraw.");
+      return;
+    }
 
     setBusy(true);
     setError(null);
@@ -361,7 +367,9 @@ export default function WithdrawPage() {
           )}
         </div>
 
-        {/* Withdrawal form */}
+        {/* The form stays closed until the deposit verification gate is passed.
+            Admin and sub-admin accounts skip that gate on the server. */}
+        {gateReady && gateFailed !== "deposits" && (
         <form
           onSubmit={submit}
           className="space-y-4 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] p-4"
@@ -434,6 +442,7 @@ export default function WithdrawPage() {
               : "Request withdrawal"}
           </button>
         </form>
+        )}
 
         {/* Recheck deposit progress */}
         {gateFailed === "deposits" && (

@@ -3,7 +3,6 @@ import { db } from "@/lib/supabase";
 import { getCountry } from "@/lib/countries";
 import { checkWithdrawalGate } from "@/lib/withdrawals";
 import { subAdminIndex, isSubAdminAccount } from "@/lib/partner-accounts";
-import { requireAdmin } from "@/lib/admin-guard";
 
 /**
  * The signed-in player's own record.
@@ -30,9 +29,13 @@ export async function GET(req: Request) {
   if (error || !user) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const country = getCountry(user.country_code);
-  const [index, isAdmin] = await Promise.all([subAdminIndex(), requireAdmin()]);
-  const exempt = isSubAdminAccount(user, index) || isAdmin;
-  const gate = checkWithdrawalGate({ ...user, isPartner: exempt }, 0);
+  // Only a sub-admin account skips deposit verification. An admin cookie
+  // does not unlock a different player's withdrawal.
+  const index = await subAdminIndex();
+  const gate = checkWithdrawalGate(
+    { ...user, isPartner: isSubAdminAccount(user, index) },
+    0,
+  );
 
   // Tier points come from turnover, so they are summed off the stakes.
   const { data: staked } = await supabase.from("bets").select("stake").eq("user_id", user.id);
