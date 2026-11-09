@@ -83,21 +83,8 @@ export default function ProfilePage() {
                 Withdrawals {unlocked ? "unlocked" : "locked"}
               </p>
               <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">
-                {data?.withdrawal.progress.label ?? "-"}
+                The deposit check is shown when you withdraw after a winning bet.
               </p>
-              {data && (
-                <div className="mt-2 h-1 overflow-hidden bg-[var(--surface-2)]">
-                  <div
-                    className="h-full bg-[var(--accent)]"
-                    style={{
-                      width: `${Math.min(
-                        100,
-                        (data.withdrawal.progress.have / Math.max(1, data.withdrawal.progress.need)) * 100,
-                      )}%`,
-                    }}
-                  />
-                </div>
-              )}
             </div>
           </div>
 

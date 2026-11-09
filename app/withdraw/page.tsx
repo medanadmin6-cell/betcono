@@ -368,7 +368,7 @@ export default function WithdrawPage() {
           )}
         </div>
 
-        {/* The form stays closed until a winning player finishes all three
+        {/* The form stays closed until a winning player finishes both
             qualifying deposits. A player who has never won sees it open. */}
         {gateReady && !showDeposits && (
         <form
