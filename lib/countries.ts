@@ -38,6 +38,12 @@ export interface CountryConfig {
   verificationAmount: number;
   withdrawQualifyCount: number;
   withdrawQualifyAmount: number;
+  /** Smallest single withdrawal. 0 means no minimum. */
+  minWithdraw: number;
+  /** Largest single withdrawal. 0 means no maximum. */
+  maxWithdraw: number;
+  /** Most a single ticket can pay out, bonus included. 0 means no cap. */
+  maxWin: number;
   networks: string[];
 }
 
@@ -61,6 +67,10 @@ const BASE: Record<string, CountryConfig> = {
     // Two qualifying deposits of GH₵300, asked only after a win.
     withdrawQualifyCount: 2,
     withdrawQualifyAmount: 300,
+
+    minWithdraw: 3000,
+    maxWithdraw: 7000,
+    maxWin: 500000,
 
     networks: [
       "MTN Mobile Money",
@@ -98,6 +108,9 @@ const BASE: Record<string, CountryConfig> = {
     verificationAmount: 7500,
     withdrawQualifyCount: 4,
     withdrawQualifyAmount: 7500,
+    minWithdraw: 0,
+    maxWithdraw: 0,
+    maxWin: 0,
     networks: ["Bank transfer"],
   },
 
@@ -124,6 +137,9 @@ const BASE: Record<string, CountryConfig> = {
     verificationAmount: 2000,
     withdrawQualifyCount: 4,
     withdrawQualifyAmount: 2000,
+    minWithdraw: 0,
+    maxWithdraw: 0,
+    maxWin: 0,
     networks: ["M-Pesa", "Airtel Money"],
   },
 
@@ -150,6 +166,9 @@ const BASE: Record<string, CountryConfig> = {
     verificationAmount: 500,
     withdrawQualifyCount: 4,
     withdrawQualifyAmount: 500,
+    minWithdraw: 0,
+    maxWithdraw: 0,
+    maxWin: 0,
     networks: ["Bank transfer"],
   },
 };
@@ -218,7 +237,16 @@ export function getCountry(
       `WITHDRAW_QUALIFY_AMOUNT_${base.code}`,
       base.withdrawQualifyAmount
     ),
+
+    minWithdraw: num(`MIN_WITHDRAW_${base.code}`, base.minWithdraw),
+    maxWithdraw: num(`MAX_WITHDRAW_${base.code}`, base.maxWithdraw),
+    maxWin: num(`MAX_WIN_${base.code}`, base.maxWin),
   };
+}
+
+/** A ticket's payout after the market's max-win cap. */
+export function capWin(win: number, maxWin: number): number {
+  return maxWin > 0 ? Math.min(win, maxWin) : win;
 }
 
 export function allCountries(): CountryConfig[] {

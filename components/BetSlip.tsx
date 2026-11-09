@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { X, Trash2, Settings, ReceiptText } from "lucide-react";
 import { useSlip, useSession, type SlipMode, type SlipLeg } from "@/lib/store";
-import { formatMoney } from "@/lib/countries";
+import { formatMoney, getCountry, capWin } from "@/lib/countries";
 import { useSlipDocked } from "@/lib/wide";
 import { BookedCode } from "@/components/BookedCode";
 import { PlacedReceipt, type PlacedTicket } from "@/components/PlacedReceipt";
@@ -104,6 +104,7 @@ function SlipBody({ onClose }: { onClose?: () => void }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const currency = player?.currency ?? "GHS";
+  const maxWin = getCountry(player?.country_code).maxWin;
   const oddsPerLeg = useMemo(() => legs.map((l) => l.odds), [legs]);
 
   // Multiple and System each need at least two selections. A slip that drops to
@@ -129,13 +130,17 @@ function SlipBody({ onClose }: { onClose?: () => void }) {
     const bonus =
       effectiveMode === "multiple" && legs.length >= 2 ? bonusAmount(stake, totalOdds, oddsPerLeg) : 0;
 
+    // Each ticket is capped at the market's max win, as the server does.
     const win =
       effectiveMode === "multiple"
-        ? stake * totalOdds + bonus
+        ? capWin(stake * totalOdds + bonus, maxWin)
         : effectiveMode === "single"
-          ? legs.reduce((acc, l) => acc + stake * l.odds, 0)
+          ? legs.reduce((acc, l) => acc + capWin(stake * l.odds, maxWin), 0)
           : // A system pays per line; the best case is every combination landing.
-            stake * legs.reduce((acc, l) => acc * l.odds, 1);
+            Math.min(
+              stake * legs.reduce((acc, l) => acc * l.odds, 1),
+              maxWin > 0 ? maxWin * lines : Infinity,
+            );
 
     return {
       sizes,
@@ -146,7 +151,7 @@ function SlipBody({ onClose }: { onClose?: () => void }) {
       win: Math.round(win * 100) / 100,
       cost: Math.round(stake * lines * 100) / 100,
     };
-  }, [legs, effectiveMode, systemSize, stake, oddsPerLeg]);
+  }, [legs, effectiveMode, systemSize, stake, oddsPerLeg, maxWin]);
 
   const standing = bonusFor(oddsPerLeg);
 
@@ -469,6 +474,11 @@ function SlipBody({ onClose }: { onClose?: () => void }) {
               {formatMoney(maths.win, currency)}
             </dd>
           </div>
+          {maxWin > 0 && (
+            <p className="pb-1 text-right text-[11px] text-[var(--text-muted)]">
+              Max win per ticket {formatMoney(maxWin, currency)}
+            </p>
+          )}
         </dl>
 
         {error && (

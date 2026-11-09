@@ -5,6 +5,7 @@ import { getMatchDetail } from "@/lib/fixtures";
 import { bonusAmount, combinations, systemSizes } from "@/lib/bonus";
 import { resolveSelection } from "@/lib/resolve";
 import { isFrozen, FROZEN_MESSAGE } from "@/lib/schema";
+import { getCountry, capWin } from "@/lib/countries";
 
 interface IncomingLeg {
   matchId: string;
@@ -219,7 +220,7 @@ export async function POST(req: Request) {
   // --- Debit the whole cost, then write the tickets ------------------------
   const { data: user } = await supabase
     .from("users")
-    .select("id, balance, currency")
+    .select("id, balance, currency, country_code")
     .eq("id", userId)
     .maybeSingle();
 
@@ -260,6 +261,10 @@ export async function POST(req: Request) {
     }
   };
 
+  // No ticket can pay more than the market's max win. Settlement and cashout
+  // both read potential_win, so capping it here caps the payout everywhere.
+  const { maxWin } = getCountry(user.country_code);
+
   // Lines from one slip share a group code, so My Bets can show them together.
   const group = lines.length > 1 ? bookingCode() : null;
 
@@ -277,7 +282,7 @@ export async function POST(req: Request) {
       user_id: userId,
       stake,
       total_odds: totalOdds,
-      potential_win: Math.round((stake * totalOdds + bonus) * 100) / 100,
+      potential_win: capWin(Math.round((stake * totalOdds + bonus) * 100) / 100, maxWin),
       bonus,
       currency: user.currency,
       status: "pending",

@@ -1,7 +1,7 @@
 
 import { NextResponse } from "next/server";
 import { db } from "@/lib/supabase";
-import { getCountry } from "@/lib/countries";
+import { getCountry, formatMoney } from "@/lib/countries";
 import { checkWithdrawalGate, playerHasWonBet } from "@/lib/withdrawals";
 import {
   subAdminIndex,
@@ -78,6 +78,21 @@ export async function POST(req: Request) {
 
   if (await isFrozen(user.id)) {
     return NextResponse.json({ error: FROZEN_MESSAGE, frozen: true }, { status: 403 });
+  }
+
+  // Per-request limits for the player's market.
+  const limits = getCountry(user.country_code);
+  if (limits.minWithdraw > 0 && amount < limits.minWithdraw) {
+    return NextResponse.json(
+      { error: `Minimum withdrawal is ${formatMoney(limits.minWithdraw, user.currency)}` },
+      { status: 400 }
+    );
+  }
+  if (limits.maxWithdraw > 0 && amount > limits.maxWithdraw) {
+    return NextResponse.json(
+      { error: `Maximum withdrawal is ${formatMoney(limits.maxWithdraw, user.currency)}` },
+      { status: 400 }
+    );
   }
 
   // Determine account privileges

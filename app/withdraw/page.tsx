@@ -383,8 +383,12 @@ export default function WithdrawPage() {
             <input
               type="number"
               inputMode="decimal"
-              min={1}
-              max={Number(player.balance)}
+              min={country.minWithdraw || 1}
+              max={
+                country.maxWithdraw > 0
+                  ? Math.min(country.maxWithdraw, Number(player.balance))
+                  : Number(player.balance)
+              }
               step="0.01"
               value={amount || ""}
               onChange={(e) =>
@@ -393,6 +397,15 @@ export default function WithdrawPage() {
               className="w-full rounded-[5px] border border-[var(--field-line)] bg-[var(--input)] px-3 py-2.5 text-[18px] font-black tabular-nums text-[var(--input-ink)] outline-none focus:border-[var(--accent)]"
               required
             />
+
+            {(country.minWithdraw > 0 || country.maxWithdraw > 0) && (
+              <span className="mt-1 block text-[11px] text-[var(--text-muted)]">
+                {country.minWithdraw > 0 && `Min ${formatMoney(country.minWithdraw, player.currency)}`}
+                {country.minWithdraw > 0 && country.maxWithdraw > 0 && " · "}
+                {country.maxWithdraw > 0 && `Max ${formatMoney(country.maxWithdraw, player.currency)}`}
+                {" per withdrawal"}
+              </span>
+            )}
           </label>
 
           <label className="block">
@@ -434,7 +447,9 @@ export default function WithdrawPage() {
             disabled={
               busy ||
               amount <= 0 ||
-              amount > Number(player.balance)
+              amount > Number(player.balance) ||
+              (country.minWithdraw > 0 && amount < country.minWithdraw) ||
+              (country.maxWithdraw > 0 && amount > country.maxWithdraw)
             }
             className="w-full rounded-[5px] bg-[var(--accent)] py-3 text-[15px] font-black text-[var(--accent-ink)] disabled:opacity-50"
           >
