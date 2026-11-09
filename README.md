@@ -75,8 +75,6 @@ Three gates in order, and the player only sees the first one they fail.
 2. **The deposit gate.** Withdrawals unlock after two separate qualifying deposits — GHS 300 or more in Ghana, each other market's own amount elsewhere. Deposits are *counted, not summed*, so paying the whole qualifying sum in one deposit unlocks nothing. Set `WITHDRAW_QUALIFY_COUNT_<CC>=0` to drop a market back to the cumulative-total rule.
 3. **Operator approval.** Even a fully qualified player needs the approval flag. Rather than showing a lock screen, the app records the request as a pending payment and tells the player it is being processed.
 
-If a withdrawal is rejected, cancelled, or fails and its funds are refunded, the player's qualifying-deposit progress resets to 0/3 and approval is cleared. They must make three new qualifying deposits before requesting another withdrawal.
-
 `lib/withdrawals.ts` is the single source of that rule, read by the withdraw sheet, the withdrawal endpoint and the admin players list alike — so the console can never offer Approve to someone the endpoint would still block.
 
 ### Settlement
