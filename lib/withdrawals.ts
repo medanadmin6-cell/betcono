@@ -115,7 +115,8 @@ export function checkWithdrawalGate(
   // Gate 2: deposit qualification
   // This check appears only after the player has won a bet. A player who
   // has never won opens the withdrawal page without it.
-  // Ghana: five successful qualifying deposits of GH₵300 or more.
+  // Ghana: three qualifying deposits of GH₵300 or more.
+  // A deposit already made to stake counts, so one done leaves two more.
   // Other countries continue using their own country configuration.
   if (user.hasWonBet !== false && !user.isPartner && !user.withdrawal_approved) {
     if (useCount) {
