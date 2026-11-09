@@ -21,7 +21,7 @@ export async function GET(req: Request) {
   const { data: user, error } = await supabase
     .from("users")
     .select(
-      "id, name, phone, email, country_code, currency, balance, total_deposited, total_withdrawn, verification_step, qualifying_deposits, withdrawal_approved, payout_number, payout_bank, bonus_paid, created_at",
+      "id, name, phone, email, country_code, currency, balance, total_deposited, total_withdrawn, verification_step, qualifying_deposits, withdrawal_approved, payout_number, payout_bank, bonus_paid, referred_by, created_at",
     )
     .eq("id", userId)
     .maybeSingle();
@@ -39,6 +39,21 @@ export async function GET(req: Request) {
     { ...user, isPartner: isSubAdminAccount(user, index), hasWonBet },
     0,
   );
+
+  let depositMin = country.minDeposit;
+  let firstDepositMin = country.minFirstDeposit;
+  if (user.referred_by) {
+    const { data: referrer } = await supabase
+      .from("sub_admins")
+      .select("min_deposit")
+      .eq("id", user.referred_by)
+      .maybeSingle();
+    const set = Number(referrer?.min_deposit);
+    if (Number.isFinite(set) && set > 0) {
+      depositMin = Math.max(depositMin, set);
+      firstDepositMin = Math.max(firstDepositMin, set);
+    }
+  }
 
   // Tier points come from turnover, so they are summed off the stakes.
   const { data: staked } = await supabase.from("bets").select("stake").eq("user_id", user.id);
@@ -58,10 +73,11 @@ export async function GET(req: Request) {
       name: country.name,
       currency: country.currency,
       currencySymbol: country.currencySymbol,
-      minFirstDeposit: country.minFirstDeposit,
       gateway: country.gateway,
       payoutRail: country.payoutRail,
       networks: country.networks,
+      minDeposit: depositMin,
+      minFirstDeposit: firstDepositMin,
     },
     withdrawal: {
       unlocked: gate.ok,

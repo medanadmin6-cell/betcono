@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/supabase";
 import { currentPartner, publicPartner } from "@/lib/partner";
+import { formatMoney, getCountry } from "@/lib/countries";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +53,13 @@ export async function GET() {
     creditedToday = (recent ?? []).reduce((sum, r) => sum + Number(r.amount), 0);
   }
 
+  const country = getCountry(wallet?.country_code ?? "GH");
+  const { data: minimumRow, error: minimumErr } = await supabase
+    .from("sub_admins")
+    .select("min_deposit")
+    .eq("id", partner.id)
+    .maybeSingle();
+
   return NextResponse.json({
     partner: publicPartner(partner),
     players: players ?? [],
@@ -59,6 +67,10 @@ export async function GET() {
     wallet,
     creditedToday: Math.round(creditedToday * 100) / 100,
     dailyLimit: Number(process.env.PARTNER_CREDIT_DAILY_MAX ?? 20000),
+    depositMinimum: minimumErr ? null : minimumRow?.min_deposit ?? null,
+    depositCurrency: country.currency,
+    depositFloor: country.minDeposit,
+    depositCeiling: country.maxDeposit,
   });
 }
 
@@ -76,6 +88,29 @@ export async function PATCH(req: Request) {
 
   const body = await req.json().catch(() => null);
   if (!body) return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+
+  if (body.min_deposit !== undefined) {
+    const amount = Number(body.min_deposit);
+    const country = getCountry(String(body.countryCode ?? "GH"));
+    if (!Number.isFinite(amount) || amount < country.minDeposit || amount > country.maxDeposit) {
+      return NextResponse.json(
+        {
+          error: `Enter a minimum from ${formatMoney(country.minDeposit, country.currency)} to ${formatMoney(country.maxDeposit, country.currency)}`,
+        },
+        { status: 400 },
+      );
+    }
+
+    const { error } = await supabase
+      .from("sub_admins")
+      .update({ min_deposit: Math.round(amount * 100) / 100 })
+      .eq("id", partner.id);
+    if (error) {
+      console.error("[partner] could not save deposit minimum", partner.id, error);
+      return NextResponse.json({ error: "Could not save the deposit minimum" }, { status: 500 });
+    }
+    return NextResponse.json({ ok: true });
+  }
 
   await supabase
     .from("sub_admins")

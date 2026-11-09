@@ -61,12 +61,50 @@ export async function POST(req: Request) {
     );
   }
 
-  const { data: taken } = await supabase.from("users").select("id").eq("phone", phone).maybeSingle();
+  const { data: taken } = await supabase
+    .from("users")
+    .select("id, name, phone, email, country_code, currency, balance")
+    .eq("phone", phone)
+    .maybeSingle();
   if (taken) {
-    return NextResponse.json(
-      { error: "That phone number already has a player account. Sign in with it instead." },
-      { status: 409 },
-    );
+    // The number is already a player. Use that account when it is this
+    // partner's own number or email, instead of making a second one.
+    const ownPhone = normalisePhone(partner.phone ?? "", country.code);
+    const samePhone = ownPhone !== "" && ownPhone === phone;
+    const sameEmail =
+      Boolean(partner.email) &&
+      Boolean(taken.email) &&
+      partner.email.trim().toLowerCase() === String(taken.email).trim().toLowerCase();
+    if (!samePhone && !sameEmail) {
+      return NextResponse.json(
+        { error: "That phone number already has a player account. Sign in with it instead." },
+        { status: 409 },
+      );
+    }
+
+    const { data: other } = await supabase
+      .from("sub_admins")
+      .select("id")
+      .eq("user_id", taken.id)
+      .neq("id", partner.id)
+      .maybeSingle();
+    if (other) {
+      return NextResponse.json(
+        { error: "That betting account is already linked to another partner." },
+        { status: 409 },
+      );
+    }
+
+    const { error: linkErr } = await supabase
+      .from("sub_admins")
+      .update({ user_id: taken.id })
+      .eq("id", partner.id);
+    if (linkErr) {
+      console.error("[partner] could not link existing betting account", partner.id, linkErr);
+      return NextResponse.json({ error: "Could not link the betting account" }, { status: 500 });
+    }
+
+    return NextResponse.json({ player: taken });
   }
 
   const { data: player, error } = await supabase

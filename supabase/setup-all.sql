@@ -224,6 +224,9 @@ create unique index if not exists sub_admins_user_id_key
 -- Lets the player screens ask "is this player a partner?" without a scan.
 create index if not exists users_partner_lookup_idx on sub_admins (user_id);
 
+-- A partner can raise the minimum deposit for players who joined with their link.
+alter table sub_admins add column if not exists min_deposit numeric(14,2);
+
 -- ============ 0009_bet_modes.sql ============
 -- Ticket modes and the accumulator bonus.
 --

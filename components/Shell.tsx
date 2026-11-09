@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import {
   Search,
   Sun,
@@ -271,18 +271,75 @@ function SectionTabs() {
   );
 }
 
+/**
+ * One tap goes home. Two taps, for a signed-in operator or sub-admin, open
+ * their dashboard. The second tap has to land before the home navigation.
+ */
+function BrandHome() {
+  const router = useRouter();
+  const wait = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (wait.current) window.clearTimeout(wait.current);
+    };
+  }, []);
+
+  const openDashboard = async () => {
+    try {
+      const res = await fetch("/api/admin/me");
+      const json = res.ok ? await res.json() : null;
+      if (json?.role === "admin") {
+        router.push("/admin");
+        return;
+      }
+      if (json?.role === "sub") {
+        router.push("/admin");
+        return;
+      }
+      // A partner who is signed in but not yet approved still has a dashboard.
+      const partner = await fetch("/api/partner/dashboard");
+      if (partner.ok) {
+        router.push("/partner");
+        return;
+      }
+    } catch {
+      /* no console session — fall through to home */
+    }
+    router.push("/");
+  };
+
+  const onClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    if (wait.current) {
+      window.clearTimeout(wait.current);
+      wait.current = null;
+      void openDashboard();
+      return;
+    }
+    wait.current = window.setTimeout(() => {
+      wait.current = null;
+      router.push("/");
+    }, 350);
+  };
+
+  return (
+    <Link href="/" onClick={onClick} className="flex shrink-0 items-center gap-2" aria-label="Pep Stake home">
+      <BrandIcon size={26} className="text-[#9ff611]" />
+      <span className="text-[18px] font-black tracking-tight text-white">
+        Pep <span className="text-[#9ff611]">Stake</span>
+      </span>
+    </Link>
+  );
+}
+
 export function Header({ sections = false }: { sections?: boolean }) {
   const [accountOpen, setAccountOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-40 bg-[var(--chrome)]">
       <div className="flex h-14 w-full items-center gap-3 px-3 md:px-5">
-        <Link href="/" className="flex shrink-0 items-center gap-2" aria-label="Pep Stake home">
-          <BrandIcon size={26} className="text-[#9ff611]" />
-          <span className="text-[18px] font-black tracking-tight text-white">
-            Pep <span className="text-[#9ff611]">Stake</span>
-          </span>
-        </Link>
+        <BrandHome />
 
         <Suspense fallback={null}>
           <DesktopNav />

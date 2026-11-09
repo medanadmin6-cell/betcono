@@ -67,7 +67,7 @@ export function WalletPanel({
         return;
       }
       signIn(json.player);
-      setNote("Betting account opened.");
+      setNote("Betting account ready.");
       onChanged();
     } catch {
       setError("Network problem. Try again.");

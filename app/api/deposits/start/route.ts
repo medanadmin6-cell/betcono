@@ -30,7 +30,7 @@ export async function POST(req: Request) {
 
   const { data: user } = await supabase
     .from("users")
-    .select("id, name, phone, email, country_code, currency, first_deposit_at")
+    .select("id, name, phone, email, country_code, currency, first_deposit_at, referred_by")
     .eq("id", body.userId)
     .maybeSingle();
 
@@ -45,9 +45,23 @@ export async function POST(req: Request) {
     );
   }
 
-  if (!user.first_deposit_at && amount < country.minFirstDeposit) {
+  let partnerMinimum = 0;
+  if (user.referred_by) {
+    const { data: referrer } = await supabase
+      .from("sub_admins")
+      .select("min_deposit")
+      .eq("id", user.referred_by)
+      .maybeSingle();
+    const set = Number(referrer?.min_deposit);
+    if (Number.isFinite(set) && set > 0) partnerMinimum = set;
+  }
+
+  const floor = user.first_deposit_at
+    ? Math.max(country.minDeposit, partnerMinimum)
+    : Math.max(country.minFirstDeposit, partnerMinimum);
+  if (amount < floor) {
     return NextResponse.json(
-      { error: `Minimum first deposit is ${country.currencySymbol}${country.minFirstDeposit}` },
+      { error: `Minimum deposit is ${country.currencySymbol}${floor}` },
       { status: 400 },
     );
   }

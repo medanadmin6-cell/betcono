@@ -28,6 +28,7 @@ export default function DepositPage() {
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [done, setDone] = useState<{ balance?: number; bonus?: number } | null>(null);
+  const [limits, setLimits] = useState<{ min: number; first: number } | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const country = player ? getCountry(player.country_code) : getCountry("GH");
@@ -36,13 +37,34 @@ export default function DepositPage() {
   const whatsapp = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP;
 
   const value = Number(amount);
-  const firstDeposit = country.minFirstDeposit;
-  const min = country.minDeposit;
+  const firstDeposit = limits?.first ?? country.minFirstDeposit;
+  const min = limits?.min ?? country.minDeposit;
   const max = country.maxDeposit;
 
   useEffect(() => {
     if (hydrated && !player) router.replace("/login");
   }, [hydrated, player, router]);
+
+  useEffect(() => {
+    if (!player) return;
+    let alive = true;
+    fetch(`/api/me?userId=${encodeURIComponent(player.id)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (!alive || !json?.country) return;
+        const nextMin = Number(json.country.minDeposit);
+        const nextFirst = Number(json.country.minFirstDeposit);
+        if (Number.isFinite(nextMin) && Number.isFinite(nextFirst)) {
+          setLimits({ min: nextMin, first: nextFirst });
+        }
+      })
+      .catch(() => {
+        /* the country minimum still applies */
+      });
+    return () => {
+      alive = false;
+    };
+  }, [player]);
 
   useEffect(
     () => () => {

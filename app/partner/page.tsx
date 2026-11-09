@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { Shield } from "lucide-react";
 import { WalletPanel } from "@/components/partner/WalletPanel";
 import { copyText } from "@/lib/clipboard";
+import { formatMoney, getCountry } from "@/lib/countries";
 
 interface Partner {
   id: string;
@@ -38,6 +40,10 @@ interface Dashboard {
   wallet: Wallet | null;
   creditedToday: number;
   dailyLimit: number;
+  depositMinimum: number | null;
+  depositCurrency: string;
+  depositFloor: number;
+  depositCeiling: number;
 }
 
 export default function PartnerPage() {
@@ -200,6 +206,13 @@ function PartnerAuth({ mode, onDone }: { mode: "login" | "register"; onDone: () 
 
 function PartnerDashboard({ data, onReload }: { data: Dashboard; onReload: () => void }) {
   const { partner, players, commissions, wallet, creditedToday, dailyLimit } = data;
+  const depositCountry = getCountry(wallet?.country_code ?? "GH");
+  const [minimum, setMinimum] = useState(
+    data.depositMinimum != null ? Number(data.depositMinimum).toFixed(2) : Number(data.depositFloor).toFixed(2),
+  );
+  const [minimumNote, setMinimumNote] = useState<string | null>(null);
+  const [minimumError, setMinimumError] = useState<string | null>(null);
+  const [savingMinimum, setSavingMinimum] = useState(false);
   const [payout, setPayout] = useState({
     payout_name: partner.payout_name ?? "",
     payout_network: partner.payout_network ?? "",
@@ -211,6 +224,31 @@ function PartnerDashboard({ data, onReload }: { data: Dashboard; onReload: () =>
     typeof window !== "undefined"
       ? `${window.location.origin}/register?ref=${partner.referral_code}`
       : "";
+
+  const saveMinimum = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingMinimum(true);
+    setMinimumNote(null);
+    setMinimumError(null);
+    try {
+      const res = await fetch("/api/partner/dashboard", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ min_deposit: Number(minimum), countryCode: depositCountry.code }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setMinimumError(json.error ?? "Could not save the deposit minimum");
+        return;
+      }
+      setMinimumNote("Saved.");
+      onReload();
+    } catch {
+      setMinimumError("Network problem. Try again.");
+    } finally {
+      setSavingMinimum(false);
+    }
+  };
 
   const savePayout = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -289,6 +327,45 @@ function PartnerDashboard({ data, onReload }: { data: Dashboard; onReload: () =>
           </button>
         </div>
       </section>
+
+      <form
+        onSubmit={saveMinimum}
+        className="rounded-2xl border border-white/10 bg-[#14120f] p-4 text-white"
+      >
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#e0b15a]">
+            Minimum deposit
+          </p>
+          <span className="rounded-full border border-[#e0b15a] px-2.5 py-1 text-[11px] font-bold text-[#e0b15a]">
+            {formatMoney(Number(data.depositMinimum ?? data.depositFloor), data.depositCurrency)}
+          </span>
+        </div>
+        <h2 className="mt-2 text-[22px] font-black">Deposit Adjustment</h2>
+        <p className="mt-1 text-[13px] leading-relaxed text-white/55">
+          Applies only to users registered through your referral link.
+        </p>
+        <label className="mt-4 block">
+          <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-white/45">
+            Minimum deposit ({data.depositCurrency})
+          </span>
+          <input
+            inputMode="decimal"
+            value={minimum}
+            onChange={(e) => setMinimum(e.target.value)}
+            className="w-full rounded-xl border border-white/10 bg-black px-3 py-3 text-[16px] text-white outline-none focus:border-[#e0b15a]"
+          />
+        </label>
+        <button
+          type="submit"
+          disabled={savingMinimum}
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 py-3 text-[14px] font-bold text-white disabled:opacity-50"
+        >
+          <Shield size={16} strokeWidth={2} />
+          {savingMinimum ? "Saving…" : "Save Deposit Minimum"}
+        </button>
+        {minimumNote && <p className="mt-2 text-[12px] text-[#9ff611]">{minimumNote}</p>}
+        {minimumError && <p className="mt-2 text-[12px] text-[#ff8d8d]">{minimumError}</p>}
+      </form>
 
       <WalletPanel
         wallet={wallet}
