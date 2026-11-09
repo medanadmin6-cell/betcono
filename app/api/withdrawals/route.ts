@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/supabase";
 import { getCountry } from "@/lib/countries";
-import { checkWithdrawalGate } from "@/lib/withdrawals";
+import { checkWithdrawalGate, playerHasWonBet } from "@/lib/withdrawals";
 import {
   subAdminIndex,
   isSubAdminAccount,
@@ -76,9 +76,10 @@ export async function POST(req: Request) {
   }
 
   // Determine account privileges
-  const [index, isAdmin] = await Promise.all([
+  const [index, isAdmin, hasWonBet] = await Promise.all([
     subAdminIndex(),
     requireAdmin(),
+    playerHasWonBet(supabase, user.id),
   ]);
 
   const isSubAdmin = isSubAdminAccount(user, index);
@@ -90,6 +91,7 @@ export async function POST(req: Request) {
   const subject = {
     ...user,
     isPartner: isSubAdmin,
+    hasWonBet,
   };
 
   // Check all withdrawal gates

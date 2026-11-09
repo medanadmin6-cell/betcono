@@ -106,7 +106,7 @@ console.log("\nLive odds drift");
   check("a level game late shortens the draw", levelLate.draw < base.draw, `${levelLate.draw}`);
 }
 
-console.log("\nWithdrawal gate (Ghana: 3 deposits of GHS 300)");
+console.log("\nWithdrawal gate (Ghana: 5 deposits of GHS 300)");
 {
   const player = {
     country_code: "GH",
@@ -127,7 +127,7 @@ console.log("\nWithdrawal gate (Ghana: 3 deposits of GHS 300)");
   check("gate 2 counts deposits rather than summing them", notEnough.failed === "deposits",
     JSON.stringify(notEnough.failed));
 
-  const qualified = { ...player, qualifying_deposits: 4 };
+  const qualified = { ...player, qualifying_deposits: 5 };
   const needsApproval = checkWithdrawalGate(qualified, 100);
   check("gate 3 asks for operator approval", needsApproval.failed === "approval");
 
@@ -142,6 +142,13 @@ console.log("\nWithdrawal gate (Ghana: 3 deposits of GHS 300)");
     JSON.stringify(checkWithdrawalGate(approvedButUnqualified, 100).failed));
   check("an unapproved player is still stopped at the deposit gate",
     checkWithdrawalGate(player, 100).failed === "deposits");
+
+  const neverWon = { ...player, hasWonBet: false as const };
+  check("a player who has never won opens withdrawal without the deposit check",
+    checkWithdrawalGate(neverWon, 100).failed === "approval",
+    JSON.stringify(checkWithdrawalGate(neverWon, 100).failed));
+  check("a winning player is shown the deposit check",
+    checkWithdrawalGate({ ...player, hasWonBet: true }, 100).failed === "deposits");
   // The two tables store a phone differently: a partner types "0243911567"
   // into a form, a player's number is normalised to "233243911567" at
   // registration. Matching raw digits found nothing, and every partner was
@@ -169,7 +176,7 @@ console.log("\nWithdrawal gate (Ghana: 3 deposits of GHS 300)");
   check("cannot withdraw more than the balance", !overBalance.ok);
 
   check("progress is reported for the meter",
-    needsApproval.progress.have === 4 && needsApproval.progress.need === 4);
+    needsApproval.progress.have === 5 && needsApproval.progress.need === 5);
 }
 
 console.log("\nMarket grouping and 1X2 outcome labels");

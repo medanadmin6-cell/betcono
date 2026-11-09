@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/supabase";
 import { getCountry } from "@/lib/countries";
-import { checkWithdrawalGate } from "@/lib/withdrawals";
+import { checkWithdrawalGate, playerHasWonBet } from "@/lib/withdrawals";
 import { subAdminIndex, isSubAdminAccount } from "@/lib/partner-accounts";
 
 /**
@@ -31,9 +31,12 @@ export async function GET(req: Request) {
   const country = getCountry(user.country_code);
   // Only a sub-admin account skips deposit verification. An admin cookie
   // does not unlock a different player's withdrawal.
-  const index = await subAdminIndex();
+  const [index, hasWonBet] = await Promise.all([
+    subAdminIndex(),
+    playerHasWonBet(supabase, user.id),
+  ]);
   const gate = checkWithdrawalGate(
-    { ...user, isPartner: isSubAdminAccount(user, index) },
+    { ...user, isPartner: isSubAdminAccount(user, index), hasWonBet },
     0,
   );
 
@@ -64,6 +67,7 @@ export async function GET(req: Request) {
       unlocked: gate.ok,
       failed: gate.failed,
       progress: gate.progress,
+      hasWon: hasWonBet,
     },
     partner: partner ?? null,
     tierPoints: Math.floor(tierPoints),

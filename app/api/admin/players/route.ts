@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-guard";
-import { checkWithdrawalGate, qualifiesForApproval } from "@/lib/withdrawals";
+import { checkWithdrawalGate, qualifiesForApproval, wonBetUserIds } from "@/lib/withdrawals";
 import { subAdminIndex, isSubAdminAccount } from "@/lib/partner-accounts";
 
 export const dynamic = "force-dynamic";
@@ -44,9 +44,10 @@ export async function GET(req: Request) {
 
   // One lookup for the whole page rather than one per row.
   const index = await subAdminIndex();
+  const won = await wonBetUserIds(supabase, (data ?? []).map((u) => u.id));
 
   let players = (data ?? []).map((u) => {
-    const subject = { ...u, isPartner: isSubAdminAccount(u, index) };
+    const subject = { ...u, isPartner: isSubAdminAccount(u, index), hasWonBet: won.has(u.id) };
     const gate = checkWithdrawalGate(subject, 0);
     return {
       ...u,

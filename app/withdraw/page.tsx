@@ -330,7 +330,7 @@ export default function WithdrawPage() {
           <RequestSubmitted title={submitted.title} message={submitted.message} />
         )}
 
-        {steps.length > 0 && (
+        {locked && steps.length > 0 && (
           <section className="rounded-2xl border border-[#ececec] bg-white p-3.5 shadow-sm">
             <div className="flex items-start gap-2">
               <Shield size={20} className="mt-0.5 shrink-0 text-[#e0a100]" strokeWidth={2.4} fill="#e0a100" fillOpacity={0.18} />

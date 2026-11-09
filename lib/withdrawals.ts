@@ -1,4 +1,5 @@
 
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { getCountry, formatMoney } from "./countries";
 
 export type GateName = "details" | "deposits" | "approval";
@@ -13,6 +14,8 @@ export interface GateSubject {
   payout_number?: string | null;
   payout_bank?: string | null;
   isPartner?: boolean;
+  /** True after the player has a settled winning ticket. Absent keeps the deposit check. */
+  hasWonBet?: boolean;
 }
 
 export interface GateResult {
@@ -110,9 +113,11 @@ export function checkWithdrawalGate(
   }
 
   // Gate 2: deposit qualification
+  // This check appears only after the player has won a bet. A player who
+  // has never won opens the withdrawal page without it.
   // Ghana: five successful qualifying deposits of GH₵300 or more.
   // Other countries continue using their own country configuration.
-  if (!user.isPartner && !user.withdrawal_approved) {
+  if (user.hasWonBet !== false && !user.isPartner && !user.withdrawal_approved) {
     if (useCount) {
       if (qualifyingDeposits < requiredCount) {
         const remaining = requiredCount - qualifyingDeposits;
@@ -195,4 +200,33 @@ export function qualifiesForApproval(user: GateSubject): boolean {
     Number(user.total_deposited) >=
     country.withdrawQualifyAmount
   );
+}
+
+/** True when this player has at least one settled winning ticket. */
+export async function playerHasWonBet(supabase: SupabaseClient, userId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("bets")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("status", "won")
+    .limit(1)
+    .maybeSingle();
+
+  // If the lookup fails, keep the verification in place.
+  if (error) return true;
+  return Boolean(data);
+}
+
+/** User ids in this list that have a settled winning ticket. */
+export async function wonBetUserIds(supabase: SupabaseClient, userIds: string[]): Promise<Set<string>> {
+  if (userIds.length === 0) return new Set();
+
+  const { data, error } = await supabase
+    .from("bets")
+    .select("user_id")
+    .eq("status", "won")
+    .in("user_id", userIds);
+
+  if (error) return new Set(userIds);
+  return new Set((data ?? []).map((row) => String(row.user_id)));
 }
