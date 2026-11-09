@@ -46,7 +46,8 @@ const GROUPS: { title: string; items: Item[] }[] = [
     items: [
       { href: "/admin/players", label: "Players", Icon: Users, hint: "Balances and withdrawal approval" },
       { href: "/admin/deposits", label: "Deposits", Icon: Banknote, hint: "Manual deposits awaiting confirmation" },
-      { href: "/admin/payments", label: "Payments", Icon: ReceiptText, hint: "The full ledger" },
+      { href: "/admin/withdrawals", label: "Withdrawals", Icon: ReceiptText, hint: "Withdrawal requests" },
+      { href: "/admin/payments", label: "Transactions", Icon: ReceiptText, hint: "The full ledger" },
     ],
   },
   {
@@ -67,6 +68,59 @@ const GROUPS: { title: string; items: Item[] }[] = [
 ];
 
 const ALL = GROUPS.flatMap((g) => g.items);
+
+const TABS = [
+  { href: "/admin", label: "Overview" },
+  { href: "/admin/matches", label: "Matches" },
+  { href: "/admin/players", label: "My Users" },
+  { href: "/admin/deposits", label: "Deposits" },
+  { href: "/admin/withdrawals", label: "Withdrawals" },
+  { href: "/admin/payments", label: "Transactions" },
+];
+
+export function AdminTabs() {
+  const pathname = usePathname();
+  const [role, setRole] = useState<"admin" | "sub" | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/admin/me")
+      .then((r) => r.json())
+      .then((j) => {
+        if (!cancelled) setRole(j.role === "sub" ? "sub" : "admin");
+      })
+      .catch(() => {
+        if (!cancelled) setRole("admin");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (pathname === "/admin/login" || role === "sub") return null;
+
+  return (
+    <nav className="flex gap-2 overflow-x-auto border-b border-white/10 bg-[#07111f] px-3 py-2">
+      {TABS.map((tab) => {
+        const active = tab.href === "/admin" ? pathname === "/admin" : pathname === tab.href || pathname.startsWith(`${tab.href}/`);
+        return (
+          <Link
+            key={tab.href}
+            href={tab.href}
+            className="shrink-0 rounded-full px-3 py-1.5 text-[12px] font-bold"
+            style={
+              active
+                ? { background: "#0a6b40", color: "#f4fff8" }
+                : { background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.78)" }
+            }
+          >
+            {tab.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
 
 /** A sub-admin's whole console is the custom-matches screen. */
 const SUB_GROUPS = GROUPS.map((g) => ({

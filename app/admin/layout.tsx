@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { AdminNav } from "./AdminNav";
+import { AdminNav, AdminTabs } from "./AdminNav";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -14,6 +14,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <AdminNav />
         </div>
       </header>
+      <AdminTabs />
       <main className="w-full px-4 py-4">{children}</main>
     </div>
   );
