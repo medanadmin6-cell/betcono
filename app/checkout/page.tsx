@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -37,6 +37,7 @@ function CheckoutInner() {
 
   const [session, setSession] = useState<Session | null>(null);
   const [stage, setStage] = useState<Stage>("loading");
+  const visibleStage = reference ? stage : "missing";
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -46,7 +47,6 @@ function CheckoutInner() {
 
   useEffect(() => {
     if (!reference) {
-      setStage("missing");
       return;
     }
     let cancelled = false;
@@ -74,7 +74,7 @@ function CheckoutInner() {
     };
   }, [reference, router]);
 
-  const poll = useCallback(() => {
+  function poll() {
     if (!reference) return;
     fetch(`/api/deposits/status?reference=${encodeURIComponent(reference)}`)
       .then((r) => r.json())
@@ -93,7 +93,7 @@ function CheckoutInner() {
       .catch(() => {
         pollTimer.current = setTimeout(poll, 4000);
       });
-  }, [reference, router]);
+  }
 
   useEffect(() => {
     return () => {
@@ -155,13 +155,13 @@ function CheckoutInner() {
           <Image src="/logo.svg" alt="Pep Stake" width={120} height={26} priority />
         </div>
 
-        {stage === "loading" && (
+        {visibleStage === "loading" && (
           <div className="flex justify-center py-12">
             <Loader2 size={26} className="animate-spin text-[var(--text-muted)]" />
           </div>
         )}
 
-        {stage === "missing" && (
+        {visibleStage === "missing" && (
           <div className="py-8 text-center">
             <p className="text-[14px] font-bold">This payment link is not valid.</p>
             <Link
@@ -173,7 +173,7 @@ function CheckoutInner() {
           </div>
         )}
 
-        {session && stage !== "loading" && stage !== "missing" && (
+        {session && visibleStage !== "loading" && visibleStage !== "missing" && (
           <div className="mt-5 text-center">
             <p className="text-[12px] text-[var(--text-muted)]">Deposit</p>
             <p className="mt-1 text-[32px] font-black leading-none tabular-nums text-[var(--text-bright)]">
@@ -183,7 +183,7 @@ function CheckoutInner() {
           </div>
         )}
 
-        {stage === "number" && (
+        {visibleStage === "number" && (
           <form onSubmit={sendPrompt} className="mt-6 space-y-3">
             <label className="block text-[12px] font-bold text-[var(--text-muted)]" htmlFor="momo">
               Mobile money number
@@ -210,7 +210,7 @@ function CheckoutInner() {
           </form>
         )}
 
-        {stage === "waiting" && (
+        {visibleStage === "waiting" && (
           <div className="mt-6">
             <div className="flex items-start gap-3 rounded-[5px] border border-[var(--line)] bg-[var(--bg)] px-3.5 py-3">
               <Smartphone size={18} className="mt-0.5 shrink-0 text-[var(--accent)]" />
@@ -257,7 +257,7 @@ function CheckoutInner() {
           </div>
         )}
 
-        {stage === "confirmed" && (
+        {visibleStage === "confirmed" && (
           <div className="mt-6 pb-2 text-center">
             <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[var(--win)]/15">
               <Check size={28} strokeWidth={3} className="text-[var(--win)]" />
@@ -269,7 +269,7 @@ function CheckoutInner() {
           </div>
         )}
 
-        {stage === "failed" && (
+        {visibleStage === "failed" && (
           <div className="mt-6 pb-2 text-center">
             <p className="text-[14px] font-bold text-[var(--lose)]">This payment did not go through.</p>
             <p className="mt-1 text-[12px] text-[var(--text-muted)]">

@@ -47,7 +47,7 @@ export default function HowToPlayPage() {
 
         <Section title="Withdrawals">
           <p>
-            Withdrawals unlock after <strong>three separate qualifying deposits</strong>, not one
+            Withdrawals unlock after <strong>two separate qualifying deposits</strong>, not one
             large one. Deposits are counted, not added up, so paying the whole amount at once
             unlocks nothing.
           </p>

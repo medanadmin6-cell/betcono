@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import {
   Search,
   Sun,
@@ -154,15 +154,21 @@ function HeaderActions({ onOpenAccount }: { onOpenAccount: () => void }) {
  * in localStorage so the head script can re-apply it before the next paint.
  */
 function ThemeToggle() {
-  const [dark, setDark] = useState(false);
-
-  useEffect(() => {
-    setDark(document.documentElement.dataset.theme === "dark");
-  }, []);
+  const dark = useSyncExternalStore(
+    (onChange) => {
+      const observer = new MutationObserver(onChange);
+      observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["data-theme"],
+      });
+      return () => observer.disconnect();
+    },
+    () => document.documentElement.dataset.theme === "dark",
+    () => false,
+  );
 
   const toggle = () => {
     const next = !dark;
-    setDark(next);
     if (next) document.documentElement.dataset.theme = "dark";
     else delete document.documentElement.dataset.theme;
     try {

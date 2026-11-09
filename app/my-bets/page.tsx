@@ -117,9 +117,14 @@ export default function MyBetsPage() {
   }, [player, tickets]);
 
   useEffect(() => {
-    refreshDetails();
+    const initialRefresh = setTimeout(() => {
+      void refreshDetails();
+    }, 0);
     const timer = setInterval(refreshDetails, POLL_MS);
-    return () => clearInterval(timer);
+    return () => {
+      clearTimeout(initialRefresh);
+      clearInterval(timer);
+    };
   }, [refreshDetails]);
 
   const cashout = useCallback(

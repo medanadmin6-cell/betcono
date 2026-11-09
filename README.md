@@ -72,7 +72,7 @@ Credits are idempotent: a payment reference can only ever credit once, guarded b
 Three gates in order, and the player only sees the first one they fail.
 
 1. **Payout details.** Mobile-money markets need a valid wallet number for the country; bank markets need an account number and a bank name.
-2. **The deposit gate.** Withdrawals unlock after three separate qualifying deposits — GHS 300 or more in Ghana, each other market's own amount elsewhere. Deposits are *counted, not summed*, so paying the whole qualifying sum in one deposit unlocks nothing. Set `WITHDRAW_QUALIFY_COUNT_<CC>=0` to drop a market back to the cumulative-total rule.
+2. **The deposit gate.** Withdrawals unlock after two separate qualifying deposits — GHS 300 or more in Ghana, each other market's own amount elsewhere. Deposits are *counted, not summed*, so paying the whole qualifying sum in one deposit unlocks nothing. Set `WITHDRAW_QUALIFY_COUNT_<CC>=0` to drop a market back to the cumulative-total rule.
 3. **Operator approval.** Even a fully qualified player needs the approval flag. Rather than showing a lock screen, the app records the request as a pending payment and tells the player it is being processed.
 
 If a withdrawal is rejected, cancelled, or fails and its funds are refunded, the player's qualifying-deposit progress resets to 0/3 and approval is cleared. They must make three new qualifying deposits before requesting another withdrawal.

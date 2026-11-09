@@ -106,7 +106,7 @@ console.log("\nLive odds drift");
   check("a level game late shortens the draw", levelLate.draw < base.draw, `${levelLate.draw}`);
 }
 
-console.log("\nWithdrawal gate (Ghana: 3 deposits of GHS 300)");
+console.log("\nWithdrawal gate (Ghana: 2 deposits of GHS 300)");
 {
   const player = {
     country_code: "GH",
@@ -128,14 +128,14 @@ console.log("\nWithdrawal gate (Ghana: 3 deposits of GHS 300)");
     JSON.stringify(notEnough.failed));
 
   const oneDone = checkWithdrawalGate({ ...player, qualifying_deposits: 1, hasWonBet: true }, 100);
-  check("one deposit already made leaves two more",
+  check("one deposit already made leaves one more",
     oneDone.failed === "deposits" &&
       oneDone.progress.have === 1 &&
-      oneDone.progress.need === 3 &&
-      oneDone.message?.startsWith("2 more") === true,
+      oneDone.progress.need === 2 &&
+      oneDone.message?.startsWith("1 more") === true,
     JSON.stringify({ failed: oneDone.failed, progress: oneDone.progress, message: oneDone.message }));
 
-  const qualified = { ...player, qualifying_deposits: 3 };
+  const qualified = { ...player, qualifying_deposits: 2 };
   const needsApproval = checkWithdrawalGate(qualified, 100);
   check("gate 3 asks for operator approval", needsApproval.failed === "approval");
 
@@ -184,7 +184,7 @@ console.log("\nWithdrawal gate (Ghana: 3 deposits of GHS 300)");
   check("cannot withdraw more than the balance", !overBalance.ok);
 
   check("progress is reported for the meter",
-    needsApproval.progress.have === 3 && needsApproval.progress.need === 3);
+    needsApproval.progress.have === 2 && needsApproval.progress.need === 2);
 }
 
 console.log("\nMarket grouping and 1X2 outcome labels");

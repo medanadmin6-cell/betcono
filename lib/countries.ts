@@ -58,9 +58,8 @@ const BASE: Record<string, CountryConfig> = {
     maxDeposit: 50000,
     verificationAmount: 300,
 
-    // Three qualifying deposits of GH₵300, asked only after a win.
-    // The deposit already used to stake counts, so one done leaves two more.
-    withdrawQualifyCount: 3,
+    // Two qualifying deposits of GH₵300, asked only after a win.
+    withdrawQualifyCount: 2,
     withdrawQualifyAmount: 300,
 
     networks: [

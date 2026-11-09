@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { Inter, Bebas_Neue } from "next/font/google";
 import "./globals.css";
+import "./withdrawal-notification.css";
 import { WithdrawalIosBoot } from "@/components/withdrawal-ios-boot";
 
 // Inter is the interface face (taken from betafrica.site's build — a variable
@@ -39,7 +40,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${inter.variable} ${bebas.variable}`} suppressHydrationWarning>
       <head>
-        <link rel="stylesheet" href="/withdrawal-notification/withdrawal-notification.css" />
         {/* Applies the saved theme before first paint, so a dark-theme player
             never sees a white flash. White is the default. */}
         <script

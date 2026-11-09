@@ -18,7 +18,7 @@ const SCRIPT: { q: string; a: string }[] = [
   },
   {
     q: "When can I withdraw?",
-    a: "Withdrawals unlock after three separate qualifying deposits. Deposits are counted, not added up, so one large deposit does not unlock it. Your Account screen shows exactly how many you have.",
+    a: "Withdrawals unlock after two separate qualifying deposits. Deposits are counted, not added up, so one large deposit does not unlock it. Your Account screen shows exactly how many you have.",
   },
   {
     q: "My deposit has not shown up",

@@ -1,3 +1,4 @@
+/* Styles for the withdrawal completion notification. */
 :root {
   --withdrawal-notification-top: max(12px, env(safe-area-inset-top));
   --withdrawal-notification-width: min(430px, calc(100vw - 24px));
