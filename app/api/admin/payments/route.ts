@@ -85,6 +85,8 @@ export async function PATCH(req: Request) {
     .update({
       balance: Number(user.balance) + amount,
       total_withdrawn: Math.max(0, Number(user.total_withdrawn) - amount),
+      qualifying_deposits: 0,
+      withdrawal_approved: false,
     })
     .eq("id", claimed.user_id);
 

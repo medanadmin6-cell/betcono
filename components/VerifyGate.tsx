@@ -63,21 +63,19 @@ export function VerifyGate({
           </p>
         </div>
 
-        <p className="mt-3 text-[16px] leading-relaxed text-[var(--text-bright)]">
-          Complete{" "}
-          <span className="font-black tabular-nums">{need}</span> deposits of at
-          least <span className="font-black tabular-nums">{money}</span>.
-          {done > 0 ? (
-            <>
-              {" "}
-              You have already done{" "}
-              <span className="font-black tabular-nums">{done}</span>, so
-              complete{" "}
-              <span className="font-black tabular-nums">{remaining}</span> more.
-            </>
-          ) : (
-            <> Complete all {need} before you can withdraw.</>
-          )}
+        <p
+          role="status"
+          className="mt-3 rounded-md border border-blue-200/20 bg-blue-400/10 px-3 py-3 text-[14px] leading-relaxed text-[var(--text-bright)]"
+        >
+          Withdrawal is available after you complete at least{" "}
+          <span className="font-black tabular-nums">{need}</span> deposits. You
+          have currently completed (
+          <span className="font-black tabular-nums">{done}</span>) deposit
+          {done === 1 ? "" : "s"}, so{" "}
+          <span className="font-black tabular-nums">{remaining}</span> more
+          deposit{remaining === 1 ? "" : "s"} are required before you can
+          withdraw. Each deposit must be at least{" "}
+          <span className="font-black tabular-nums">{money}</span>.
         </p>
 
         <div className="mt-4 space-y-2">
