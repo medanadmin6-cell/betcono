@@ -304,8 +304,9 @@ function BrandHome() {
         router.push("/admin");
         return;
       }
+      // A sub-admin's home is the partner dashboard, not the operator console.
       if (json?.role === "sub") {
-        router.push("/admin");
+        router.push("/partner");
         return;
       }
       // A partner who is signed in but not yet approved still has a dashboard.
