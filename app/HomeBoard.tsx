@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Page } from "@/components/Shell";
 import { MatchList, filterMatches } from "@/components/MatchList";
-import { SupportChat } from "@/components/SupportChat";
 import { WinnersTicker } from "@/components/WinnersTicker";
 import { HeroBanner, Shortcuts, SectionHeading, FilterBar } from "@/components/home/Panels";
 import { FeaturedMatches } from "@/components/home/FeaturedMatches";
@@ -63,7 +62,6 @@ export function HomeBoard() {
       <Page rails>
         <SectionHeading title={TAB_TITLES[tab] ?? "Matches"} live={tab === "live"} />
         <MatchList tab={tab} />
-        <SupportChat />
       </Page>
     );
   }
@@ -103,7 +101,6 @@ export function HomeBoard() {
         <NewsStrip />
       </div>
 
-      <SupportChat />
     </Page>
   );
 }

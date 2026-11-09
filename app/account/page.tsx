@@ -21,7 +21,6 @@ import {
   LogOut,
 } from "lucide-react";
 import { Page } from "@/components/Shell";
-import { SupportChat } from "@/components/SupportChat";
 import { useSession } from "@/lib/store";
 import { formatMoney } from "@/lib/countries";
 import { standing, maskPhone } from "@/lib/tiers";
@@ -262,7 +261,6 @@ function AccountView() {
         </button>
       </div>
 
-      <SupportChat />
     </Page>
   );
 }
