@@ -5,15 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
-  Copy,
   Check,
-  ChevronsDown,
-  IdCard,
+  Headphones,
+  Home,
+  ShieldCheck,
   Trophy,
-  CircleCheck,
-  CircleX,
-  Share2,
-  LineChart,
 } from "lucide-react";
 import { copyText } from "@/lib/clipboard";
 import { useSlip, useSession, type SlipLeg } from "@/lib/store";
@@ -88,8 +84,6 @@ export function TicketDetail({ code }: { code: string }) {
   const [data, setData] = useState<Payload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [nonce, setNonce] = useState(0);
-  const [copied, setCopied] = useState(false);
-  const [expanded, setExpanded] = useState(true);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [shared, setShared] = useState(false);
@@ -272,126 +266,78 @@ export function TicketDetail({ code }: { code: string }) {
   const settled = bet.status !== "pending";
   const won = bet.status === "won" || bet.status === "cashed_out";
 
+  const placed = new Date(bet.created_at);
+  const whenLabel = placed.toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).replace(",", " at");
+  const returned = settled ? Number(bet.payout ?? 0) : Number(bet.potential_win);
+
   return (
-    <div className="min-h-screen bg-[var(--bg)] pb-24">
+    <div className="min-h-screen bg-[#f3f5f8] pb-28">
       <Header onBack={() => router.back()} />
 
-      {/* Summary */}
-      <section className="mx-3 mt-3 max-w-2xl rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-4 pb-4 pt-3 sm:mx-auto">
-        <div className="mx-auto flex max-w-2xl items-center gap-2 text-[12px] text-[var(--text-muted)]">
+      <section className="relative overflow-hidden bg-[#102033] px-4 pb-4 pt-3 text-white">
+        <Trophy
+          size={92}
+          strokeWidth={1.2}
+          className="pointer-events-none absolute right-3 top-8 text-white/10"
+        />
+        <div className="flex items-start justify-between gap-3 text-[12px] text-white/70">
           <span>
-            {new Date(bet.created_at).toLocaleString("en-GB", {
-              day: "2-digit",
-              month: "2-digit",
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
+            Ticket ID: <span className="font-bold tracking-wide text-white">{bet.code}</span>
           </span>
-          <span className="capitalize text-[var(--text)]">{bet.mode}</span>
-          <span className="ml-auto tracking-wider">Ticket {bet.code}</span>
-          <button
-            onClick={() => {
-              copyText(bet.code).then((ok) => {
-                setCopied(ok);
-                if (ok) setTimeout(() => setCopied(false), 1600);
-              });
-            }}
-            className="flex items-center gap-1 rounded bg-[var(--surface-2)] px-2 py-1 text-[11px] font-bold text-[var(--text)]"
-          >
-            {copied ? <Check size={12} strokeWidth={2.6} /> : <Copy size={12} strokeWidth={2} />}
-            {copied ? "Copied" : "Copy"}
-          </button>
+          <span className="shrink-0 tabular-nums">{whenLabel}</span>
         </div>
 
-        <div className="mx-auto mt-3 flex max-w-2xl items-center justify-between">
-          <span className="text-[15px] font-black capitalize text-[var(--text-bright)]">
-            {bet.mode}
-          </span>
-          <span
-            className="flex items-center gap-1 rounded-sm px-1.5 text-[11px] font-black uppercase leading-[18px]"
-            style={{
-              background: status.colour,
-              color: bet.status === "pending" || bet.status === "cashed_out" ? "#3a2500" : "#ffffff",
-            }}
-          >
-            {won && <Trophy size={12} strokeWidth={2.4} />}
-            {status.label}
-          </span>
-        </div>
-
-        {/* The return is the number a settled ticket is really about. */}
-        <div className="mx-auto mt-2 max-w-2xl">
-          <p className="text-[12px] text-[var(--text-muted)]">
-            {settled ? "Total return" : "Potential return"}
-          </p>
-          <p
-            className="text-[26px] font-black leading-tight tabular-nums"
-            style={{ color: won ? "var(--win)" : "var(--text-bright)" }}
-          >
-            {formatMoney(
-              settled ? Number(bet.payout ?? 0) : Number(bet.potential_win),
-              bet.currency,
-            )}
-          </p>
-        </div>
-
-        <dl className="mx-auto mt-3 max-w-2xl space-y-1 border-t border-[var(--line)] pt-3 text-[13px]">
-          <Line label="Stake" value={Number(bet.stake).toFixed(2)} />
-          <Line label="Total odds" value={Number(bet.total_odds).toFixed(2)} />
-          {Number(bet.bonus) > 0 && (
-            <Line label="Bonus" value={Number(bet.bonus).toFixed(2)} accent />
-          )}
-          {!settled && <Line label="To return" value={Number(bet.potential_win).toFixed(2)} />}
-        </dl>
-
-        {/* Congratulations, on a won ticket only. */}
-        {won && (
-          <div className="mx-auto mt-3 flex max-w-2xl items-center gap-3 rounded border border-[var(--win)] bg-[var(--bg)] px-3 py-2.5">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded bg-[var(--win)] text-white">
-              <Trophy size={18} strokeWidth={2.2} />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-[14px] font-black leading-tight text-[var(--text-bright)]">
-                Winning ticket
-              </span>
-              <span className="block truncate text-[12px] font-medium text-[var(--text-muted)]">
-                {data.owner?.name ?? player.name}
-              </span>
-            </span>
-            <button
-              onClick={showOff}
-              className="flex shrink-0 items-center gap-1.5 rounded bg-[var(--accent)] px-3.5 py-2 text-[13px] font-black text-[var(--accent-ink)]"
-            >
-              {shared ? <Check size={14} strokeWidth={2.6} /> : <Share2 size={14} strokeWidth={2.2} />}
-              {shared ? "Copied" : "Share"}
-            </button>
+        <div className="mt-4 flex items-start justify-between gap-4">
+          <div>
+            <p className="text-[18px] font-black capitalize">{bet.mode}</p>
+            <p className="mt-3 text-[13px] text-white/70">
+              {settled ? "Total Return" : "Potential Return"}
+            </p>
+            <p className="mt-3 text-[13px] text-white/70">Total Stake</p>
+            <p className="mt-2 text-[13px] text-white/70">Total Odds</p>
           </div>
-        )}
+          <div className="pt-6 text-right">
+            <p className="flex items-center justify-end gap-1 text-[14px] font-bold text-[#3DDC97]">
+              {won && <Trophy size={16} strokeWidth={2.2} />}
+              {status.label}
+            </p>
+            <p className="mt-1 text-[28px] font-black leading-none tabular-nums text-[#3DDC97]">
+              {returned.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+            <p className="mt-2 text-[13px] font-semibold tabular-nums text-white/90">
+              {bet.currency} {Number(bet.stake).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+            <p className="mt-2 text-[13px] font-semibold tabular-nums text-white/90">
+              {Number(bet.total_odds).toFixed(2)}
+            </p>
+          </div>
+        </div>
 
-        <div className="mt-3 flex justify-center">
+        <div className="mt-4 flex items-center justify-between gap-3 text-[12px]">
+          <span className="text-white/70">
+            Verify Code: <span className="font-bold tracking-wide text-[#3DDC97]">{bet.code}</span>
+          </span>
           <button
-            onClick={() => setExpanded((e) => !e)}
-            aria-expanded={expanded}
-            className="flex items-center gap-1.5 rounded border border-[var(--line)] px-4 py-2 text-[13px] font-bold text-[var(--text)]"
+            type="button"
+            onClick={showOff}
+            className="flex shrink-0 items-center gap-1 font-semibold text-white/80"
           >
-            {expanded ? "Hide selections" : "Show selections"}
-            <ChevronsDown
-              size={16}
-              strokeWidth={2.4}
-              style={{ transform: expanded ? "rotate(180deg)" : undefined }}
-            />
+            <ShieldCheck size={14} strokeWidth={2.2} className="text-[#3DDC97]" />
+            {shared ? "Copied" : "Pep Stake"}
           </button>
         </div>
       </section>
 
-      {/* Legs */}
-      {expanded && (
-        <div className="mx-auto max-w-2xl space-y-2 px-3 py-3 sm:px-0">
-          {selections.map((leg) => (
-            <LegCard key={leg.id} leg={leg} />
-          ))}
-        </div>
-      )}
+      <div className="mx-auto max-w-2xl space-y-4 px-4 py-4">
+        {selections.map((leg) => (
+          <LegCard key={leg.id} leg={leg} />
+        ))}
+      </div>
 
       {note && (
         <p className="mx-auto max-w-2xl px-4 text-center text-[12px] text-[var(--text-muted)]">{note}</p>
@@ -464,188 +410,93 @@ function describeOutcome(leg: Leg): string | null {
   return null;
 }
 
-/** The navy bar, matching the app shell's header. */
+/** Navy bar for the ticket, with a way home. */
 function Header({ onBack }: { onBack: () => void }) {
   return (
-    <header className="sticky top-0 z-40 bg-[var(--chrome)]">
-      <div className="mx-auto flex h-14 max-w-2xl items-center gap-3 px-3">
-        <button onClick={onBack} aria-label="Back" className="rounded p-1 text-white hover:bg-white/10">
+    <header className="sticky top-0 z-40 bg-[#071a33]">
+      <div className="mx-auto flex h-14 max-w-2xl items-center gap-2 px-3 text-white">
+        <button onClick={onBack} aria-label="Back" className="flex items-center gap-1 rounded p-1 hover:bg-white/10">
           <ArrowLeft size={20} strokeWidth={2} />
+          <span className="text-[14px] font-semibold">Back</span>
         </button>
-        <h1 className="flex-1 text-[16px] font-black text-white">Bet details</h1>
+        <h1 className="flex-1 text-center text-[16px] font-black">Ticket Details</h1>
+        <Link href="/account" aria-label="Help" className="rounded p-1.5 hover:bg-white/10">
+          <Headphones size={18} strokeWidth={2} />
+        </Link>
+        <Link href="/" aria-label="Home" className="rounded p-1.5 hover:bg-white/10">
+          <Home size={18} strokeWidth={2} />
+        </Link>
       </div>
     </header>
   );
 }
 
-function Line({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
-  return (
-    <div className="flex items-center justify-between">
-      <dt className="text-[var(--text-muted)]">{label}</dt>
-      <dd className="font-bold tabular-nums" style={accent ? { color: "var(--accent)" } : undefined}>
-        {value}
-      </dd>
-    </div>
-  );
-}
-
 function LegCard({ leg }: { leg: Leg }) {
-  const state =
-    leg.result === "won"
-      ? { label: "Won", colour: "var(--win)" }
-      : leg.result === "lost"
-        ? { label: "Lost", colour: "var(--lose)" }
-        : leg.isLive
-          ? { label: "Live", colour: "var(--live)" }
-          : { label: "Not started", colour: "var(--text-faint)" };
-
-  // A settled leg keeps the score it was judged on; an open one shows the
-  // score right now, which is the whole reason to open a ticket mid-match.
+  const won = leg.result === "won";
+  const lost = leg.result === "lost";
   const settledScore = leg.final_home !== null && leg.final_away !== null;
   const homeScore = settledScore ? leg.final_home : (leg.liveHome ?? null);
   const awayScore = settledScore ? leg.final_away : (leg.liveAway ?? null);
-  const showingLive = !settledScore && leg.liveHome !== null && leg.liveHome !== undefined;
-
-  // What actually happened, where the final score says so plainly. Left blank
-  // for markets whose result cannot be read off the scoreline alone — an
-  // invented "Outcome" would be worse than none.
+  const scoreLabel =
+    homeScore !== null && awayScore !== null ? `${homeScore}:${awayScore}` : "–";
   const outcome = describeOutcome(leg);
-
-  const drift =
-    leg.currentOdds && Math.abs(leg.currentOdds - Number(leg.odds)) > 0.005
-      ? leg.currentOdds < Number(leg.odds)
-        ? "shortened"
-        : "drifted"
-      : null;
+  const when = leg.kickoff
+    ? new Date(leg.kickoff).toLocaleString("en-GB", {
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "";
+  const gameId = leg.match_id.replace(/[^a-z0-9]/gi, "").slice(0, 8).toLowerCase();
 
   return (
-    <article className="flex overflow-hidden rounded-md border border-[var(--line)] bg-[var(--bg-elevated)]">
-      {/* Status mark: a settled leg says at a glance whether it landed. */}
-      <div
-        className="flex w-9 shrink-0 items-start justify-center pt-3"
-        style={{ background: "var(--surface)", color: state.colour }}
-      >
-        {leg.result === "won" ? (
-          <CircleCheck size={19} strokeWidth={2.2} />
-        ) : leg.result === "lost" ? (
-          <CircleX size={19} strokeWidth={2.2} />
-        ) : (
-          <span className="h-2 w-2 rounded-full" style={{ background: state.colour }} />
-        )}
-      </div>
-
-      <div className="min-w-0 flex-1 p-3">
-        <div className="flex items-center gap-2 text-[11px] text-[var(--text-muted)]">
-          <span>
-            {leg.kickoff
-              ? new Date(leg.kickoff).toLocaleString("en-GB", {
-                  day: "2-digit",
-                  month: "2-digit",
-                  year: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })
-              : "-"}
-          </span>
-          <span className="capitalize">{leg.sport}</span>
-          {leg.minuteLabel && (
-            <span className="font-bold text-[var(--live)]">{leg.minuteLabel}</span>
+    <article>
+      <div className="flex items-start gap-2">
+        <span
+          className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-white"
+          style={{ background: won ? "#1b9a4b" : lost ? "#d64545" : "#8b97a6" }}
+        >
+          {lost ? (
+            <span className="text-[12px] font-black leading-none">×</span>
+          ) : (
+            <Check size={12} strokeWidth={3} />
           )}
-          <span
-            className="ml-auto rounded-sm px-1.5 text-[10px] font-black uppercase leading-[16px]"
-            style={{ color: state.colour, boxShadow: `inset 0 0 0 1px ${state.colour}` }}
-          >
-            {leg.isLive ? "Live" : leg.result === "pending" ? "Not started" : state.label}
-          </span>
-        </div>
-
-        <div className="mt-2 rounded bg-[var(--surface)] px-3 py-2">
-          <Team name={leg.home_team} score={homeScore} live={showingLive} />
-          <Team name={leg.away_team} score={awayScore} live={showingLive} />
-        </div>
-
-        {/* What the match finished, and what that made the outcome. */}
-        {settledScore && (
-          <p className="mt-1.5 text-[12px] text-[var(--text-muted)]">
-            Full time:{" "}
-            <span className="font-bold tabular-nums text-[var(--text)]">
-              {leg.final_home}:{leg.final_away}
-            </span>
+        </span>
+        <div className="min-w-0 flex-1">
+          <Link href={`/match/${leg.match_id}`} className="block text-[15px] font-black text-[#1c2838]">
+            {leg.home_team} v {leg.away_team}
+          </Link>
+          <p className="mt-0.5 text-[11px] text-[#8b97a6]">
+            Game ID: {gameId || "—"}
+            {when ? ` | ${when}` : ""}
+            {leg.minuteLabel ? ` · ${leg.minuteLabel}` : ""}
           </p>
-        )}
-
-        <dl className="relative mt-2 space-y-1 rounded bg-[var(--surface)] px-3 py-2 text-[12px]">
-          {leg.result === "won" && (
-            <Trophy
-              size={38}
-              strokeWidth={1.4}
-              className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[var(--win)] opacity-10"
-            />
-          )}
-          <div className="flex justify-between">
-            <dt className="text-[var(--text-muted)]">Market</dt>
-            <dd className="font-medium">{marketName(leg.market)}</dd>
-          </div>
-          <div className="flex justify-between">
-            <dt className="text-[var(--text-muted)]">Pick</dt>
-            <dd className="flex items-center gap-1 font-medium">
-              {leg.outcome} @ {Number(leg.odds).toFixed(2)}
-              {leg.result === "won" && (
-                <Check size={12} strokeWidth={3} className="text-[var(--win)]" />
-              )}
-              {drift && (
-                <span
-                  className="ml-1 text-[10px]"
-                  style={{ color: drift === "shortened" ? "var(--win)" : "var(--lose)" }}
-                >
-                  now {leg.currentOdds!.toFixed(2)}
-                </span>
-              )}
-            </dd>
-          </div>
-
-          {outcome && (
-            <div className="flex justify-between">
-              <dt className="text-[var(--text-muted)]">Outcome</dt>
-              <dd className="font-medium" style={{ color: state.colour }}>
-                {outcome}
-              </dd>
-            </div>
-          )}
-        </dl>
-
-        <div className="mt-2 flex items-center justify-between">
-          <Link
-            href={`/match/${leg.match_id}/tracker`}
-            className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--accent)]"
-          >
-            <LineChart size={13} strokeWidth={2} />
-            Match tracker
-          </Link>
-          <Link
-            href={`/match/${leg.match_id}`}
-            className="flex items-center gap-1.5 rounded px-2.5 py-1.5 text-[11px] font-bold text-[var(--text)] ring-1 ring-[var(--line)]"
-          >
-            <IdCard size={13} strokeWidth={1.9} />
-            Match details
-          </Link>
         </div>
       </div>
-    </article>
-  );
-}
 
-function Team({ name, score, live }: { name: string; score: number | null; live?: boolean }) {
-  return (
-    <div className="flex items-center justify-between py-0.5">
-      <span className="truncate text-[13px] text-[var(--text)]">{name}</span>
-      <span
-        className="pl-3 text-[13px] font-bold tabular-nums"
-        style={{ color: live ? "var(--accent)" : "var(--text-muted)" }}
-      >
-        {score ?? "-"}
-      </span>
-    </div>
+      <dl className="mt-2 space-y-2 rounded-md bg-[#e7f6ee] px-3 py-3 text-[13px]">
+        <div className="flex items-center justify-between gap-3">
+          <dt className="text-[#607084]">Pick</dt>
+          <dd className="flex items-center gap-1 font-bold tabular-nums text-[#1c2838]">
+            {leg.outcome}@{Number(leg.odds).toFixed(2)}
+            {won && <Check size={14} strokeWidth={3} className="text-[#1b9a4b]" />}
+          </dd>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <dt className="text-[#607084]">Market</dt>
+          <dd className="text-right font-semibold text-[#1c2838]">{marketName(leg.market)}</dd>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <dt className="text-[#607084]">FT Score</dt>
+          <dd className="font-semibold tabular-nums text-[#1c2838]">{scoreLabel}</dd>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <dt className="text-[#607084]">Outcome</dt>
+          <dd className="font-semibold text-[#1c2838]">{outcome ?? leg.outcome}</dd>
+        </div>
+      </dl>
+    </article>
   );
 }
 

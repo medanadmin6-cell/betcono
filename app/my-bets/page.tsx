@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronRight, ChevronUp, ChevronDown, Clock, X } from "lucide-react";
+import { ChevronRight, ChevronUp, ChevronDown, Clock, Trophy, X } from "lucide-react";
 import { Page } from "@/components/Shell";
 import { useSession } from "@/lib/store";
 import { formatMoney } from "@/lib/countries";
@@ -188,7 +188,9 @@ export default function MyBetsPage() {
   return (
     <Page>
       <div className="px-3 pt-4 md:mx-auto md:max-w-3xl md:px-5">
-        <h1 className="text-[20px] font-black text-[var(--text-bright)]">My bets</h1>
+        <h1 className="text-[20px] font-black text-[var(--text-bright)]">
+          {tab === "history" ? "Bet History" : "My bets"}
+        </h1>
 
         <div className="mt-3 flex border-b border-[var(--line)]">
           {(
@@ -215,7 +217,7 @@ export default function MyBetsPage() {
         </div>
       </div>
 
-      <div className="space-y-2.5 px-3 pb-4 pt-3 md:mx-auto md:max-w-3xl md:px-5">
+      <div className={`space-y-3 px-3 pb-4 pt-3 md:mx-auto md:max-w-3xl md:px-5 ${tab === "history" ? "bg-[#eef2f6]" : ""}`}>
         {/* Filters */}
         <div
           className="scroll-x inline-flex max-w-full rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] p-0.5"
@@ -294,7 +296,7 @@ export default function MyBetsPage() {
           </p>
         ) : (
           shownHistory.map((t) => (
-            <HistoryTicketCard key={t.id} ticket={t} onCelebrate={setCelebrating} />
+            <HistoryTicketCard key={t.id} ticket={t} />
           ))
         )}
       </div>
@@ -437,76 +439,70 @@ function OpenTicketCard({
 
 // ----------------------------------------------------------- history card
 
-function HistoryTicketCard({
-  ticket,
-  onCelebrate,
-}: {
-  ticket: Ticket;
-  onCelebrate: (t: Ticket) => void;
-}) {
-  const style = STATUS_STYLE[ticket.status] ?? STATUS_STYLE.pending;
-  const inner = (
-    <>
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-[13px] font-black tracking-wider text-[var(--accent)]">{ticket.code}</p>
-          <p className="text-[11px] text-[var(--text-faint)]">
-            {ticket.selections.length} leg{ticket.selections.length === 1 ? "" : "s"} ·{" "}
-            {new Date(ticket.created_at).toLocaleDateString()}
-          </p>
-        </div>
-        <span
-          className="rounded-sm px-1.5 text-[10px] font-black uppercase leading-[16px]"
-          style={{ background: style.bg, color: style.fg }}
-        >
-          {style.label}
-        </span>
-      </div>
+const HISTORY_BAR: Record<string, string> = {
+  won: "#1b9a4b",
+  lost: "#d64545",
+  cashed_out: "#c48a12",
+  void: "#5c6b7a",
+  pending: "#1b6ca8",
+};
 
-      <dl className="mt-2 grid grid-cols-3 gap-2 text-[12px]">
-        <div>
-          <dt className="text-[10px] text-[var(--text-faint)]">Stake</dt>
-          <dd className="font-bold tabular-nums">{formatMoney(Number(ticket.stake), ticket.currency)}</dd>
-        </div>
-        <div>
-          <dt className="text-[10px] text-[var(--text-faint)]">Odds</dt>
-          <dd className="font-bold tabular-nums">{Number(ticket.total_odds).toFixed(2)}</dd>
-        </div>
-        <div>
-          <dt className="text-[10px] text-[var(--text-faint)]">
-            {ticket.status === "won" || ticket.status === "cashed_out" ? "Paid out" : "To win"}
-          </dt>
-          <dd className="font-bold tabular-nums text-[var(--accent)]">
-            {formatMoney(Number(ticket.payout ?? ticket.potential_win), ticket.currency)}
-          </dd>
-        </div>
-      </dl>
-    </>
-  );
+function HistoryTicketCard({ ticket }: { ticket: Ticket }) {
+  const when = new Date(ticket.created_at);
+  const day = when.toLocaleDateString("en-GB", { day: "2-digit" });
+  const month = when.toLocaleDateString("en-GB", { month: "short" });
+  const style = STATUS_STYLE[ticket.status] ?? STATUS_STYLE.pending;
+  const bar = HISTORY_BAR[ticket.status] ?? HISTORY_BAR.pending;
+  const returned = Number(ticket.payout ?? ticket.potential_win);
+  const paid = ticket.status === "won" || ticket.status === "cashed_out";
 
   return (
-    <article className="overflow-hidden rounded-md border border-[var(--line)] bg-[var(--bg-elevated)]">
-      {ticket.status === "won" ? (
-        <button
-          onClick={() => onCelebrate(ticket)}
-          className="block w-full px-4 py-3 text-left"
-          aria-label={`You won on ticket ${ticket.code}`}
-        >
-          {inner}
-        </button>
-      ) : (
-        <Link href={`/my-bets/${ticket.code}`} className="block w-full px-4 py-3 text-left">
-          {inner}
-        </Link>
-      )}
+    <Link href={`/my-bets/${ticket.code}`} className="flex items-stretch gap-2">
+      <div className="flex w-9 shrink-0 flex-col items-center justify-center leading-none text-[#243044]">
+        <span className="text-[16px] font-black">{day}</span>
+        <span className="mt-0.5 text-[12px] font-semibold text-[#6b7c90]">{month}</span>
+      </div>
 
-      <Link
-        href={`/my-bets/${ticket.code}`}
-        className="flex w-full items-center justify-center gap-1 border-t border-[var(--line)] py-2.5 text-[12px] font-bold text-[var(--accent)]"
-      >
-        View bet details
-        <ChevronRight size={14} strokeWidth={2.5} />
-      </Link>
-    </article>
+      <article className="min-w-0 flex-1 overflow-hidden rounded-md bg-white shadow-sm">
+        <div className="flex items-center justify-between px-3 py-2 text-white" style={{ background: bar }}>
+          <span className="text-[14px] font-bold">
+            {ticket.selections.length <= 1 ? "Single" : "Multiple"}
+          </span>
+          <span className="flex items-center gap-1 text-[13px] font-bold">
+            {ticket.status === "won" && <Trophy size={14} strokeWidth={2.2} />}
+            {style.label}
+            <ChevronRight size={16} strokeWidth={2.4} />
+          </span>
+        </div>
+
+        <div className="px-3 py-2.5">
+          <div className="flex items-center justify-between text-[13px] text-[#4b5563]">
+            <span>Total Stake ({ticket.currency})</span>
+            <span className="font-semibold tabular-nums text-[#1f2937]">
+              {Number(ticket.stake).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+          </div>
+          <div className="mt-1 flex items-center justify-between text-[13px]">
+            <span className="text-[#4b5563]">{paid ? "Total Return" : "To Return"}</span>
+            <span
+              className="font-bold tabular-nums"
+              style={{ color: paid ? "#1b9a4b" : "#1f2937" }}
+            >
+              {returned.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+          </div>
+          <ul className="mt-2 space-y-0.5">
+            {ticket.selections.map((leg) => (
+              <li
+                key={`${leg.match_id}-${leg.market}-${leg.outcome}`}
+                className="truncate text-[12px] text-[#8b97a6]"
+              >
+                {leg.home_team} v {leg.away_team}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </article>
+    </Link>
   );
 }
