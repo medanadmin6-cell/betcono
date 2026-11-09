@@ -4,13 +4,15 @@ export type Gateway =
   | "korapay"
   | "moolre"
   | "paystack"
-  | "alphapay";
+  | "alphapay"
+  | "shinobipay";
 
-const GATEWAYS: Gateway[] = [
+export const GATEWAYS: Gateway[] = [
   "korapay",
   "moolre",
   "paystack",
   "alphapay",
+  "shinobipay",
 ];
 
 export type KycKind = "bvn" | "nin" | "national_id";

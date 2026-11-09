@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/supabase";
 import { adapterFor, settledAmount } from "@/lib/gateways";
 import { applyDepositCredit } from "@/lib/money";
-import type { Gateway } from "@/lib/countries";
+import { GATEWAYS, type Gateway } from "@/lib/countries";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +30,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ status: "confirmed" });
   }
 
-  const adapter = ["korapay", "moolre", "paystack", "alphapay"].includes(payment.provider)
+  const adapter = (GATEWAYS as string[]).includes(payment.provider)
     ? adapterFor(payment.provider as Gateway)
     : undefined;
   if (!adapter) {

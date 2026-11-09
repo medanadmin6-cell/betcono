@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/supabase";
 import { currentPartner, publicPartner } from "@/lib/partner";
 import { formatMoney, getCountry } from "@/lib/countries";
+import { loadOverview } from "@/lib/overview";
 
 export const dynamic = "force-dynamic";
 
@@ -54,6 +55,10 @@ export async function GET() {
   }
 
   const country = getCountry(wallet?.country_code ?? "GH");
+  const overview = await loadOverview(supabase, partner.id).catch((err) => {
+    console.error("[partner] overview failed", partner.id, err);
+    return null;
+  });
   const { data: minimumRow, error: minimumErr } = await supabase
     .from("sub_admins")
     .select("min_deposit")
@@ -71,6 +76,7 @@ export async function GET() {
     depositCurrency: country.currency,
     depositFloor: country.minDeposit,
     depositCeiling: country.maxDeposit,
+    overview,
   });
 }
 

@@ -94,11 +94,19 @@ export function AdminTabs() {
     };
   }, []);
 
-  if (pathname === "/admin/login" || role === "sub") return null;
+  if (pathname === "/admin/login" || role === null) return null;
+
+  const tabs =
+    role === "sub"
+      ? [
+          { href: "/admin", label: "Overview" },
+          { href: "/admin/custom-matches", label: "Matches" },
+        ]
+      : TABS;
 
   return (
     <nav className="flex gap-2 overflow-x-auto border-b border-white/10 bg-[#07111f] px-3 py-2">
-      {TABS.map((tab) => {
+      {tabs.map((tab) => {
         const active = tab.href === "/admin" ? pathname === "/admin" : pathname === tab.href || pathname.startsWith(`${tab.href}/`);
         return (
           <Link
@@ -119,11 +127,17 @@ export function AdminTabs() {
   );
 }
 
-/** A sub-admin's whole console is the custom-matches screen. */
-const SUB_GROUPS = GROUPS.map((g) => ({
-  ...g,
-  items: g.items.filter((i) => i.href === "/admin/custom-matches"),
-})).filter((g) => g.items.length > 0);
+/** A sub-admin sees the overview and the matches they can run. */
+const SUB_GROUPS = [
+  {
+    title: "Overview",
+    items: [{ href: "/admin", label: "Overview", Icon: LayoutDashboard, hint: "Your players and deposits" }],
+  },
+  ...GROUPS.map((g) => ({
+    ...g,
+    items: g.items.filter((i) => i.href === "/admin/custom-matches"),
+  })).filter((g) => g.items.length > 0),
+];
 
 export function AdminNav() {
   const pathname = usePathname();

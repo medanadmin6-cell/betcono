@@ -298,21 +298,17 @@ function BrandHome() {
 
   const openDashboard = async () => {
     try {
+      // A partner session is a sub-admin, even if an operator cookie is also
+      // sitting in the browser. Their double tap opens the partner dashboard.
+      const partner = await fetch("/api/partner/dashboard");
+      if (partner.ok) {
+        router.push("/partner");
+        return;
+      }
       const res = await fetch("/api/admin/me");
       const json = res.ok ? await res.json() : null;
       if (json?.role === "admin") {
         router.push("/admin");
-        return;
-      }
-      // A sub-admin's home is the partner dashboard, not the operator console.
-      if (json?.role === "sub") {
-        router.push("/partner");
-        return;
-      }
-      // A partner who is signed in but not yet approved still has a dashboard.
-      const partner = await fetch("/api/partner/dashboard");
-      if (partner.ok) {
-        router.push("/partner");
         return;
       }
     } catch {

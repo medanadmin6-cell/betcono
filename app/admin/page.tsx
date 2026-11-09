@@ -1,26 +1,13 @@
 "use client";
 
-import Link from "next/link";
-import { Users, ArrowDownToLine, ReceiptText } from "lucide-react";
-import { useAdminData, CurrencyTotals } from "@/components/admin/ui";
-
-interface Overview {
-  deposits: Record<string, number>;
-  withdrawals: Record<string, number>;
-  depositsToday: Record<string, number>;
-  players: number;
-  depositors: number;
-  openTickets: number;
-}
-
-const LINKS = [
-  { href: "/admin/players", label: "My Users", Icon: Users },
-  { href: "/admin/withdrawals", label: "Withdrawals", Icon: ArrowDownToLine },
-  { href: "/admin/payments", label: "Transactions", Icon: ReceiptText },
-];
+import { useAdminData } from "@/components/admin/ui";
+import { OverviewCards } from "@/components/OverviewCards";
+import type { OverviewStats } from "@/lib/overview";
 
 export default function OverviewPage() {
-  const { data, error, busy } = useAdminData<Overview>("/api/admin/overview");
+  const { data, error, busy } = useAdminData<OverviewStats & { scope?: "book" | "referral" }>(
+    "/api/admin/overview",
+  );
 
   if (error) return <p className="text-[13px] text-[var(--lose)]">{error}</p>;
   if (busy && !data) return <p className="text-[13px] text-[var(--text-muted)]">Loading…</p>;
@@ -32,59 +19,12 @@ export default function OverviewPage() {
         <div>
           <h1 className="text-[22px] font-black">Overview</h1>
           <p className="mt-1 text-[13px] text-white/60">
-            Live player and ledger totals.
+            {data.scope === "referral"
+              ? "Live totals for players who used your referral code."
+              : "Live totals for the whole book."}
           </p>
         </div>
-
-        <div className="grid grid-cols-2 gap-2">
-          {LINKS.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex items-center justify-center gap-2 rounded-xl bg-[#0a6b40] px-3 py-3 text-[13px] font-black text-[#f4fff8]"
-            >
-              <item.Icon size={16} strokeWidth={2.2} />
-              {item.label}
-            </Link>
-          ))}
-        </div>
-
-        <section className="grid grid-cols-2 gap-2">
-          <article className="rounded-2xl border border-white/10 bg-[#0c1a30] p-4">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-white/50">My users</p>
-            <p className="mt-1 text-[28px] font-black tabular-nums">{data.players.toLocaleString()}</p>
-            <p className="mt-1 text-[11px] text-white/50">
-              {data.depositors.toLocaleString()} have deposited
-            </p>
-          </article>
-          <article className="rounded-2xl border border-white/10 bg-[#0c1a30] p-4">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-white/50">Their deposits</p>
-            <div className="mt-2 text-[15px]">
-              <CurrencyTotals totals={data.deposits} />
-            </div>
-            <p className="mt-1 text-[11px] text-white/50">Confirmed deposits</p>
-          </article>
-        </section>
-
-        <section className="rounded-2xl border border-white/10 bg-[#0c1a30] p-4">
-          <p className="text-[11px] font-bold uppercase tracking-wide text-white/50">Deposits today</p>
-          <div className="mt-2">
-            <CurrencyTotals totals={data.depositsToday} />
-          </div>
-        </section>
-
-        <section className="rounded-2xl border border-white/10 bg-[#0c1a30] p-4">
-          <p className="text-[11px] font-bold uppercase tracking-wide text-white/50">Withdrawals</p>
-          <div className="mt-2">
-            <CurrencyTotals totals={data.withdrawals} />
-          </div>
-          <p className="mt-1 text-[11px] text-white/50">Paid and resolved withdrawals</p>
-        </section>
-
-        <section className="rounded-2xl border border-white/10 bg-[#0c1a30] p-4">
-          <p className="text-[11px] font-bold uppercase tracking-wide text-white/50">Open tickets</p>
-          <p className="mt-1 text-[28px] font-black tabular-nums">{data.openTickets.toLocaleString()}</p>
-        </section>
+        <OverviewCards stats={data} />
       </div>
     </div>
   );

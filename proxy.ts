@@ -6,11 +6,10 @@ import { ADMIN_COOKIE, PARTNER_COOKIE, isValidAdminToken } from "@/lib/auth";
  * Every admin API route re-checks the cookie independently, so this is a
  * convenience rather than the security boundary.
  *
- * Partners are the sub-admins: their portal session admits them to exactly
- * one screen, custom matches. Verifying that session needs the database, so
- * here only the cookie's presence is checked and the custom-matches API
- * routes do the real verification; any other console path bounces a partner
- * to the one screen they have.
+ * Partners are the sub-admins. Their portal session may open custom matches.
+ * Any other /admin path sends them to the partner dashboard. Verifying that
+ * session needs the database, so here only the cookie's presence is checked
+ * and the custom-matches API routes do the real verification.
  */
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -23,9 +22,12 @@ export function proxy(req: NextRequest) {
     }
 
     if (req.cookies.get(PARTNER_COOKIE)?.value) {
-      if (pathname.startsWith("/admin/custom-matches")) return NextResponse.next();
+      // Custom matches is the one operator screen a sub-admin may open.
+      // Every other /admin path, including the logo and a double tap, belongs
+      // on their own dashboard.
+      if (pathname === "/admin" || pathname.startsWith("/admin/custom-matches")) return NextResponse.next();
       const url = req.nextUrl.clone();
-      url.pathname = "/admin/custom-matches";
+      url.pathname = "/partner";
       url.search = "";
       return NextResponse.redirect(url);
     }

@@ -7,6 +7,8 @@ import { Shield } from "lucide-react";
 import { WalletPanel } from "@/components/partner/WalletPanel";
 import { copyText } from "@/lib/clipboard";
 import { formatMoney, getCountry } from "@/lib/countries";
+import { OverviewCards } from "@/components/OverviewCards";
+import type { OverviewStats } from "@/lib/overview";
 
 interface Partner {
   id: string;
@@ -44,6 +46,7 @@ interface Dashboard {
   depositCurrency: string;
   depositFloor: number;
   depositCeiling: number;
+  overview: OverviewStats | null;
 }
 
 export default function PartnerPage() {
@@ -277,6 +280,15 @@ function PartnerDashboard({ data, onReload }: { data: Dashboard; onReload: () =>
           Log out
         </button>
       </header>
+
+      <section className="rounded-2xl bg-[#07111f] p-3 text-white">
+        <h2 className="px-1 pb-2 text-[18px] font-black">Overview</h2>
+        {data.overview ? (
+          <OverviewCards stats={data.overview} />
+        ) : (
+          <p className="px-1 text-[13px] text-white/50">Overview is unavailable right now.</p>
+        )}
+      </section>
 
       {!partner.approved && (
         <p className="rounded-md border border-[var(--pending)] bg-[var(--pending)]/10 px-4 py-3 text-[12px] text-[var(--text)]">

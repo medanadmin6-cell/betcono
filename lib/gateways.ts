@@ -321,11 +321,140 @@ const alphapay: GatewayAdapter = {
   },
 };
 
+// -------------------------------------------------------------- ShinobiPay
+
+/**
+ * ShinobiPay: one /v1/payment_intents endpoint for both markets. Amounts are
+ * the MINOR unit (pesewas / kobo), integers only.
+ *
+ *  - GHS goes as mobile_money. The network is read off the number's prefix and
+ *    the player gets a push prompt, so the deposit page's own "approve on your
+ *    phone" poll handles it.
+ *  - NGN goes as bank_transfer. There is no prompt: the player must transfer
+ *    into a one-time account, so they are sent to ShinobiPay's hosted checkout,
+ *    which shows the account number and the expiry countdown.
+ *
+ * Any next_action we do not drive ourselves (redirect, submit_otp, a virtual
+ * account) also falls back to the hosted checkout_url.
+ */
+function shinobiBase(): string {
+  return (env("SHINOBIPAY_BASE_URL") ?? "https://shinobipay.vercel.app/api/v1").replace(/\/+$/, "");
+}
+
+/** Ghana MoMo network from the subscriber prefix, or null if unknown. */
+export function ghanaNetwork(phone: string): "MTN" | "TELECEL" | "AIRTELTIGO" | null {
+  const local = phone.replace(/\D/g, "").slice(-9);
+  const prefix = local.slice(0, 2);
+  if (["24", "25", "53", "54", "55", "59"].includes(prefix)) return "MTN";
+  if (["20", "50"].includes(prefix)) return "TELECEL";
+  if (["26", "27", "56", "57"].includes(prefix)) return "AIRTELTIGO";
+  return null;
+}
+
+const shinobipay: GatewayAdapter = {
+  id: "shinobipay",
+  label: "ShinobiPay",
+  async start({ reference, amount, currency, phone, email, redirectUrl }) {
+    const key = env("SHINOBIPAY_SECRET_KEY");
+    if (!key) return { ok: false, error: "ShinobiPay is not available right now" };
+
+    const cur = String(currency).toUpperCase();
+    const body: Record<string, unknown> = {
+      amount: Math.round(amount * 100),
+      currency: cur,
+      reference,
+      description: "Pep Stake deposit",
+      return_url: redirectUrl,
+      metadata: { reference },
+    };
+
+    if (cur === "GHS") {
+      const network = ghanaNetwork(phone);
+      if (!network) {
+        return { ok: false, error: "Enter an MTN, Telecel or AirtelTigo mobile money number" };
+      }
+      body.method = "mobile_money";
+      body.network = network;
+      body.customer = { phone, ...(email ? { email } : {}) };
+    } else if (cur === "NGN") {
+      body.method = "bank_transfer";
+      body.customer = { email: email || `${phone}@pepstake.com` };
+    } else {
+      return { ok: false, error: "Online deposits are not available in your currency yet" };
+    }
+
+    try {
+      const res = await fetch(`${shinobiBase()}/payment_intents`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${key}`,
+          "Content-Type": "application/json",
+          // The reference is unique per attempt, so a retried request cannot
+          // open a second charge.
+          "Idempotency-Key": reference,
+        },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.id) {
+        const message = json?.error?.message ?? json?.message;
+        console.error("[shinobipay] start", res.status, message);
+        return { ok: false, error: typeof message === "string" ? message : "Could not start the deposit" };
+      }
+
+      const metadata = { shinobipay_id: json.id, checkout_url: json.checkout_url ?? null };
+      const action = String(json?.next_action?.type ?? "none");
+
+      if (cur === "GHS" && (action === "await_prompt" || action === "none")) {
+        return { ok: true, metadata, awaitingPrompt: true };
+      }
+      if (action === "redirect" && json?.next_action?.url) {
+        return { ok: true, metadata, redirectUrl: json.next_action.url };
+      }
+      if (json.checkout_url) return { ok: true, metadata, redirectUrl: json.checkout_url };
+      return { ok: true, metadata, awaitingPrompt: true };
+    } catch (err) {
+      console.error("[shinobipay] start", err);
+      return { ok: false, error: "Could not start the deposit" };
+    }
+  },
+  async status(_reference, meta) {
+    const key = env("SHINOBIPAY_SECRET_KEY");
+    const id = typeof meta?.shinobipay_id === "string" ? meta.shinobipay_id : null;
+    if (!key || !id) return { status: "pending" };
+    try {
+      const res = await fetch(`${shinobiBase()}/payment_intents/${encodeURIComponent(id)}`, {
+        headers: { Authorization: `Bearer ${key}` },
+        cache: "no-store",
+      });
+      if (!res.ok) return { status: "pending" };
+      const json = await res.json().catch(() => null);
+      const s = String(json?.status ?? "").toLowerCase();
+      const status: ChargeStatus =
+        s === "succeeded"
+          ? "confirmed"
+          : ["failed", "canceled", "cancelled", "expired"].includes(s)
+            ? "failed"
+            : "pending";
+      // Minor units back to the major unit the wallet keeps.
+      const paid = Number(json?.amount) / 100;
+      return {
+        status,
+        paidAmount: Number.isFinite(paid) && paid > 0 ? paid : undefined,
+        paidCurrency: typeof json?.currency === "string" ? json.currency : undefined,
+      };
+    } catch {
+      return { status: "pending" };
+    }
+  },
+};
+
 const ADAPTERS: Record<Gateway, GatewayAdapter> = {
   korapay,
   moolre,
   paystack,
   alphapay,
+  shinobipay,
 };
 
 /**
