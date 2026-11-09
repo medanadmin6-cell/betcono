@@ -37,6 +37,13 @@ export async function POST(req: Request) {
   if (!user) return NextResponse.json({ error: "Sign in first" }, { status: 401 });
 
   const country = getCountry(user.country_code);
+  const adapter = country.gateway ? adapterFor(country.gateway) : undefined;
+  if (!adapter) {
+    return NextResponse.json(
+      { error: "Online deposits are not available in your country yet." },
+      { status: 503 },
+    );
+  }
 
   if (!user.first_deposit_at && amount < country.minFirstDeposit) {
     return NextResponse.json(
@@ -45,7 +52,6 @@ export async function POST(req: Request) {
     );
   }
 
-  const adapter = adapterFor(country.gateway);
   const reference = paymentReference();
   const origin = new URL(req.url).origin;
 

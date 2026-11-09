@@ -180,6 +180,9 @@ create table if not exists app_settings (
   updated_at timestamptz not null default now()
 );
 
+delete from app_settings
+ where key in ('deposit_account_name', 'deposit_account_number', 'deposit_account_network');
+
 create table if not exists push_subscriptions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references users(id) on delete cascade,
@@ -195,12 +198,6 @@ create table if not exists goal_notifications (
   last_away smallint not null default 0,
   updated_at timestamptz not null default now()
 );
-
-insert into app_settings (key, value) values
-  ('deposit_account_name', 'BetCono Ghana'),
-  ('deposit_account_number', '0244000000'),
-  ('deposit_account_network', 'MTN Mobile Money')
-on conflict (key) do nothing;
 
 -- ============ 0007_selection_context.sql ============
 -- Match context on each leg, so a settled ticket can show the player how the
@@ -271,31 +268,15 @@ do $$ begin
 exception when others then null; end $$;
 
 -- ============ 0012_rename_stakeza.sql ============
--- The site is Stakeza now. The name reached the database in two places: the
--- house league custom matches are filed under, and the account name shown on
--- the manual deposit screen. Both are carried over here so a running
--- deployment says the new name without anyone editing a row by hand.
+-- The site was Stakeza before BetCono. Update the house league name.
 
 alter table custom_matches alter column league set default 'Stakeza Special';
 
 update custom_matches set league = 'Stakeza Special' where league = 'Betlixx Special';
 
-update app_settings
-   set value = 'Stakeza Ghana', updated_at = now()
- where key = 'deposit_account_name' and value = 'Betlixx Ghana';
-
 -- ============ 0013_rename_betcono.sql ============
--- The site is BetCono now. Same two places the name reaches the database as
--- the last rename: the house league custom matches are filed under, and the
--- account name shown on the manual deposit screen. Both are carried over here
--- so a running deployment says the new name without anyone editing a row by
--- hand.
+-- The site is BetCono now. Update the house league name.
 
 alter table custom_matches alter column league set default 'BetCono Special';
 
 update custom_matches set league = 'BetCono Special' where league = 'Stakeza Special';
-
-update app_settings
-   set value = 'BetCono Ghana', updated_at = now()
- where key = 'deposit_account_name' and value = 'Stakeza Ghana';
-

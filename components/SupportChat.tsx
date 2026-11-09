@@ -14,7 +14,7 @@ import { MessageCircle, X, ArrowLeft } from "lucide-react";
 const SCRIPT: { q: string; a: string }[] = [
   {
     q: "How do I deposit?",
-    a: "Open Deposit, enter the amount and your mobile money number, then approve the prompt on your phone. If your market uses the manual rail, send to the displayed number and upload a screenshot. Our team confirms it shortly after.",
+    a: "Open Deposit, enter the amount and your mobile money number, then approve the payment prompt on your phone.",
   },
   {
     q: "When can I withdraw?",
@@ -22,7 +22,7 @@ const SCRIPT: { q: string; a: string }[] = [
   },
   {
     q: "My deposit has not shown up",
-    a: "Open your Account screen. That alone re-checks any payment that completed while you were away. If it is a manual deposit it stays pending until our team confirms it. Still stuck after 15 minutes? Message us on WhatsApp.",
+    a: "Open your Account screen to re-check any payment that completed while you were away. Still stuck after 15 minutes? Message us on WhatsApp.",
   },
   {
     q: "How does the welcome bonus work?",

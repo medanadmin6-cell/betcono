@@ -30,7 +30,6 @@ export async function GET() {
     { count: players },
     { count: depositors },
     { data: openBets },
-    { count: pendingDeposits },
     { data: depositRowsToday },
     { data: commissionRowsToday },
     { data: depositRowsYesterday },
@@ -40,11 +39,6 @@ export async function GET() {
     supabase.from("users").select("id", { count: "exact", head: true }),
     supabase.from("users").select("id", { count: "exact", head: true }).gt("total_deposited", 0),
     supabase.from("bets").select("stake, potential_win, currency").eq("status", "pending").limit(2000),
-    supabase
-      .from("payments")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "pending")
-      .eq("provider", "manual"),
     supabase
       .from("payments")
       .select("amount, currency, status, metadata")
@@ -134,6 +128,5 @@ export async function GET() {
     openTickets: openBets?.length ?? 0,
     openStake: Math.round(openStake * 100) / 100,
     liability,
-    pendingDeposits: pendingDeposits ?? 0,
   });
 }

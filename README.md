@@ -12,9 +12,9 @@ One Next.js application on Vercel, with Supabase Postgres as the only database. 
 | Styling | Tailwind CSS v4, one token layer in `app/globals.css` |
 | Client state | Zustand — bet slip, session, popularity counts |
 | Database | Supabase Postgres, server-side with the service-role key |
-| File storage | Supabase Storage (deposit screenshots) |
+| File storage | Supabase Storage (team crests) |
 | Fixtures & odds | API-Football v3, plus operator-created custom matches |
-| Payments | AlphaPay, Korapay, Moolre, Paystack, and a manual mobile-money rail |
+| Payments | AlphaPay, Korapay, Moolre, and Paystack |
 | Messaging | Arkesel SMS, Web Push for goal alerts |
 
 The service-role key bypasses row-level security, so every database read and write happens on the server. No table is ever queried from the browser.

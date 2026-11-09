@@ -15,9 +15,8 @@ export interface CreditResult {
 }
 
 /**
- * The single choke point for money entering a wallet. Every deposit rail —
- * AlphaPay, Korapay, Moolre, Paystack, Telegram and the manual mobile-money
- * rail — funnels into this function without exception.
+ * The single choke point for money entering a wallet. Every supported online
+ * payment rail funnels into this function without exception.
  *
  * Step 1 moves the money. Steps 2 to 5 are all best-effort: the deposit is
  * already credited by the time they run, so a failure in any of them is logged

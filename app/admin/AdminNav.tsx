@@ -8,7 +8,6 @@ import {
   X,
   LayoutDashboard,
   Users,
-  Banknote,
   ReceiptText,
   CalendarDays,
   Clapperboard,
@@ -45,7 +44,6 @@ const GROUPS: { title: string; items: Item[] }[] = [
     title: "Money",
     items: [
       { href: "/admin/players", label: "Players", Icon: Users, hint: "Balances and withdrawal approval" },
-      { href: "/admin/deposits", label: "Deposits", Icon: Banknote, hint: "Manual deposits awaiting confirmation" },
       { href: "/admin/withdrawals", label: "Withdrawals", Icon: ReceiptText, hint: "Withdrawal requests" },
       { href: "/admin/payments", label: "Transactions", Icon: ReceiptText, hint: "The full ledger" },
     ],
@@ -73,7 +71,6 @@ const TABS = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/matches", label: "Matches" },
   { href: "/admin/players", label: "My Users" },
-  { href: "/admin/deposits", label: "Deposits" },
   { href: "/admin/withdrawals", label: "Withdrawals" },
   { href: "/admin/payments", label: "Transactions" },
 ];

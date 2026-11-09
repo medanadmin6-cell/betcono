@@ -45,10 +45,12 @@ export async function POST(req: Request) {
   for (const payment of pending) {
     const meta = (payment.metadata ?? {}) as Record<string, unknown> & { type?: string };
     if (meta.type !== "deposit") continue;
-    // The manual rail never self-confirms; it waits for the operator.
-    if (payment.provider === "manual") continue;
+    const adapter = ["korapay", "moolre", "paystack", "alphapay"].includes(payment.provider)
+      ? adapterFor(payment.provider as Gateway)
+      : undefined;
+    if (!adapter) continue;
 
-    const outcome = await adapterFor(payment.provider as Gateway).status(payment.reference, meta);
+    const outcome = await adapter.status(payment.reference, meta);
     if (outcome.status !== "confirmed") continue;
 
     const result = await applyDepositCredit({

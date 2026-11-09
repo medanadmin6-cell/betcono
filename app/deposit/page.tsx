@@ -3,20 +3,16 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, CircleHelp, Smartphone, Check, Upload } from "lucide-react";
+import { ArrowLeft, CircleHelp, Smartphone, Check } from "lucide-react";
 import { useSession } from "@/lib/store";
 import { getCountry, formatMoney, maskPhoneTail } from "@/lib/countries";
 import { Page } from "@/components/Shell";
 
-type Rail = "momo" | "manual";
-
 /**
  * The deposit screen.
  *
- * Two rails behind two tabs: the country's instant gateway, and the manual
- * transfer that every market falls back to. The limits and fee notes at the
- * bottom are read from the same country configuration the endpoint enforces,
- * so what a player is told is what actually happens.
+ * The country's configured online gateway. The limits and fee notes at the
+ * bottom are read from the same country configuration the endpoint enforces.
  */
 export default function DepositPage() {
   const router = useRouter();
@@ -24,7 +20,6 @@ export default function DepositPage() {
   const hydrated = useSession((s) => s.hydrated);
   const setBalance = useSession((s) => s.setBalance);
 
-  const [rail, setRail] = useState<Rail>("momo");
   const [amount, setAmount] = useState("");
   const [phoneEdit, setPhoneEdit] = useState<string | null>(null);
   const [network, setNetwork] = useState<string | null>(null);
@@ -33,7 +28,6 @@ export default function DepositPage() {
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [done, setDone] = useState<{ balance?: number; bonus?: number } | null>(null);
-  const [settings, setSettings] = useState<Record<string, string>>({});
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const country = player ? getCountry(player.country_code) : getCountry("GH");
@@ -50,13 +44,6 @@ export default function DepositPage() {
     if (hydrated && !player) router.replace("/login");
   }, [hydrated, player, router]);
 
-  useEffect(() => {
-    fetch("/api/settings")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j) => j?.settings && setSettings(j.settings))
-      .catch(() => {});
-  }, []);
-
   useEffect(
     () => () => {
       if (pollRef.current) clearInterval(pollRef.current);
@@ -64,9 +51,7 @@ export default function DepositPage() {
     [],
   );
 
-  // A credited deposit shows its confirmation, then returns to the home page to
-  // bet. The manual rail never reaches `done` (it stays pending until the
-  // operator confirms it), so only an instant credit sends the player back.
+  // A credited deposit shows its confirmation, then returns to the home page.
   useEffect(() => {
     if (!done) return;
     const t = setTimeout(() => router.push("/"), 2200);
@@ -127,29 +112,6 @@ export default function DepositPage() {
     }
   };
 
-  const submitManual = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setBusy(true);
-    setError(null);
-    try {
-      const form = new FormData(e.currentTarget);
-      form.set("userId", player.id);
-      form.set("amount", String(value));
-
-      const res = await fetch("/api/deposits/manual", { method: "POST", body: form });
-      const json = await res.json();
-      if (!res.ok) {
-        setError(json.error ?? "Could not record your deposit");
-        return;
-      }
-      setStatus(json.message);
-    } catch {
-      setError("Network problem. Try again.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
   if (done) {
     return (
       <Page>
@@ -183,7 +145,7 @@ export default function DepositPage() {
 
   const tooSmall = value > 0 && value < min;
   const tooBig = value > max;
-  const canSubmit = value >= min && value <= max && !busy;
+  const canSubmit = Boolean(country.gateway) && value >= min && value <= max && !busy;
 
   // Shortcut amounts from the real limits: the minimum and a few multiples
   // of it, never above the per-transaction cap.
@@ -209,34 +171,12 @@ export default function DepositPage() {
           </span>
         </div>
 
-        {/* Rail tabs */}
-        <div className="grid grid-cols-2 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] p-0.5">
-          {(
-            [
-              { key: "momo", label: country.payoutRail === "bank" ? "Card or bank" : "Mobile money" },
-              { key: "manual", label: "Manual transfer" },
-            ] as const
-          ).map((t) => (
-            <button
-              key={t.key}
-              onClick={() => {
-                setRail(t.key);
-                setError(null);
-                setStatus(null);
-              }}
-              className={`rounded-[4px] py-2 text-[13px] font-bold transition-colors ${
-                rail === t.key
-                  ? "bg-[var(--accent)] text-[var(--accent-ink)]"
-                  : "text-[var(--text-muted)] hover:text-[var(--text)]"
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-
         <div className="mt-3 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] p-4">
-          {rail === "momo" ? (
+          {!country.gateway ? (
+            <p className="rounded bg-[var(--pending)]/15 px-3 py-3 text-[13px] font-semibold text-[var(--pending)]">
+              Online deposits are not available in your country yet.
+            </p>
+          ) : (
             <>
               {/* Account rows */}
               <SwitchRow
@@ -326,60 +266,6 @@ export default function DepositPage() {
                 {busy ? "Starting…" : value > 0 ? `Deposit ${formatMoney(value, player.currency)}` : "Deposit"}
               </button>
             </>
-          ) : (
-            <form onSubmit={submitManual}>
-              <div className="rounded border border-dashed border-[var(--line)] bg-[var(--bg)] p-3">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--text-faint)]">Send to</p>
-                <p className="mt-1 text-[20px] font-black tabular-nums tracking-wide text-[var(--text-bright)]">
-                  {settings.deposit_account_number ?? "-"}
-                </p>
-                <p className="text-[12px] text-[var(--text-muted)]">
-                  {settings.deposit_account_name ?? "Pep Stake"} ·{" "}
-                  {settings.deposit_account_network ?? "Mobile money"}
-                </p>
-              </div>
-
-              <div className="mt-4">
-                <AmountField
-                  currency={player.currency}
-                  value={amount}
-                  onChange={setAmount}
-                  hint={`Min. ${min.toFixed(2)}`}
-                  quick={quick}
-                />
-              </div>
-
-              <label className="mt-4 block">
-                <span className="mb-1.5 block text-[12px] font-bold text-[var(--text-muted)]">
-                  Number you sent from
-                </span>
-                <input
-                  name="senderNumber"
-                  type="tel"
-                  defaultValue={player.phone}
-                  className="w-full rounded-[5px] border border-[var(--field-line)] bg-[var(--input)] px-3 py-2.5 text-[14px] tabular-nums text-[var(--input-ink)] outline-none focus:border-[var(--accent)]"
-                />
-              </label>
-
-              <label className="mt-3 flex cursor-pointer items-center gap-2 rounded-[5px] border border-dashed border-[var(--field-line)] px-3 py-3 text-[13px] font-semibold text-[var(--text-muted)] hover:border-[var(--accent)]">
-                <Upload size={16} strokeWidth={1.9} />
-                Attach a screenshot of the transfer
-                <input name="screenshot" type="file" accept="image/*" className="sr-only" />
-              </label>
-
-              <button
-                type="submit"
-                disabled={!canSubmit}
-                className="mt-4 w-full rounded-[5px] py-3 text-[15px] font-black"
-                style={
-                  canSubmit
-                    ? { background: "var(--accent)", color: "var(--accent-ink)" }
-                    : { background: "var(--surface)", color: "var(--text-muted)" }
-                }
-              >
-                {busy ? "Sending…" : "I have sent the money"}
-              </button>
-            </form>
           )}
 
           {/* Feedback */}

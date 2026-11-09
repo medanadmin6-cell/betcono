@@ -4,15 +4,13 @@ export type Gateway =
   | "korapay"
   | "moolre"
   | "paystack"
-  | "alphapay"
-  | "manual";
+  | "alphapay";
 
 const GATEWAYS: Gateway[] = [
   "korapay",
   "moolre",
   "paystack",
   "alphapay",
-  "manual",
 ];
 
 export type KycKind = "bvn" | "nin" | "national_id";
@@ -24,7 +22,7 @@ export interface CountryConfig {
   currencySymbol: string;
   dialCode: string;
   phoneDigits: number;
-  gateway: Gateway;
+  gateway: Gateway | null;
   payoutRail: PayoutRail;
   kyc: {
     kind: KycKind;
@@ -108,7 +106,7 @@ const BASE: Record<string, CountryConfig> = {
     currencySymbol: "KSh",
     dialCode: "254",
     phoneDigits: 9,
-    gateway: "manual",
+    gateway: null,
     payoutRail: "mobile",
     kyc: [
       {
@@ -134,7 +132,7 @@ const BASE: Record<string, CountryConfig> = {
     currencySymbol: "R",
     dialCode: "27",
     phoneDigits: 9,
-    gateway: "manual",
+    gateway: null,
     payoutRail: "bank",
     kyc: [
       {
@@ -166,8 +164,8 @@ function num(name: string, fallback: number): number {
 
 function gatewayEnv(
   name: string,
-  fallback: Gateway
-): Gateway {
+  fallback: Gateway | null
+): Gateway | null {
   const raw = process.env[name];
 
   return GATEWAYS.includes(raw as Gateway)

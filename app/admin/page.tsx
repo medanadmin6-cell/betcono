@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight, Users, Banknote, ArrowDownToLine, ReceiptText } from "lucide-react";
+import { Users, ArrowDownToLine, ReceiptText } from "lucide-react";
 import { useAdminData, CurrencyTotals } from "@/components/admin/ui";
 
 interface Overview {
@@ -11,12 +11,10 @@ interface Overview {
   players: number;
   depositors: number;
   openTickets: number;
-  pendingDeposits: number;
 }
 
 const LINKS = [
   { href: "/admin/players", label: "My Users", Icon: Users },
-  { href: "/admin/deposits", label: "Deposits", Icon: Banknote },
   { href: "/admin/withdrawals", label: "Withdrawals", Icon: ArrowDownToLine },
   { href: "/admin/payments", label: "Transactions", Icon: ReceiptText },
 ];
@@ -37,16 +35,6 @@ export default function OverviewPage() {
             Live player and ledger totals.
           </p>
         </div>
-
-        {data.pendingDeposits > 0 && (
-          <Link
-            href="/admin/deposits"
-            className="flex items-center gap-1 rounded-2xl bg-[#f5a524]/15 px-4 py-3 text-[13px] font-semibold text-[#f5a524]"
-          >
-            {data.pendingDeposits} manual deposit{data.pendingDeposits === 1 ? "" : "s"} waiting
-            <ChevronRight size={15} strokeWidth={2.2} className="ml-auto" />
-          </Link>
-        )}
 
         <div className="grid grid-cols-2 gap-2">
           {LINKS.map((item) => (

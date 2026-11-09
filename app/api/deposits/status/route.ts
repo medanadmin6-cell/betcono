@@ -30,7 +30,14 @@ export async function GET(req: Request) {
     return NextResponse.json({ status: "confirmed" });
   }
 
-  const outcome = await adapterFor(payment.provider as Gateway).status(
+  const adapter = ["korapay", "moolre", "paystack", "alphapay"].includes(payment.provider)
+    ? adapterFor(payment.provider as Gateway)
+    : undefined;
+  if (!adapter) {
+    return NextResponse.json({ error: "Unsupported payment provider" }, { status: 422 });
+  }
+
+  const outcome = await adapter.status(
     reference,
     (payment.metadata ?? undefined) as Record<string, unknown> | undefined,
   );

@@ -321,28 +321,11 @@ const alphapay: GatewayAdapter = {
   },
 };
 
-/**
- * The manual rail: the player sends money to the displayed agent number and
- * uploads a screenshot. Nothing is automatic, so the status stays pending until
- * the operator confirms it in the console.
- */
-const manual: GatewayAdapter = {
-  id: "manual",
-  label: "Mobile money transfer",
-  async start() {
-    return { ok: true };
-  },
-  async status(): Promise<ChargeOutcome> {
-    return { status: "pending" };
-  },
-};
-
 const ADAPTERS: Record<Gateway, GatewayAdapter> = {
   korapay,
   moolre,
   paystack,
   alphapay,
-  manual,
 };
 
 /**
@@ -362,8 +345,8 @@ export function settledAmount(outcome: ChargeOutcome, requested: number, currenc
   return paid;
 }
 
-export function adapterFor(gateway: Gateway): GatewayAdapter {
-  return ADAPTERS[gateway] ?? manual;
+export function adapterFor(gateway: Gateway): GatewayAdapter | undefined {
+  return ADAPTERS[gateway];
 }
 
 export function allAdapters(): GatewayAdapter[] {
