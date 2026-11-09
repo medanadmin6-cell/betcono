@@ -132,7 +132,7 @@ console.log("\nWithdrawal gate (Ghana: 3 deposits of GHS 300)");
     oneDone.failed === "deposits" &&
       oneDone.progress.have === 1 &&
       oneDone.progress.need === 3 &&
-      oneDone.message.startsWith("2 more"),
+      oneDone.message?.startsWith("2 more"),
     JSON.stringify({ failed: oneDone.failed, progress: oneDone.progress, message: oneDone.message }));
 
   const qualified = { ...player, qualifying_deposits: 3 };
