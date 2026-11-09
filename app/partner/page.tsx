@@ -35,9 +35,20 @@ interface Wallet {
   balance: number;
 }
 
+interface PlayerRow {
+  id: string;
+  name: string;
+  phone: string;
+  currency: string;
+  total_deposited: number;
+  created_at: string;
+  /** Deposit attempts: confirmed, failed, and still open (abandoned or waiting). */
+  transactions?: { total: number; succeeded: number; failed: number; pending: number; last: string | null };
+}
+
 interface Dashboard {
   partner: Partner;
-  players: { id: string; name: string; phone: string; currency: string; total_deposited: number; created_at: string }[];
+  players: PlayerRow[];
   commissions: { id: string; deposit_amount: number; currency: string; rate: number; amount: number; created_at: string }[];
   wallet: Wallet | null;
   creditedToday: number;
@@ -427,30 +438,7 @@ function PartnerDashboard({ data, onReload }: { data: Dashboard; onReload: () =>
         </form>
       </section>
 
-      <section className="overflow-hidden rounded-md border border-[var(--line)] bg-[var(--bg-elevated)]">
-        <h2 className="border-b border-[var(--line)] px-4 py-2.5 text-[13px] font-black text-[var(--text-bright)]">
-          Your players
-        </h2>
-        {!players.length ? (
-          <p className="p-8 text-center text-[13px] text-[var(--text-muted)]">
-            No one has signed up with your code yet.
-          </p>
-        ) : (
-          <ul className="divide-y divide-[var(--line)]">
-            {players.map((p) => (
-              <li key={p.id} className="flex items-center justify-between px-4 py-2.5">
-                <div>
-                  <p className="text-[13px] font-semibold">{p.name}</p>
-                  <p className="text-[11px] text-[var(--text-faint)]">{p.phone}</p>
-                </div>
-                <p className="text-[13px] font-black text-[var(--text-bright)]">
-                  {p.currency} {Number(p.total_deposited).toFixed(2)}
-                </p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      <PlayersList players={players} />
 
       <section className="overflow-hidden rounded-md border border-[var(--line)] bg-[var(--bg-elevated)]">
         <h2 className="border-b border-[var(--line)] px-4 py-2.5 text-[13px] font-black text-[var(--text-bright)]">
@@ -479,6 +467,128 @@ function PartnerDashboard({ data, onReload }: { data: Dashboard; onReload: () =>
         )}
       </section>
     </div>
+  );
+}
+
+/** A player who tried to pay but has nothing confirmed: worth a call. */
+function isStruggling(p: PlayerRow): boolean {
+  const t = p.transactions;
+  return Boolean(t && t.total > 0 && t.succeeded === 0);
+}
+
+const PLAYER_FILTERS = [
+  { key: "all", label: "All" },
+  { key: "struggling", label: "Tried, not paid" },
+  { key: "failed", label: "Has failed" },
+  { key: "none", label: "No attempts" },
+] as const;
+
+function PlayersList({ players }: { players: PlayerRow[] }) {
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<(typeof PLAYER_FILTERS)[number]["key"]>("all");
+
+  const q = query.trim().toLowerCase();
+  const digits = q.replace(/\D/g, "");
+  const shown = players.filter((p) => {
+    if (q) {
+      const nameHit = p.name.toLowerCase().includes(q);
+      // "0544…" and "233544…" should both find the same player.
+      const phoneHit = digits.length >= 3 && p.phone.includes(digits.replace(/^0/, ""));
+      if (!nameHit && !phoneHit) return false;
+    }
+    const t = p.transactions;
+    if (filter === "struggling") return isStruggling(p);
+    if (filter === "failed") return Boolean(t && t.failed > 0);
+    if (filter === "none") return !t || t.total === 0;
+    return true;
+  });
+
+  const strugglingCount = players.filter(isStruggling).length;
+
+  return (
+    <section className="overflow-hidden rounded-md border border-[var(--line)] bg-[var(--bg-elevated)]">
+      <div className="space-y-2 border-b border-[var(--line)] px-4 py-2.5">
+        <h2 className="text-[13px] font-black text-[var(--text-bright)]">
+          Your players ({players.length})
+        </h2>
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search name or phone number"
+          className={inputClass}
+        />
+        <div className="flex flex-wrap gap-1.5">
+          {PLAYER_FILTERS.map((f) => (
+            <button
+              key={f.key}
+              type="button"
+              onClick={() => setFilter(f.key)}
+              className="rounded px-2.5 py-1 text-[11px] font-bold"
+              style={
+                filter === f.key
+                  ? { background: "var(--accent)", color: "var(--accent-ink)" }
+                  : { background: "var(--surface-2)", color: "var(--text-muted)" }
+              }
+            >
+              {f.label}
+              {f.key === "struggling" && strugglingCount > 0 ? ` (${strugglingCount})` : ""}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {!players.length ? (
+        <p className="p-8 text-center text-[13px] text-[var(--text-muted)]">
+          No one has signed up with your code yet.
+        </p>
+      ) : !shown.length ? (
+        <p className="p-8 text-center text-[13px] text-[var(--text-muted)]">No players match.</p>
+      ) : (
+        <ul className="divide-y divide-[var(--line)]">
+          {shown.map((p) => {
+            const t = p.transactions ?? { total: 0, succeeded: 0, failed: 0, pending: 0, last: null };
+            return (
+              <li key={p.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                <div className="min-w-0">
+                  <p className="text-[13px] font-semibold">{p.name}</p>
+                  <p className="text-[11px] text-[var(--text-faint)]">{p.phone}</p>
+                  <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">
+                    {t.total === 0 ? (
+                      "No deposit attempts"
+                    ) : (
+                      <>
+                        Transactions {t.total}
+                        {t.succeeded > 0 && <span className="text-[var(--win)]"> · {t.succeeded} paid</span>}
+                        {t.failed > 0 && <span className="text-[var(--lose)]"> · {t.failed} failed</span>}
+                        {t.pending > 0 && <span> · {t.pending} not finished</span>}
+                        {t.last && <> · last {new Date(t.last).toLocaleDateString()}</>}
+                      </>
+                    )}
+                  </p>
+                </div>
+                <div className="flex shrink-0 flex-col items-end gap-1">
+                  <p className="text-[13px] font-black text-[var(--text-bright)]">
+                    {p.currency} {Number(p.total_deposited).toFixed(2)}
+                  </p>
+                  <a
+                    href={`tel:+${p.phone.replace(/\D/g, "")}`}
+                    className="rounded px-2.5 py-1 text-[11px] font-bold"
+                    style={
+                      isStruggling(p)
+                        ? { background: "var(--accent)", color: "var(--accent-ink)" }
+                        : { background: "var(--surface-2)", color: "var(--text)" }
+                    }
+                  >
+                    Call
+                  </a>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
   );
 }
 

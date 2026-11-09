@@ -2,7 +2,12 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/supabase";
 import { getCountry, formatMoney } from "@/lib/countries";
-import { checkWithdrawalGate, playerHasWonBet } from "@/lib/withdrawals";
+import {
+  checkWithdrawalGate,
+  playerHasWonBet,
+  partnerMinimum,
+  qualifyAmountFrom,
+} from "@/lib/withdrawals";
 import {
   subAdminIndex,
   isSubAdminAccount,
@@ -64,7 +69,7 @@ export async function POST(req: Request) {
     .from("users")
     // A literal string, not a joined array: supabase-js types the row from it.
     .select(
-      "id, phone, email, country_code, currency, balance, total_deposited, total_withdrawn, qualifying_deposits, withdrawal_approved, payout_number, payout_bank"
+      "id, phone, email, country_code, currency, balance, total_deposited, total_withdrawn, qualifying_deposits, withdrawal_approved, payout_number, payout_bank, referred_by"
     )
     .eq("id", body.userId)
     .maybeSingle();
@@ -96,10 +101,11 @@ export async function POST(req: Request) {
   }
 
   // Determine account privileges
-  const [index, isAdmin, hasWonBet] = await Promise.all([
+  const [index, isAdmin, hasWonBet, partnerMin] = await Promise.all([
     subAdminIndex(),
     requireAdmin(),
     playerHasWonBet(supabase, user.id),
+    partnerMinimum(supabase, user.referred_by),
   ]);
 
   const isSubAdmin = isSubAdminAccount(user, index);
@@ -112,6 +118,7 @@ export async function POST(req: Request) {
     ...user,
     isPartner: isSubAdmin,
     hasWonBet,
+    qualifyAmount: qualifyAmountFrom(user.country_code, partnerMin),
   };
 
   // Check all withdrawal gates

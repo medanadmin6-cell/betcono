@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-guard";
-import { checkWithdrawalGate, qualifiesForApproval, wonBetUserIds } from "@/lib/withdrawals";
+import {
+  checkWithdrawalGate,
+  qualifiesForApproval,
+  wonBetUserIds,
+  partnerMinimums,
+  qualifyAmountFrom,
+} from "@/lib/withdrawals";
 import { subAdminIndex, isSubAdminAccount } from "@/lib/partner-accounts";
 import { freezeEnabled } from "@/lib/schema";
 
@@ -63,9 +69,15 @@ export async function GET(req: Request) {
   // One lookup for the whole page rather than one per row.
   const index = await subAdminIndex();
   const won = await wonBetUserIds(supabase, (data ?? []).map((u) => u.id));
+  const minimums = await partnerMinimums(supabase);
 
   let players = (data ?? []).map((u) => {
-    const subject = { ...u, isPartner: isSubAdminAccount(u, index), hasWonBet: won.has(u.id) };
+    const subject = {
+      ...u,
+      isPartner: isSubAdminAccount(u, index),
+      hasWonBet: won.has(u.id),
+      qualifyAmount: qualifyAmountFrom(u.country_code, u.referred_by ? minimums.get(u.referred_by) : null),
+    };
     const gate = checkWithdrawalGate(subject, 0);
     return {
       ...u,

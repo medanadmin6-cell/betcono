@@ -23,6 +23,38 @@ export async function GET() {
     // rest existed. They are all theirs; they all count toward commission.
     .limit(2000);
 
+  // Every deposit attempt by these players, so the partner can see who is
+  // trying and failing to pay and call them. Chunked: a long id list in one
+  // query would blow past the request URL limit.
+  const ids = (players ?? []).map((p) => p.id);
+  const tx = new Map<
+    string,
+    { total: number; succeeded: number; failed: number; pending: number; last: string | null }
+  >();
+  for (let i = 0; i < ids.length; i += 150) {
+    const { data: rows } = await supabase
+      .from("payments")
+      .select("user_id, status, created_at, metadata")
+      .in("user_id", ids.slice(i, i + 150))
+      .order("created_at", { ascending: false })
+      .limit(5000);
+    for (const r of rows ?? []) {
+      const meta = (r.metadata ?? {}) as { type?: string };
+      if (meta.type !== "deposit") continue;
+      const t = tx.get(r.user_id) ?? { total: 0, succeeded: 0, failed: 0, pending: 0, last: null };
+      t.total += 1;
+      if (r.status === "confirmed" || r.status === "resolved") t.succeeded += 1;
+      else if (r.status === "failed") t.failed += 1;
+      else t.pending += 1;
+      if (!t.last || r.created_at > t.last) t.last = r.created_at;
+      tx.set(r.user_id, t);
+    }
+  }
+  const playersWithTx = (players ?? []).map((p) => ({
+    ...p,
+    transactions: tx.get(p.id) ?? { total: 0, succeeded: 0, failed: 0, pending: 0, last: null },
+  }));
+
   const { data: commissions } = await supabase
     .from("commissions")
     .select("id, user_id, deposit_amount, currency, rate, amount, created_at")
@@ -67,7 +99,7 @@ export async function GET() {
 
   return NextResponse.json({
     partner: publicPartner(partner),
-    players: players ?? [],
+    players: playersWithTx,
     commissions: commissions ?? [],
     wallet,
     creditedToday: Math.round(creditedToday * 100) / 100,

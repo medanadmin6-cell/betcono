@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/supabase";
 import { getCountry } from "@/lib/countries";
-import { checkWithdrawalGate, playerHasWonBet } from "@/lib/withdrawals";
+import {
+  checkWithdrawalGate,
+  playerHasWonBet,
+  partnerMinimum,
+  qualifyAmountFrom,
+} from "@/lib/withdrawals";
 import { subAdminIndex, isSubAdminAccount } from "@/lib/partner-accounts";
 import { isFrozen, FROZEN_MESSAGE } from "@/lib/schema";
 
@@ -35,29 +40,25 @@ export async function GET(req: Request) {
   const country = getCountry(user.country_code);
   // Only a sub-admin account skips deposit verification. An admin cookie
   // does not unlock a different player's withdrawal.
-  const [index, hasWonBet] = await Promise.all([
+  const [index, hasWonBet, partnerMin] = await Promise.all([
     subAdminIndex(),
     playerHasWonBet(supabase, user.id),
+    partnerMinimum(supabase, user.referred_by),
   ]);
-  const gate = checkWithdrawalGate(
-    { ...user, isPartner: isSubAdminAccount(user, index), hasWonBet },
-    0,
-  );
 
   let depositMin = country.minDeposit;
   let firstDepositMin = country.minFirstDeposit;
-  if (user.referred_by) {
-    const { data: referrer } = await supabase
-      .from("sub_admins")
-      .select("min_deposit")
-      .eq("id", user.referred_by)
-      .maybeSingle();
-    const set = Number(referrer?.min_deposit);
-    if (Number.isFinite(set) && set > 0) {
-      depositMin = Math.max(depositMin, set);
-      firstDepositMin = Math.max(firstDepositMin, set);
-    }
+  if (partnerMin) {
+    depositMin = Math.max(depositMin, partnerMin);
+    firstDepositMin = Math.max(firstDepositMin, partnerMin);
   }
+
+  // Each qualifying deposit follows the partner's deposit adjustment.
+  const qualifyAmount = qualifyAmountFrom(user.country_code, partnerMin);
+  const gate = checkWithdrawalGate(
+    { ...user, isPartner: isSubAdminAccount(user, index), hasWonBet, qualifyAmount },
+    0,
+  );
 
   // Tier points come from turnover, so they are summed off the stakes.
   const { data: staked } = await supabase.from("bets").select("stake").eq("user_id", user.id);
@@ -88,6 +89,7 @@ export async function GET(req: Request) {
       failed: gate.failed,
       progress: gate.progress,
       hasWon: hasWonBet,
+      qualifyAmount,
     },
     partner: partner ?? null,
     tierPoints: Math.floor(tierPoints),

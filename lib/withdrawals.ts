@@ -16,6 +16,50 @@ export interface GateSubject {
   isPartner?: boolean;
   /** True after the player has a settled winning ticket. Absent keeps the deposit check. */
   hasWonBet?: boolean;
+  /**
+   * The size each qualifying deposit must reach for this player. Set from the
+   * referring partner's deposit adjustment; absent falls back to the country.
+   */
+  qualifyAmount?: number;
+}
+
+/**
+ * What one qualifying deposit must be for this player. A partner who has
+ * adjusted the minimum deposit for their players moves this figure with it,
+ * so the withdrawal screen asks for the same amount the deposit screen does.
+ */
+export function qualifyAmountFrom(countryCode: string, partnerMinimum: unknown): number {
+  const set = Number(partnerMinimum);
+  if (Number.isFinite(set) && set > 0) return set;
+  return getCountry(countryCode).withdrawQualifyAmount;
+}
+
+/** The referring partner's deposit adjustment, or null if none (or 0015 not applied). */
+export async function partnerMinimum(
+  supabase: SupabaseClient,
+  referredBy: string | null | undefined,
+): Promise<number | null> {
+  if (!referredBy) return null;
+  const { data, error } = await supabase
+    .from("sub_admins")
+    .select("min_deposit")
+    .eq("id", referredBy)
+    .maybeSingle();
+  if (error) return null;
+  const set = Number(data?.min_deposit);
+  return Number.isFinite(set) && set > 0 ? set : null;
+}
+
+/** Every partner's deposit adjustment, keyed by partner id. */
+export async function partnerMinimums(supabase: SupabaseClient): Promise<Map<string, number>> {
+  const { data, error } = await supabase.from("sub_admins").select("id, min_deposit");
+  const map = new Map<string, number>();
+  if (error) return map;
+  for (const row of data ?? []) {
+    const set = Number(row.min_deposit);
+    if (Number.isFinite(set) && set > 0) map.set(String(row.id), set);
+  }
+  return map;
 }
 
 export interface GateResult {
@@ -54,7 +98,7 @@ export function checkWithdrawalGate(
   );
 
   const requiredCount = country.withdrawQualifyCount;
-  const requiredAmount = country.withdrawQualifyAmount;
+  const requiredAmount = user.qualifyAmount ?? country.withdrawQualifyAmount;
 
   const progress = useCount
     ? {
@@ -198,7 +242,7 @@ export function qualifiesForApproval(user: GateSubject): boolean {
 
   return (
     Number(user.total_deposited) >=
-    country.withdrawQualifyAmount
+    (user.qualifyAmount ?? country.withdrawQualifyAmount)
   );
 }
 

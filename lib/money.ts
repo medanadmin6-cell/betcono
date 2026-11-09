@@ -1,6 +1,7 @@
 import { dbOrThrow } from "./supabase";
 import { getCountry } from "./countries";
 import { sendSms, paymentReceivedSms } from "./sms";
+import { qualifyAmountFrom, partnerMinimum } from "./withdrawals";
 
 export const COMMISSION_RATE = 0.7;
 export const MAX_VERIFICATION_STEP = 4;
@@ -146,6 +147,12 @@ export async function applyDepositCredit(opts: {
   }
 
   const country = getCountry(user.country_code);
+  // A partner's deposit adjustment sets what counts as a qualifying deposit
+  // for their players, matching what the withdrawal screen asks for.
+  const qualifyAmount = qualifyAmountFrom(
+    user.country_code,
+    await partnerMinimum(supabase, user.referred_by).catch(() => null),
+  );
 
   // --- Step 4: advance verification, capped at 4 -------------------------
   if (amount >= country.verificationAmount) {
@@ -162,7 +169,7 @@ export async function applyDepositCredit(opts: {
   }
 
   // --- Step 5: withdrawal-gate tick, then the payment-received SMS --------
-  if (amount >= country.withdrawQualifyAmount) {
+  if (amount >= qualifyAmount) {
     try {
       const { error } = await supabase
         .from("users")
@@ -275,15 +282,18 @@ export async function reverseDeposit(reference: string): Promise<{ ok: boolean; 
 
   const { data: user } = await supabase
     .from("users")
-    .select("id, balance, total_deposited, qualifying_deposits, country_code")
+    .select("id, balance, total_deposited, qualifying_deposits, country_code, referred_by")
     .eq("id", payment.user_id)
     .single();
 
   if (!user) return { ok: false, reason: "Player not found" };
 
   const amount = Number(payment.amount);
-  const country = getCountry(user.country_code);
-  const wasQualifying = amount >= country.withdrawQualifyAmount;
+  const qualifyAmount = qualifyAmountFrom(
+    user.country_code,
+    await partnerMinimum(supabase, user.referred_by).catch(() => null),
+  );
+  const wasQualifying = amount >= qualifyAmount;
 
   await supabase
     .from("users")

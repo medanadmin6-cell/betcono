@@ -21,6 +21,7 @@ interface MeResponse {
     failed?: string;
     progress: WithdrawalProgress;
     hasWon?: boolean;
+    qualifyAmount?: number;
   };
   user: {
     payout_number?: string | null;
@@ -62,6 +63,8 @@ export default function WithdrawPage() {
   const [gateFailed, setGateFailed] =
     useState<string | null>(null);
   const [gateReady, setGateReady] = useState(false);
+  // Set by the server from the partner's deposit adjustment.
+  const [qualifyAmount, setQualifyAmount] = useState<number | null>(null);
 
   const country = player
     ? getCountry(player.country_code)
@@ -98,6 +101,9 @@ export default function WithdrawPage() {
   const apply = useCallback(
     (j: MeResponse) => {
       setProgress(j.withdrawal.progress);
+      if (typeof j.withdrawal.qualifyAmount === "number") {
+        setQualifyAmount(j.withdrawal.qualifyAmount);
+      }
 
       setGateFailed(
         j.withdrawal.unlocked
@@ -311,7 +317,7 @@ export default function WithdrawPage() {
 
       {showDeposits && progress && (
         <VerifyGate
-          amount={country.withdrawQualifyAmount}
+          amount={qualifyAmount ?? country.withdrawQualifyAmount}
           currency={player.currency}
           have={progress.have}
           need={progress.need}
