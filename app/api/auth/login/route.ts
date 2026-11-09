@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/supabase";
 import { normalisePhone, allCountries } from "@/lib/countries";
+import { isFrozen, FROZEN_MESSAGE } from "@/lib/schema";
 
 /** Login accepts either the email or the phone number. */
 export async function POST(req: Request) {
@@ -57,6 +58,11 @@ export async function POST(req: Request) {
 
   const ok = await bcrypt.compare(password, user.password_hash);
   if (!ok) return rejection;
+
+  // Checked only after the password, so a wrong guess cannot learn the state.
+  if (await isFrozen(user.id)) {
+    return NextResponse.json({ error: FROZEN_MESSAGE, frozen: true }, { status: 403 });
+  }
 
   const { password_hash: _hash, ...safe } = user;
   void _hash;

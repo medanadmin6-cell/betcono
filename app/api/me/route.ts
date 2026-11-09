@@ -3,6 +3,7 @@ import { db } from "@/lib/supabase";
 import { getCountry } from "@/lib/countries";
 import { checkWithdrawalGate, playerHasWonBet } from "@/lib/withdrawals";
 import { subAdminIndex, isSubAdminAccount } from "@/lib/partner-accounts";
+import { isFrozen, FROZEN_MESSAGE } from "@/lib/schema";
 
 /**
  * The signed-in player's own record.
@@ -27,6 +28,9 @@ export async function GET(req: Request) {
     .maybeSingle();
 
   if (error || !user) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (await isFrozen(user.id)) {
+    return NextResponse.json({ error: FROZEN_MESSAGE, frozen: true }, { status: 403 });
+  }
 
   const country = getCountry(user.country_code);
   // Only a sub-admin account skips deposit verification. An admin cookie

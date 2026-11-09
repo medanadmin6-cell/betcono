@@ -4,6 +4,7 @@ import { ticketCode, bookingCode } from "@/lib/codes";
 import { getMatchDetail } from "@/lib/fixtures";
 import { bonusAmount, combinations, systemSizes } from "@/lib/bonus";
 import { resolveSelection } from "@/lib/resolve";
+import { isFrozen, FROZEN_MESSAGE } from "@/lib/schema";
 
 interface IncomingLeg {
   matchId: string;
@@ -223,6 +224,9 @@ export async function POST(req: Request) {
     .maybeSingle();
 
   if (!user) return NextResponse.json({ error: "Sign in to place a bet" }, { status: 401 });
+  if (await isFrozen(user.id)) {
+    return NextResponse.json({ error: FROZEN_MESSAGE, frozen: true }, { status: 403 });
+  }
 
   const balance = Number(user.balance);
   if (balance < totalCost) {

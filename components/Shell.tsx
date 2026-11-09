@@ -76,14 +76,25 @@ function HeaderActions({ onOpenAccount }: { onOpenAccount: () => void }) {
   const player = useSession((s) => s.player);
   const hydrated = useSession((s) => s.hydrated);
   const setBalance = useSession((s) => s.setBalance);
+  const signOut = useSession((s) => s.signOut);
+  const router = useRouter();
 
   // Keep the header balance honest without the player having to reload.
+  // This also ends the session of a player the operator has frozen.
   useEffect(() => {
     if (!player) return;
     let alive = true;
     const tick = async () => {
       try {
         const res = await fetch(`/api/me?userId=${player.id}`);
+        if (res.status === 403) {
+          const json = await res.json().catch(() => null);
+          if (alive && json?.frozen) {
+            signOut();
+            router.replace("/login?frozen=1");
+          }
+          return;
+        }
         if (!res.ok) return;
         const json = await res.json();
         if (alive && json.user) setBalance(Number(json.user.balance));
@@ -97,7 +108,7 @@ function HeaderActions({ onOpenAccount }: { onOpenAccount: () => void }) {
       alive = false;
       clearInterval(timer);
     };
-  }, [player?.id, setBalance, player]);
+  }, [player?.id, setBalance, signOut, router, player]);
 
   if (!hydrated) return <div className="h-8 w-36 rounded bg-white/10" />;
 

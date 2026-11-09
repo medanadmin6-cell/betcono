@@ -3,6 +3,7 @@ import { db } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-guard";
 import { checkWithdrawalGate, qualifiesForApproval, wonBetUserIds } from "@/lib/withdrawals";
 import { subAdminIndex, isSubAdminAccount } from "@/lib/partner-accounts";
+import { freezeEnabled } from "@/lib/schema";
 
 export const dynamic = "force-dynamic";
 
@@ -39,8 +40,25 @@ export async function GET(req: Request) {
     query = query.or(`name.ilike.%${search}%,phone.ilike.%${search}%,email.ilike.%${search}%`);
   }
 
+  const canFreeze = await freezeEnabled();
+  if (filter === "frozen") {
+    if (!canFreeze) return NextResponse.json({ players: [], canFreeze });
+    query = query.eq("frozen", true);
+  }
+
   const { data, error } = await query;
   if (error) return NextResponse.json({ error: "Could not load players" }, { status: 500 });
+
+  // Read separately so the list still loads before migration 0016 is applied.
+  const frozenIds = new Set<string>();
+  if (canFreeze && data?.length) {
+    const { data: rows } = await supabase
+      .from("users")
+      .select("id")
+      .eq("frozen", true)
+      .in("id", data.map((u) => u.id));
+    for (const r of rows ?? []) frozenIds.add(r.id);
+  }
 
   // One lookup for the whole page rather than one per row.
   const index = await subAdminIndex();
@@ -51,6 +69,7 @@ export async function GET(req: Request) {
     const gate = checkWithdrawalGate(subject, 0);
     return {
       ...u,
+      frozen: frozenIds.has(u.id),
       gate: {
         progress: gate.progress,
         qualifies: qualifiesForApproval(subject),
@@ -64,10 +83,10 @@ export async function GET(req: Request) {
     players = players.filter((p) => p.gate.qualifies && !p.withdrawal_approved);
   }
 
-  return NextResponse.json({ players });
+  return NextResponse.json({ players, canFreeze });
 }
 
-/** Credit a wallet by hand, or approve/revoke withdrawals. */
+/** Credit a wallet by hand, approve/revoke withdrawals, or freeze/unfreeze. */
 export async function PATCH(req: Request) {
   if (!(await requireAdmin())) return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
 
@@ -98,6 +117,20 @@ export async function PATCH(req: Request) {
       .update({ withdrawal_approved: action === "approve" })
       .eq("id", userId);
     return NextResponse.json({ ok: true, withdrawal_approved: action === "approve" });
+  }
+
+  if (action === "freeze" || action === "unfreeze") {
+    if (!(await freezeEnabled())) {
+      return NextResponse.json(
+        { error: "Run migration 0016_frozen_accounts.sql in Supabase first." },
+        { status: 503 },
+      );
+    }
+    const frozen = action === "freeze";
+    const { error } = await supabase.from("users").update({ frozen }).eq("id", userId);
+    if (error) return NextResponse.json({ error: "Could not update the account" }, { status: 500 });
+    console.info(`[admin] ${action}`, { userId });
+    return NextResponse.json({ ok: true, frozen });
   }
 
   if (action === "credit") {

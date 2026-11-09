@@ -91,7 +91,16 @@ export async function PATCH(req: Request) {
 
   if (body.min_deposit !== undefined) {
     const amount = Number(body.min_deposit);
-    const country = getCountry(String(body.countryCode ?? "GH"));
+    let countryCode = "GH";
+    if (partner.user_id) {
+      const { data: wallet } = await supabase
+        .from("users")
+        .select("country_code")
+        .eq("id", partner.user_id)
+        .maybeSingle();
+      if (wallet?.country_code) countryCode = wallet.country_code;
+    }
+    const country = getCountry(countryCode);
     if (!Number.isFinite(amount) || amount < country.minDeposit || amount > country.maxDeposit) {
       return NextResponse.json(
         {

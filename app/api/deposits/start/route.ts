@@ -3,6 +3,7 @@ import { db } from "@/lib/supabase";
 import { getCountry } from "@/lib/countries";
 import { adapterFor } from "@/lib/gateways";
 import { paymentReference } from "@/lib/codes";
+import { isFrozen, FROZEN_MESSAGE } from "@/lib/schema";
 
 /**
  * Start a deposit on the player's country gateway.
@@ -35,6 +36,9 @@ export async function POST(req: Request) {
     .maybeSingle();
 
   if (!user) return NextResponse.json({ error: "Sign in first" }, { status: 401 });
+  if (await isFrozen(user.id)) {
+    return NextResponse.json({ error: FROZEN_MESSAGE, frozen: true }, { status: 403 });
+  }
 
   const country = getCountry(user.country_code);
   const adapter = country.gateway ? adapterFor(country.gateway) : undefined;

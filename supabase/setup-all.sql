@@ -283,3 +283,9 @@ update custom_matches set league = 'Stakeza Special' where league = 'Betlixx Spe
 alter table custom_matches alter column league set default 'BetCono Special';
 
 update custom_matches set league = 'BetCono Special' where league = 'Stakeza Special';
+
+
+-- ============ 0016_frozen_accounts.sql ============
+-- The operator can freeze a player. A frozen account cannot log in, bet,
+-- cash out, deposit or withdraw until it is unfrozen. The balance is kept.
+alter table users add column if not exists frozen boolean not null default false;

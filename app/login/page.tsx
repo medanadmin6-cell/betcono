@@ -15,14 +15,17 @@ import {
 
 function LoginForm() {
   const router = useRouter();
-  const next = useSearchParams().get("next") ?? "/";
+  const params = useSearchParams();
+  const next = params.get("next") ?? "/";
   const signIn = useSession((s) => s.signIn);
 
   const [countryCode, setCountryCode] = useState("GH");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    params.get("frozen") ? "This account is frozen. Contact support." : null,
+  );
 
   const country = getCountry(countryCode);
 

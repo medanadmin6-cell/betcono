@@ -36,6 +36,25 @@ export async function hasColumn(table: string, column: string): Promise<boolean>
   return present;
 }
 
+/** Freezing needs users.frozen from migration 0016. */
+export async function freezeEnabled(): Promise<boolean> {
+  return hasColumn("users", "frozen");
+}
+
+export const FROZEN_MESSAGE = "This account is frozen. Contact support.";
+
+/**
+ * Whether the operator has frozen this player. Before migration 0016 is
+ * applied nobody can be frozen, so this answers false rather than failing.
+ */
+export async function isFrozen(userId: string): Promise<boolean> {
+  if (!userId || !(await freezeEnabled())) return false;
+  const supabase = db();
+  if (!supabase) return false;
+  const { data } = await supabase.from("users").select("frozen").eq("id", userId).maybeSingle();
+  return Boolean(data?.frozen);
+}
+
 /** Cashout needs two columns from migration 0011. */
 export async function cashoutEnabled(): Promise<boolean> {
   const [amount, at] = await Promise.all([

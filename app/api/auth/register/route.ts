@@ -3,6 +3,36 @@ import bcrypt from "bcryptjs";
 import { db } from "@/lib/supabase";
 import { getCountry, normalisePhone, validateKyc } from "@/lib/countries";
 
+type Db = NonNullable<ReturnType<typeof db>>;
+
+/** An approved partner's code is the only way an account can be opened. */
+async function approvedPartner(supabase: Db, code: string) {
+  const { data: partner } = await supabase
+    .from("sub_admins")
+    .select("id, approved")
+    .eq("referral_code", code)
+    .maybeSingle();
+  if (!partner?.approved) return null;
+  return partner;
+}
+
+/** Lets the sign-up screen check a code before it shows the account form. */
+export async function GET(req: Request) {
+  const supabase = db();
+  if (!supabase) return NextResponse.json({ error: "Service unavailable" }, { status: 503 });
+
+  const code = new URL(req.url).searchParams.get("code")?.trim().toUpperCase() ?? "";
+  if (!code) {
+    return NextResponse.json({ error: "Enter your referral code" }, { status: 400 });
+  }
+
+  const partner = await approvedPartner(supabase, code);
+  if (!partner) {
+    return NextResponse.json({ error: "That referral code is not valid" }, { status: 400 });
+  }
+  return NextResponse.json({ ok: true });
+}
+
 /**
  * Registration. The country decides everything downstream — wallet currency,
  * minimum deposit, the KYC value demanded, the gateway and the payout rail —
@@ -20,6 +50,12 @@ export async function POST(req: Request) {
   }
 
   const { name, phone, email, password, countryCode, kycValue, referralCode } = body;
+
+  // Sign-up is invite-only: every player must arrive through a partner's code.
+  const code = referralCode?.trim().toUpperCase() ?? "";
+  if (!code) {
+    return NextResponse.json({ error: "A referral code is required to sign up" }, { status: 400 });
+  }
 
   if (!name?.trim()) return NextResponse.json({ error: "Enter your name" }, { status: 400 });
   if (!password || password.length < 6) {
@@ -51,16 +87,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "That phone number already has an account" }, { status: 409 });
   }
 
-  // A referral code attributes the player to a partner permanently.
-  let referredBy: string | null = null;
-  if (referralCode?.trim()) {
-    const { data: partner } = await supabase
-      .from("sub_admins")
-      .select("id")
-      .eq("referral_code", referralCode.trim().toUpperCase())
-      .maybeSingle();
-    if (partner) referredBy = partner.id;
+  // The referral code attributes the player to a partner permanently. Only an
+  // approved partner's code opens an account; anything else is refused.
+  const partner = await approvedPartner(supabase, code);
+  if (!partner) {
+    return NextResponse.json({ error: "That referral code is not valid" }, { status: 400 });
   }
+  const referredBy: string = partner.id;
 
   const passwordHash = await bcrypt.hash(password, 10);
 

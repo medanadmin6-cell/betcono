@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useSession } from "@/lib/store";
@@ -25,19 +25,53 @@ function RegisterForm() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [kycValue, setKycValue] = useState("");
-  const [referralCode, setReferralCode] = useState(refFromUrl);
-  const [showReferral, setShowReferral] = useState(Boolean(refFromUrl));
+  const [referralCode, setReferralCode] = useState("");
+  const [codeInput, setCodeInput] = useState(refFromUrl.toUpperCase());
+  const [checking, setChecking] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const country = getCountry(countryCode);
 
+  const acceptCode = async (raw: string) => {
+    const code = raw.trim().toUpperCase();
+    if (!code) {
+      setReferralCode("");
+      setError("Enter your referral code");
+      return;
+    }
+    setChecking(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/auth/register?code=${encodeURIComponent(code)}`);
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setReferralCode("");
+        setError(json.error ?? "That referral code is not valid");
+        return;
+      }
+      setReferralCode(code);
+      setCodeInput(code);
+    } catch {
+      setError("Network problem. Try again.");
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  useEffect(() => {
+    if (refFromUrl.trim()) void acceptCode(refFromUrl);
+    // The link is checked once, when the page opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return setError("Enter your name");
     if (!phone.trim()) return setError("Enter your mobile number");
     if (!password) return setError("Choose a password");
+    if (!referralCode.trim()) return setError("Enter your referral code");
     if (!agreed) return setError("Accept the terms to continue");
 
     setBusy(true);
@@ -67,7 +101,11 @@ function RegisterForm() {
   return (
     <AuthLayout
       title="Create an account"
-      subtitle="It takes a minute. You can deposit later."
+      subtitle={
+        referralCode
+          ? "It takes a minute. You can deposit later."
+          : "Registration is by referral code only."
+      }
       onClose={() => router.push("/")}
       footer={
         <p className="text-center text-[13px] text-[var(--text-muted)]">
@@ -78,7 +116,52 @@ function RegisterForm() {
         </p>
       }
     >
+      {!referralCode ? (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void acceptCode(codeInput);
+          }}
+          className="space-y-4"
+        >
+          <ShellInput
+            id="reg-ref"
+            label="Referral code"
+            value={codeInput}
+            onChange={(v) => setCodeInput(v.toUpperCase())}
+            placeholder="Ask the partner who invited you"
+            autoFocus
+            required
+          />
+          <p className="text-[12px] leading-relaxed text-[var(--text-muted)]">
+            An account can only be opened with a partner&apos;s referral code.
+          </p>
+          {error && (
+            <p className="rounded bg-[var(--lose-bg)] px-3 py-2.5 text-[13px] text-[var(--lose)]">
+              {error}
+            </p>
+          )}
+          <PrimaryButton type="submit" disabled={checking}>
+            {checking ? "Checking…" : "Continue"}
+          </PrimaryButton>
+        </form>
+      ) : (
       <form onSubmit={submit} className="space-y-4">
+        <div className="flex items-center justify-between gap-3 rounded-[5px] bg-[var(--surface)] px-3 py-2.5">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--text-muted)]">
+              Referral code
+            </p>
+            <p className="text-[15px] font-black tracking-wide text-[var(--text-bright)]">{referralCode}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setReferralCode("")}
+            className="text-[12px] font-bold text-[var(--accent)]"
+          >
+            Change
+          </button>
+        </div>
         <CountryBar country={country} onChange={setCountryCode} />
         <PhoneField country={country} value={phone} onChange={setPhone} autoFocus />
 
@@ -107,23 +190,6 @@ function RegisterForm() {
           />
         )}
 
-        {showReferral ? (
-          <ShellInput
-            id="reg-ref"
-            label="Referral code"
-            value={referralCode}
-            onChange={(v) => setReferralCode(v.toUpperCase())}
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={() => setShowReferral(true)}
-            className="text-[12px] font-bold text-[var(--accent)]"
-          >
-            Have a referral code?
-          </button>
-        )}
-
         <Check
           checked={agreed}
           onChange={setAgreed}
@@ -147,6 +213,7 @@ function RegisterForm() {
           {busy ? "Creating…" : "Create account"}
         </PrimaryButton>
       </form>
+      )}
     </AuthLayout>
   );
 }
@@ -159,6 +226,8 @@ function ShellInput({
   onChange,
   placeholder,
   autoComplete,
+  autoFocus,
+  required,
 }: {
   id: string;
   label: string;
@@ -166,6 +235,8 @@ function ShellInput({
   onChange: (v: string) => void;
   placeholder?: string;
   autoComplete?: string;
+  autoFocus?: boolean;
+  required?: boolean;
 }) {
   return (
     <div>
@@ -176,6 +247,8 @@ function ShellInput({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         autoComplete={autoComplete}
+        autoFocus={autoFocus}
+        required={required}
         className="w-full rounded-[5px] border border-[var(--field-line)] bg-[var(--input)] px-3 py-2.5 text-[15px] text-[var(--input-ink)] outline-none placeholder:text-[var(--input-placeholder)] focus:border-[var(--accent)]"
       />
     </div>

@@ -15,6 +15,7 @@ interface Player {
   verification_step: number;
   withdrawal_approved: boolean;
   payout_number: string | null;
+  frozen: boolean;
   gate: { progress: { have: number; need: number; label: string }; qualifies: boolean; unlocked: boolean };
 }
 
@@ -24,15 +25,31 @@ const FILTERS = [
   { key: "awaiting", label: "Awaiting approval" },
   { key: "approved", label: "Approved" },
   { key: "unverified", label: "Unverified" },
+  { key: "frozen", label: "Frozen" },
 ];
 
 export default function PlayersPage() {
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const query = `/api/admin/players?filter=${filter}${search ? `&q=${encodeURIComponent(search)}` : ""}`;
-  const { data, error, reload, busy } = useAdminData<{ players: Player[] }>(query);
+  const { data, error, reload, busy } = useAdminData<{ players: Player[]; canFreeze?: boolean }>(query);
   const [note, setNote] = useState<string | null>(null);
-  const { ask, dialog } = useDialog();
+  const { ask, confirm, dialog } = useDialog();
+
+  const toggleFreeze = async (player: Player) => {
+    const freezing = !player.frozen;
+    const ok = await confirm({
+      title: freezing ? `Freeze ${player.name}?` : `Unfreeze ${player.name}?`,
+      description: freezing
+        ? "They are signed out and cannot log in, bet, cash out, deposit or withdraw until you unfreeze them. " +
+          "Their balance and open bets are kept, and open bets still settle."
+        : "They can log in and use their account again straight away.",
+      confirmLabel: freezing ? "Freeze" : "Unfreeze",
+      tone: freezing ? "danger" : "accent",
+    });
+    if (!ok) return;
+    await act(player.id, freezing ? "freeze" : "unfreeze");
+  };
 
   const act = async (userId: string, action: string, amount?: number) => {
     const res = await adminAction("/api/admin/players", "PATCH", { userId, action, amount });
@@ -97,7 +114,10 @@ export default function PlayersPage() {
             {(data?.players ?? []).map((p) => (
               <tr key={p.id}>
                 <td className="px-3 py-2">
-                  <p className="font-semibold">{p.name}</p>
+                  <p className="flex items-center gap-1.5 font-semibold">
+                    {p.name}
+                    {p.frozen && <Badge tone="lose">Frozen</Badge>}
+                  </p>
                   <p className="text-[11px] text-[var(--text-faint)]">
                     {p.phone} · {p.country_code}
                   </p>
@@ -139,6 +159,11 @@ export default function PlayersPage() {
                       // the decision is the operator's either way.
                       <Button tone="accent" onClick={() => act(p.id, "approve")}>
                         Approve
+                      </Button>
+                    )}
+                    {data?.canFreeze !== false && (
+                      <Button tone={p.frozen ? "accent" : "danger"} onClick={() => toggleFreeze(p)}>
+                        {p.frozen ? "Unfreeze" : "Freeze"}
                       </Button>
                     )}
                   </div>

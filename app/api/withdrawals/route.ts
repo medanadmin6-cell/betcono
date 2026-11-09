@@ -8,6 +8,7 @@ import {
   isSubAdminAccount,
 } from "@/lib/partner-accounts";
 import { paymentReference } from "@/lib/codes";
+import { isFrozen, FROZEN_MESSAGE } from "@/lib/schema";
 import {
   sendSms,
   withdrawalRequestedSms,
@@ -73,6 +74,10 @@ export async function POST(req: Request) {
       { error: "Sign in first" },
       { status: 401 }
     );
+  }
+
+  if (await isFrozen(user.id)) {
+    return NextResponse.json({ error: FROZEN_MESSAGE, frozen: true }, { status: 403 });
   }
 
   // Determine account privileges
