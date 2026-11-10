@@ -69,7 +69,7 @@ const BASE: Record<string, CountryConfig> = {
     withdrawQualifyAmount: 300,
 
     minWithdraw: 3000,
-    maxWithdraw: 7000,
+    maxWithdraw: 75000,
     maxWin: 500000,
 
     networks: [
