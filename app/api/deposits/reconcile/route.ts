@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/supabase";
-import { adapterFor, settledAmount } from "@/lib/gateways";
-import { applyDepositCredit } from "@/lib/money";
-import { GATEWAYS, type Gateway } from "@/lib/countries";
+import { reconcilePendingDeposits } from "@/lib/reconcile";
 
 export const dynamic = "force-dynamic";
 
@@ -26,43 +24,10 @@ export async function POST(req: Request) {
 
   if (!body.userId) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
-  // Only look back a day: anything older is the operator's problem, not a
-  // dropped redirect.
-  const since = new Date(Date.now() - 86_400_000).toISOString();
-
-  const { data: pending } = await supabase
-    .from("payments")
-    .select("reference, user_id, amount, currency, provider, metadata")
-    .eq("user_id", body.userId)
-    .eq("status", "pending")
-    .gte("created_at", since)
-    .limit(20);
-
-  if (!pending?.length) return NextResponse.json({ credited: 0 });
-
-  let credited = 0;
-
-  for (const payment of pending) {
-    const meta = (payment.metadata ?? {}) as Record<string, unknown> & { type?: string };
-    if (meta.type !== "deposit") continue;
-    const adapter = (GATEWAYS as string[]).includes(payment.provider)
-      ? adapterFor(payment.provider as Gateway)
-      : undefined;
-    if (!adapter) continue;
-
-    const outcome = await adapter.status(payment.reference, meta);
-    if (outcome.status !== "confirmed") continue;
-
-    const result = await applyDepositCredit({
-      userId: payment.user_id,
-      amount: settledAmount(outcome, Number(payment.amount), payment.currency),
-      currency: payment.currency,
-      reference: payment.reference,
-      provider: payment.provider,
-    });
-
-    if (result.credited) credited++;
-  }
-
+  const { credited } = await reconcilePendingDeposits(supabase, {
+    userIds: [body.userId],
+    sinceHours: 24,
+    max: 20,
+  });
   return NextResponse.json({ credited });
 }

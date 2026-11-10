@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-guard";
+import { reconcilePendingDeposits } from "@/lib/reconcile";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +10,9 @@ export async function GET(req: Request) {
   if (!(await requireAdmin())) return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
   const supabase = db();
   if (!supabase) return NextResponse.json({ error: "Service unavailable" }, { status: 503 });
+
+  // Close out paid-but-pending and failed-but-pending deposits before listing.
+  await reconcilePendingDeposits(supabase).catch((err) => console.error("[admin] reconcile failed", err));
 
   const url = new URL(req.url);
   const type = url.searchParams.get("type");

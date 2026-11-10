@@ -3,6 +3,7 @@ import { db } from "@/lib/supabase";
 import { currentPartner, publicPartner } from "@/lib/partner";
 import { formatMoney, getCountry } from "@/lib/countries";
 import { loadOverview } from "@/lib/overview";
+import { reconcilePendingDeposits } from "@/lib/reconcile";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,15 @@ export async function GET() {
   // trying and failing to pay and call them. Chunked: a long id list in one
   // query would blow past the request URL limit.
   const ids = (players ?? []).map((p) => p.id);
+
+  // Catch up deposits that were paid but never re-checked because the player
+  // did not come back, before anything below is counted.
+  if (ids.length) {
+    await reconcilePendingDeposits(supabase, { userIds: ids }).catch((err) =>
+      console.error("[partner] reconcile failed", partner.id, err),
+    );
+  }
+
   const tx = new Map<
     string,
     { total: number; succeeded: number; failed: number; pending: number; last: string | null }
@@ -60,7 +70,8 @@ export async function GET() {
     .select("id, user_id, deposit_amount, currency, rate, amount, created_at")
     .eq("sub_admin_id", partner.id)
     .order("created_at", { ascending: false })
-    .limit(200);
+    // Was 200, which hid older deposits from the history.
+    .limit(1000);
 
   // The partner's own betting wallet, when they have opened one.
   let wallet = null;
