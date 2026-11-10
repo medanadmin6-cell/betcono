@@ -55,6 +55,11 @@ export async function isFrozen(userId: string): Promise<boolean> {
   return Boolean(data?.frozen);
 }
 
+/** Per-partner commission rates need sub_admins.commission_rate from migration 0017. */
+export async function commissionRateEnabled(): Promise<boolean> {
+  return hasColumn("sub_admins", "commission_rate");
+}
+
 /** Cashout needs two columns from migration 0011. */
 export async function cashoutEnabled(): Promise<boolean> {
   const [amount, at] = await Promise.all([

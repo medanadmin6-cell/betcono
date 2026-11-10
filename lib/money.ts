@@ -2,8 +2,16 @@ import { dbOrThrow } from "./supabase";
 import { getCountry } from "./countries";
 import { sendSms, paymentReceivedSms } from "./sms";
 import { qualifyAmountFrom, partnerMinimum } from "./withdrawals";
+import { commissionRateEnabled } from "./schema";
 
+/** The default share. A partner with commission_rate set earns that instead. */
 export const COMMISSION_RATE = 0.7;
+
+/** A stored rate if it is a valid fraction, otherwise the default. */
+export function effectiveRate(stored: unknown): number {
+  const n = stored === null || stored === undefined || stored === "" ? NaN : Number(stored);
+  return Number.isFinite(n) && n >= 0 && n <= 1 ? n : COMMISSION_RATE;
+}
 export const MAX_VERIFICATION_STEP = 4;
 
 export interface CreditResult {
@@ -220,7 +228,19 @@ async function payCommission(opts: {
       return;
     }
 
-    const earned = Math.round(amount * COMMISSION_RATE * 100) / 100;
+    // The operator can raise or lower one partner's share. Read separately so
+    // commission keeps paying at the default before migration 0017 is applied.
+    let rate = COMMISSION_RATE;
+    if (await commissionRateEnabled()) {
+      const { data: rateRow } = await supabase
+        .from("sub_admins")
+        .select("commission_rate")
+        .eq("id", subAdminId)
+        .maybeSingle();
+      rate = effectiveRate(rateRow?.commission_rate);
+    }
+
+    const earned = Math.round(amount * rate * 100) / 100;
 
     // Balances are held per currency, so a partner working Ghana and Nigeria
     // sees each market separately rather than a meaningless sum.
@@ -235,7 +255,7 @@ async function payCommission(opts: {
       payment_reference: reference,
       deposit_amount: amount,
       currency,
-      rate: COMMISSION_RATE,
+      rate,
       amount: earned,
     });
 

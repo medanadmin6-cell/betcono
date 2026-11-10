@@ -299,7 +299,8 @@ export async function POST(req: Request) {
     requestedAt: requestedAt.toISOString(),
     statusCheckAt: statusCheckAt.toISOString(),
     processingMinutes: windowMinutes,
-    refundMinutes: withdrawRefundMinutes(),
+    // A sub-admin's withdrawal stays deducted and is never auto-refunded.
+    refundMinutes: isSubAdmin ? 0 : withdrawRefundMinutes(),
     notify: notifyStaff,
   });
 }

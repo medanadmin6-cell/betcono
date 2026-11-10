@@ -4,6 +4,8 @@ import { currentPartner, publicPartner } from "@/lib/partner";
 import { formatMoney, getCountry } from "@/lib/countries";
 import { loadOverview } from "@/lib/overview";
 import { reconcilePendingDeposits } from "@/lib/reconcile";
+import { commissionRateEnabled } from "@/lib/schema";
+import { COMMISSION_RATE, effectiveRate } from "@/lib/money";
 
 export const dynamic = "force-dynamic";
 
@@ -108,8 +110,19 @@ export async function GET() {
     .eq("id", partner.id)
     .maybeSingle();
 
+  let commissionRate = COMMISSION_RATE;
+  if (await commissionRateEnabled()) {
+    const { data: rateRow } = await supabase
+      .from("sub_admins")
+      .select("commission_rate")
+      .eq("id", partner.id)
+      .maybeSingle();
+    commissionRate = effectiveRate(rateRow?.commission_rate);
+  }
+
   return NextResponse.json({
     partner: publicPartner(partner),
+    commissionRate,
     players: playersWithTx,
     commissions: commissions ?? [],
     wallet,

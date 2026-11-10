@@ -58,6 +58,8 @@ interface Dashboard {
   depositFloor: number;
   depositCeiling: number;
   overview: OverviewStats | null;
+  /** This partner's share of each deposit, as a fraction. */
+  commissionRate?: number;
 }
 
 export default function PartnerPage() {
@@ -349,6 +351,13 @@ function PartnerDashboard({ data, onReload }: { data: Dashboard; onReload: () =>
             Copy
           </button>
         </div>
+        <p className="mt-3 text-[12px] text-white/70">
+          Your commission:{" "}
+          <strong className="text-[15px] text-[#9ff611]">
+            {Math.round((data.commissionRate ?? 0.7) * 10000) / 100}%
+          </strong>{" "}
+          of every deposit your players make.
+        </p>
       </section>
 
       <form

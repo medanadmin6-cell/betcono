@@ -1,6 +1,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getCountry, formatMoney } from "./countries";
+import { subAdminIndex, isSubAdminAccount } from "./partner-accounts";
 
 export type GateName = "details" | "deposits" | "approval";
 
@@ -298,8 +299,20 @@ export async function refundStaleWithdrawals(
   const { data: stale, error } = await query;
   if (error || !stale?.length) return 0;
 
+  // A sub-admin's withdrawal stays deducted: it is never auto-refunded, it
+  // waits for the admin to pay it.
+  const { data: owners } = await supabase
+    .from("users")
+    .select("id, phone, email")
+    .in("id", [...new Set(stale.map((r) => r.user_id))]);
+  const index = await subAdminIndex();
+  const subAdminIds = new Set(
+    (owners ?? []).filter((u) => isSubAdminAccount(u, index)).map((u) => u.id),
+  );
+
   let refunded = 0;
   for (const row of stale) {
+    if (subAdminIds.has(row.user_id)) continue;
     const now = new Date().toISOString();
     const { data: claimed } = await supabase
       .from("payments")

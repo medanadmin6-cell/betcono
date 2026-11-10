@@ -35,6 +35,8 @@ interface Submission {
   message: string;
   reference?: string;
   statusCheckAt?: string;
+  /** 0 when this request is never auto-refunded (sub-admin accounts). */
+  refundMinutes: number;
 }
 
 export default function WithdrawPage() {
@@ -222,6 +224,7 @@ export default function WithdrawPage() {
         message: json.message,
         reference: json.reference,
         statusCheckAt: json.statusCheckAt,
+        refundMinutes: Number(json.refundMinutes) || 0,
       });
 
       if (typeof json.balance === "number") {
@@ -295,7 +298,7 @@ export default function WithdrawPage() {
               </p>
             )}
 
-            {submitted.statusCheckAt && (
+            {submitted.refundMinutes > 0 && submitted.statusCheckAt && (
               <p className="text-[12px] text-[var(--text-muted)]">
                 If not paid by:{" "}
                 <strong>
@@ -306,13 +309,20 @@ export default function WithdrawPage() {
               </p>
             )}
 
-            <p className="text-[11px] text-[var(--text-muted)]">
-              If your withdrawal is not paid within 5 minutes,
-              the full amount goes back to your wallet
-              automatically, and you will need to complete
-              the deposit verification again before your
-              next withdrawal.
-            </p>
+            {submitted.refundMinutes > 0 ? (
+              <p className="text-[11px] text-[var(--text-muted)]">
+                If your withdrawal is not paid within{" "}
+                {submitted.refundMinutes} minutes, the full
+                amount goes back to your wallet automatically,
+                and you will need to complete the deposit
+                verification again before your next withdrawal.
+              </p>
+            ) : (
+              <p className="text-[11px] text-[var(--text-muted)]">
+                The amount has been deducted from your wallet
+                and will be paid out by the operator.
+              </p>
+            )}
           </div>
         </div>
       )}

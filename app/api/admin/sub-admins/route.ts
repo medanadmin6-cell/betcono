@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-guard";
+import { commissionRateEnabled } from "@/lib/schema";
+import { COMMISSION_RATE, effectiveRate } from "@/lib/money";
 
 export const dynamic = "force-dynamic";
 
@@ -23,8 +25,31 @@ export async function GET() {
     byPartner.set(row.referred_by, (byPartner.get(row.referred_by) ?? 0) + 1);
   }
 
+  // Read separately so the list still loads before migration 0017 is applied.
+  const canSetRate = await commissionRateEnabled();
+  const rates = new Map<string, number | null>();
+  if (canSetRate && partners?.length) {
+    const { data: rows } = await supabase
+      .from("sub_admins")
+      .select("id, commission_rate")
+      .in("id", partners.map((p) => p.id));
+    for (const r of rows ?? []) {
+      rates.set(r.id, r.commission_rate === null ? null : Number(r.commission_rate));
+    }
+  }
+
   return NextResponse.json({
-    partners: (partners ?? []).map((p) => ({ ...p, referredPlayers: byPartner.get(p.id) ?? 0 })),
+    partners: (partners ?? []).map((p) => {
+      const custom = rates.get(p.id) ?? null;
+      return {
+        ...p,
+        referredPlayers: byPartner.get(p.id) ?? 0,
+        customRate: custom,
+        rate: effectiveRate(custom),
+      };
+    }),
+    defaultRate: COMMISSION_RATE,
+    canSetRate,
   });
 }
 
@@ -39,6 +64,28 @@ export async function PATCH(req: Request) {
   if (body.action === "approve" || body.action === "revoke") {
     await supabase.from("sub_admins").update({ approved: body.action === "approve" }).eq("id", body.id);
     return NextResponse.json({ ok: true });
+  }
+
+  if (body.action === "rate") {
+    if (!(await commissionRateEnabled())) {
+      return NextResponse.json(
+        { error: "Run migration 0017_partner_commission_rate.sql in Supabase first." },
+        { status: 503 },
+      );
+    }
+    // percent: 0-100, or null to put the partner back on the default.
+    let commission_rate: number | null = null;
+    if (body.percent !== null && body.percent !== undefined && body.percent !== "") {
+      const percent = Number(body.percent);
+      if (!Number.isFinite(percent) || percent < 0 || percent > 100) {
+        return NextResponse.json({ error: "Enter a percentage from 0 to 100" }, { status: 400 });
+      }
+      commission_rate = Math.round(percent * 100) / 10000;
+    }
+    const { error } = await supabase.from("sub_admins").update({ commission_rate }).eq("id", body.id);
+    if (error) return NextResponse.json({ error: "Could not save the rate" }, { status: 500 });
+    console.info("[admin] commission rate", { partner: body.id, commission_rate });
+    return NextResponse.json({ ok: true, rate: effectiveRate(commission_rate) });
   }
 
   if (body.action === "settle") {
