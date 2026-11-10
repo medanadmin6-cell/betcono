@@ -297,7 +297,7 @@ export default function WithdrawPage() {
 
             {submitted.statusCheckAt && (
               <p className="text-[12px] text-[var(--text-muted)]">
-                Next status check:{" "}
+                If not paid by:{" "}
                 <strong>
                   {new Date(
                     submitted.statusCheckAt
@@ -307,9 +307,11 @@ export default function WithdrawPage() {
             )}
 
             <p className="text-[11px] text-[var(--text-muted)]">
-              A status check does not guarantee payment.
-              Your wallet will only be refunded if the
-              payment is confirmed failed or reversed.
+              If your withdrawal is not paid within 5 minutes,
+              the full amount goes back to your wallet
+              automatically, and you will need to complete
+              the deposit verification again before your
+              next withdrawal.
             </p>
           </div>
         </div>

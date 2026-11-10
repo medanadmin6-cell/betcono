@@ -261,6 +261,108 @@ export async function playerHasWonBet(supabase: SupabaseClient, userId: string):
   return Boolean(data);
 }
 
+/**
+ * Minutes a withdrawal may sit unpaid before the money goes back to the
+ * player's wallet. WITHDRAW_REFUND_MINUTES overrides; 0 turns it off.
+ */
+export function withdrawRefundMinutes(): number {
+  const raw = Number(process.env.WITHDRAW_REFUND_MINUTES);
+  return Number.isFinite(raw) && raw >= 0 ? raw : 5;
+}
+
+/**
+ * Refund every withdrawal still pending past the refund window.
+ *
+ * Each row is claimed by moving it out of pending first, so a refund can only
+ * happen once, and once a row is refunded the admin "Mark paid" button can no
+ * longer claim it. Runs lazily from the player poll and the admin list, since
+ * there is no scheduler. Pass a userId to sweep one player only.
+ */
+export async function refundStaleWithdrawals(
+  supabase: SupabaseClient,
+  userId?: string,
+): Promise<number> {
+  const minutes = withdrawRefundMinutes();
+  if (minutes <= 0) return 0;
+  const cutoff = new Date(Date.now() - minutes * 60_000).toISOString();
+
+  let query = supabase
+    .from("payments")
+    .select("reference, user_id, amount, metadata")
+    .eq("status", "pending")
+    .eq("metadata->>type", "withdrawal")
+    .lt("created_at", cutoff)
+    .limit(50);
+  if (userId) query = query.eq("user_id", userId);
+
+  const { data: stale, error } = await query;
+  if (error || !stale?.length) return 0;
+
+  let refunded = 0;
+  for (const row of stale) {
+    const now = new Date().toISOString();
+    const { data: claimed } = await supabase
+      .from("payments")
+      .update({
+        status: "failed",
+        resolved_at: now,
+        metadata: {
+          ...(row.metadata ?? {}),
+          auto_refunded: true,
+          refund_reason: `Not paid within ${minutes} minutes`,
+          refunded_at: now,
+        },
+      })
+      .eq("reference", row.reference)
+      .eq("status", "pending")
+      .select("reference")
+      .maybeSingle();
+    if (!claimed) continue; // Paid or refunded by someone else first.
+
+    const amount = Number(row.amount);
+    // Conditional on the balance read, so a bet placed at the same moment
+    // cannot be overwritten. Retry a few times if it moved.
+    let ok = false;
+    for (let attempt = 0; attempt < 5 && !ok; attempt++) {
+      const { data: user } = await supabase
+        .from("users")
+        .select("balance, total_withdrawn")
+        .eq("id", row.user_id)
+        .maybeSingle();
+      if (!user) break;
+      const { data: done } = await supabase
+        .from("users")
+        .update({
+          balance: Number(user.balance) + amount,
+          total_withdrawn: Math.max(0, Number(user.total_withdrawn) - amount),
+          // A refunded withdrawal sends the player back through the deposit
+          // verification (0/2), the same as an admin rejection does. Approval
+          // is cleared too, because an approved player skips that check.
+          qualifying_deposits: 0,
+          withdrawal_approved: false,
+        })
+        .eq("id", row.user_id)
+        .eq("balance", user.balance)
+        .select("id")
+        .maybeSingle();
+      ok = Boolean(done);
+    }
+
+    if (ok) {
+      refunded++;
+      console.info("[withdrawal] auto-refunded", { reference: row.reference, user: row.user_id, amount });
+    } else {
+      // Put it back to pending so the next sweep tries again.
+      await supabase
+        .from("payments")
+        .update({ status: "pending", resolved_at: null, metadata: row.metadata })
+        .eq("reference", row.reference);
+      console.error("[withdrawal] AUTO-REFUND FAILED, will retry", row.user_id, amount, row.reference);
+    }
+  }
+  return refunded;
+}
+
 /** User ids in this list that have a settled winning ticket. */
 export async function wonBetUserIds(supabase: SupabaseClient, userIds: string[]): Promise<Set<string>> {
   if (userIds.length === 0) return new Set();

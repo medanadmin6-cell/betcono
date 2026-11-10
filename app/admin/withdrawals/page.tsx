@@ -9,7 +9,7 @@ interface Payment {
   currency: string;
   provider: string;
   status: string;
-  metadata: { type?: string; payout_number?: string; payout_bank?: string; awaiting_approval?: boolean };
+  metadata: { type?: string; payout_number?: string; payout_bank?: string; awaiting_approval?: boolean; auto_refunded?: boolean };
   created_at: string;
   users: { id: string; name: string; phone: string };
 }
@@ -41,7 +41,7 @@ export default function WithdrawalsPage() {
   const markPaid = async (reference: string) => {
     const res = await adminAction("/api/admin/withdrawals", "PATCH", { reference, status: "resolved" });
     setNote(res.ok ? "Marked paid." : (res.error ?? "Failed"));
-    if (res.ok) reload();
+    reload();
   };
 
   return (
@@ -97,7 +97,9 @@ export default function WithdrawalsPage() {
                     {payment.metadata?.payout_bank || payment.provider || "—"}
                   </p>
                   <div className="text-right">
-                    <Badge tone={TONE[payment.status] ?? "muted"}>{payment.status}</Badge>
+                    <Badge tone={TONE[payment.status] ?? "muted"}>
+                      {payment.metadata?.auto_refunded ? "refunded" : payment.status}
+                    </Badge>
                     {payment.status === "pending" && (
                       <Button tone="accent" className="mt-1" onClick={() => markPaid(payment.reference)}>
                         Mark paid

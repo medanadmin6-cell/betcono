@@ -6,6 +6,7 @@ import {
   playerHasWonBet,
   partnerMinimum,
   qualifyAmountFrom,
+  refundStaleWithdrawals,
 } from "@/lib/withdrawals";
 import { subAdminIndex, isSubAdminAccount } from "@/lib/partner-accounts";
 import { isFrozen, FROZEN_MESSAGE } from "@/lib/schema";
@@ -23,6 +24,12 @@ export async function GET(req: Request) {
 
   const userId = new URL(req.url).searchParams.get("userId");
   if (!userId) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+
+  // Unpaid withdrawals past the refund window go back to the wallet before
+  // the balance is read, so the player sees the refund on this poll.
+  await refundStaleWithdrawals(supabase, userId).catch((e) =>
+    console.error("[withdrawal] sweep failed", e),
+  );
 
   const { data: user, error } = await supabase
     .from("users")

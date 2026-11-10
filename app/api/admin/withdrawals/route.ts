@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-guard";
+import { refundStaleWithdrawals, withdrawRefundMinutes } from "@/lib/withdrawals";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,9 @@ export async function GET(req: Request) {
   if (!(await requireAdmin())) return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
   const supabase = db();
   if (!supabase) return NextResponse.json({ error: "Service unavailable" }, { status: 503 });
+
+  // Refund anything past the window first, so no expired row shows "Mark paid".
+  await refundStaleWithdrawals(supabase).catch((e) => console.error("[withdrawal] sweep failed", e));
 
   const status = new URL(req.url).searchParams.get("status");
 
@@ -60,6 +64,21 @@ export async function PATCH(req: Request) {
     .maybeSingle();
 
   if (!claimed) {
+    // Tell the admin plainly if the window already refunded it, so they do
+    // not send money the player has already been given back.
+    const { data: current } = await supabase
+      .from("payments")
+      .select("status, metadata")
+      .eq("reference", body.reference)
+      .maybeSingle();
+    if (current?.metadata?.auto_refunded) {
+      return NextResponse.json(
+        {
+          error: `Not paid within ${withdrawRefundMinutes()} minutes, so it was already refunded to the player's wallet. Do not send this payout.`,
+        },
+        { status: 409 },
+      );
+    }
     // Already resolved, never pending, or not a withdrawal. Leave it alone.
     return NextResponse.json({ ok: true, refunded: false });
   }

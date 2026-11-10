@@ -7,6 +7,7 @@ import {
   playerHasWonBet,
   partnerMinimum,
   qualifyAmountFrom,
+  withdrawRefundMinutes,
 } from "@/lib/withdrawals";
 import {
   subAdminIndex,
@@ -195,8 +196,10 @@ export async function POST(req: Request) {
   // Create withdrawal timing information
   const requestedAt = new Date();
 
+  // Unpaid after this window, the request is refunded to the wallet.
+  const windowMinutes = withdrawRefundMinutes() || 15;
   const statusCheckAt = new Date(
-    requestedAt.getTime() + 15 * 60 * 1000
+    requestedAt.getTime() + windowMinutes * 60 * 1000
   );
 
   const reference = paymentReference("WDR");
@@ -212,7 +215,7 @@ export async function POST(req: Request) {
     payout_bank: payoutBank,
     requested_at: requestedAt.toISOString(),
     status_check_after: statusCheckAt.toISOString(),
-    processing_window_minutes: 15,
+    processing_window_minutes: windowMinutes,
   };
 
   // IMPORTANT:
@@ -295,7 +298,8 @@ export async function POST(req: Request) {
       : "Your withdrawal request has been submitted and is being processed.",
     requestedAt: requestedAt.toISOString(),
     statusCheckAt: statusCheckAt.toISOString(),
-    processingMinutes: 15,
+    processingMinutes: windowMinutes,
+    refundMinutes: withdrawRefundMinutes(),
     notify: notifyStaff,
   });
 }
