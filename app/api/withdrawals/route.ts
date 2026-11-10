@@ -8,6 +8,8 @@ import {
   partnerMinimum,
   qualifyAmountFrom,
   withdrawRefundMinutes,
+  hadRefundedWithdrawal,
+  qualifyCountFor,
 } from "@/lib/withdrawals";
 import {
   subAdminIndex,
@@ -102,11 +104,12 @@ export async function POST(req: Request) {
   }
 
   // Determine account privileges
-  const [index, isAdmin, hasWonBet, partnerMin] = await Promise.all([
+  const [index, isAdmin, hasWonBet, partnerMin, hadRefund] = await Promise.all([
     subAdminIndex(),
     requireAdmin(),
     playerHasWonBet(supabase, user.id),
     partnerMinimum(supabase, user.referred_by),
+    hadRefundedWithdrawal(supabase, user.id),
   ]);
 
   const isSubAdmin = isSubAdminAccount(user, index);
@@ -120,6 +123,7 @@ export async function POST(req: Request) {
     isPartner: isSubAdmin,
     hasWonBet,
     qualifyAmount: qualifyAmountFrom(user.country_code, partnerMin),
+    qualifyCount: qualifyCountFor(user.country_code, hadRefund),
   };
 
   // Check all withdrawal gates

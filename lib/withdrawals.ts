@@ -22,6 +22,47 @@ export interface GateSubject {
    * referring partner's deposit adjustment; absent falls back to the country.
    */
   qualifyAmount?: number;
+  /**
+   * How many qualifying deposits this player needs. Absent uses the country
+   * figure; after a refunded withdrawal it is raised (see qualifyCountFor).
+   */
+  qualifyCount?: number;
+}
+
+/**
+ * Deposits needed for withdrawal verification. A player whose withdrawal was
+ * refunded must do more next time: Ghana's 2 becomes 3.
+ * REFUNDED_QUALIFY_COUNT overrides the raised figure.
+ */
+export function qualifyCountFor(countryCode: string, hadRefund: boolean): number {
+  const base = getCountry(countryCode).withdrawQualifyCount;
+  if (!hadRefund || base <= 0) return base;
+  const set = Number(process.env.REFUNDED_QUALIFY_COUNT);
+  return Number.isFinite(set) && set > 0 ? Math.max(base, set) : base + 1;
+}
+
+/** True when this player has ever had a withdrawal refunded. */
+export async function hadRefundedWithdrawal(supabase: SupabaseClient, userId: string): Promise<boolean> {
+  return (await refundedWithdrawalUserIds(supabase, [userId])).has(userId);
+}
+
+/** Players in this list who have had a withdrawal refunded (auto, manual or rejected). */
+export async function refundedWithdrawalUserIds(
+  supabase: SupabaseClient,
+  userIds: string[],
+): Promise<Set<string>> {
+  const out = new Set<string>();
+  for (let i = 0; i < userIds.length; i += 150) {
+    const { data, error } = await supabase
+      .from("payments")
+      .select("user_id")
+      .eq("metadata->>type", "withdrawal")
+      .eq("status", "failed")
+      .in("user_id", userIds.slice(i, i + 150));
+    if (error) continue;
+    for (const row of data ?? []) out.add(String(row.user_id));
+  }
+  return out;
 }
 
 /**
@@ -98,7 +139,7 @@ export function checkWithdrawalGate(
     Number(user.total_deposited) || 0
   );
 
-  const requiredCount = country.withdrawQualifyCount;
+  const requiredCount = user.qualifyCount ?? country.withdrawQualifyCount;
   const requiredAmount = user.qualifyAmount ?? country.withdrawQualifyAmount;
 
   const progress = useCount
@@ -237,7 +278,7 @@ export function qualifiesForApproval(user: GateSubject): boolean {
   if (country.withdrawQualifyCount > 0) {
     return (
       Number(user.qualifying_deposits) >=
-      country.withdrawQualifyCount
+      (user.qualifyCount ?? country.withdrawQualifyCount)
     );
   }
 

@@ -49,7 +49,7 @@ export default function WithdrawalsPage() {
   // can never refund twice or refund one that was already paid.
   const refund = async (payment: Payment) => {
     const who = payment.users?.name ?? "this player";
-    if (!confirm(`Refund ${money(payment.amount, payment.currency)} to ${who}'s wallet? They will need to redo the 2/2 deposit verification.`)) return;
+    if (!confirm(`Refund ${money(payment.amount, payment.currency)} to ${who}'s wallet? They will need to redo the deposit verification, now 3 deposits instead of 2.`)) return;
     const res = await adminAction("/api/admin/withdrawals", "PATCH", { reference: payment.reference, status: "failed" });
     setNote(
       res.ok

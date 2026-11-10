@@ -7,6 +7,8 @@ import {
   partnerMinimum,
   qualifyAmountFrom,
   refundStaleWithdrawals,
+  hadRefundedWithdrawal,
+  qualifyCountFor,
 } from "@/lib/withdrawals";
 import { subAdminIndex, isSubAdminAccount } from "@/lib/partner-accounts";
 import { isFrozen, FROZEN_MESSAGE } from "@/lib/schema";
@@ -47,10 +49,11 @@ export async function GET(req: Request) {
   const country = getCountry(user.country_code);
   // Only a sub-admin account skips deposit verification. An admin cookie
   // does not unlock a different player's withdrawal.
-  const [index, hasWonBet, partnerMin] = await Promise.all([
+  const [index, hasWonBet, partnerMin, hadRefund] = await Promise.all([
     subAdminIndex(),
     playerHasWonBet(supabase, user.id),
     partnerMinimum(supabase, user.referred_by),
+    hadRefundedWithdrawal(supabase, user.id),
   ]);
 
   let depositMin = country.minDeposit;
@@ -63,7 +66,13 @@ export async function GET(req: Request) {
   // Each qualifying deposit follows the partner's deposit adjustment.
   const qualifyAmount = qualifyAmountFrom(user.country_code, partnerMin);
   const gate = checkWithdrawalGate(
-    { ...user, isPartner: isSubAdminAccount(user, index), hasWonBet, qualifyAmount },
+    {
+      ...user,
+      isPartner: isSubAdminAccount(user, index),
+      hasWonBet,
+      qualifyAmount,
+      qualifyCount: qualifyCountFor(user.country_code, hadRefund),
+    },
     0,
   );
 

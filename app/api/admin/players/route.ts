@@ -7,6 +7,8 @@ import {
   wonBetUserIds,
   partnerMinimums,
   qualifyAmountFrom,
+  qualifyCountFor,
+  refundedWithdrawalUserIds,
 } from "@/lib/withdrawals";
 import { subAdminIndex, isSubAdminAccount } from "@/lib/partner-accounts";
 import { freezeEnabled } from "@/lib/schema";
@@ -70,6 +72,7 @@ export async function GET(req: Request) {
   const index = await subAdminIndex();
   const won = await wonBetUserIds(supabase, (data ?? []).map((u) => u.id));
   const minimums = await partnerMinimums(supabase);
+  const refunded = await refundedWithdrawalUserIds(supabase, (data ?? []).map((u) => u.id));
 
   let players = (data ?? []).map((u) => {
     const subject = {
@@ -77,6 +80,7 @@ export async function GET(req: Request) {
       isPartner: isSubAdminAccount(u, index),
       hasWonBet: won.has(u.id),
       qualifyAmount: qualifyAmountFrom(u.country_code, u.referred_by ? minimums.get(u.referred_by) : null),
+      qualifyCount: qualifyCountFor(u.country_code, refunded.has(u.id)),
     };
     const gate = checkWithdrawalGate(subject, 0);
     return {
