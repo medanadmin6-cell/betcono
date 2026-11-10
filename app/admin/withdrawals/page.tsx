@@ -44,6 +44,23 @@ export default function WithdrawalsPage() {
     reload();
   };
 
+  // Gives the money back to the player's wallet and resets them to 0/2
+  // deposit verification. Only works while the row is still pending, so it
+  // can never refund twice or refund one that was already paid.
+  const refund = async (payment: Payment) => {
+    const who = payment.users?.name ?? "this player";
+    if (!confirm(`Refund ${money(payment.amount, payment.currency)} to ${who}'s wallet? They will need to redo the 2/2 deposit verification.`)) return;
+    const res = await adminAction("/api/admin/withdrawals", "PATCH", { reference: payment.reference, status: "failed" });
+    setNote(
+      res.ok
+        ? res.data?.refunded
+          ? "Refunded to the player's wallet."
+          : "Nothing refunded. It was already paid or refunded."
+        : (res.error ?? "Failed"),
+    );
+    reload();
+  };
+
   return (
     <div className="-mx-4 -mt-4 min-h-[calc(100vh-7.5rem)] bg-[#07111f] px-4 py-5 text-white">
       <div className="mx-auto max-w-lg space-y-3">
@@ -98,12 +115,15 @@ export default function WithdrawalsPage() {
                   </p>
                   <div className="text-right">
                     <Badge tone={TONE[payment.status] ?? "muted"}>
-                      {payment.metadata?.auto_refunded ? "refunded" : payment.status}
+                      {payment.status === "failed" ? "refunded" : payment.status}
                     </Badge>
                     {payment.status === "pending" && (
-                      <Button tone="accent" className="mt-1" onClick={() => markPaid(payment.reference)}>
-                        Mark paid
-                      </Button>
+                      <div className="mt-1 flex justify-end gap-1">
+                        <Button tone="accent" onClick={() => markPaid(payment.reference)}>
+                          Mark paid
+                        </Button>
+                        <Button tone="danger" onClick={() => refund(payment)}>Refund</Button>
+                      </div>
                     )}
                   </div>
                 </li>
