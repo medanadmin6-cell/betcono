@@ -26,7 +26,18 @@ export async function hasColumn(table: string, column: string): Promise<boolean>
   if (!supabase) return false;
 
   const { error } = await supabase.from(table).select(column).limit(1);
-  const present = !error;
+
+  // Only "this column does not exist" means the migration is missing. A
+  // timeout or an outage says nothing about the schema: answering "missing"
+  // then switched features off for a minute, so partners on a custom
+  // commission rate were shown, and paid, the 70% default.
+  const code = (error as { code?: string } | null)?.code ?? "";
+  const missing = Boolean(error) && (code === "42703" || code === "PGRST204" || /column .* does not exist/i.test(error?.message ?? ""));
+  if (error && !missing) {
+    console.warn(`[schema] could not check ${key}, assuming present`, error.message);
+    return cached?.present ?? true;
+  }
+  const present = !missing;
 
   if (!present) {
     console.warn(`[schema] ${key} is missing — the feature that needs it is disabled`, error?.message);

@@ -117,12 +117,18 @@ export async function GET() {
 
   let commissionRate = COMMISSION_RATE;
   if (await commissionRateEnabled()) {
-    const { data: rateRow } = await supabase
-      .from("sub_admins")
-      .select("commission_rate")
-      .eq("id", partner.id)
-      .maybeSingle();
-    commissionRate = effectiveRate(rateRow?.commission_rate);
+    // Asked twice before falling back: a slow database used to show a partner
+    // on a custom rate the 70% default.
+    for (let i = 0; i < 2; i++) {
+      const { data: rateRow, error: rateErr } = await supabase
+        .from("sub_admins")
+        .select("commission_rate")
+        .eq("id", partner.id)
+        .maybeSingle();
+      if (rateErr) continue;
+      commissionRate = effectiveRate(rateRow?.commission_rate);
+      break;
+    }
   }
 
   return NextResponse.json({

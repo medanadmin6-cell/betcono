@@ -233,11 +233,14 @@ async function payCommission(opts: {
     // commission keeps paying at the default before migration 0017 is applied.
     let rate = COMMISSION_RATE;
     if (await commissionRateEnabled()) {
-      const { data: rateRow } = await supabase
+      const { data: rateRow, error: rateErr } = await supabase
         .from("sub_admins")
         .select("commission_rate")
         .eq("id", subAdminId)
         .maybeSingle();
+      // A failed read must not quietly pay the 70% default to a partner on a
+      // custom rate. Throwing sends this through the retry below.
+      if (rateErr) throw rateErr;
       rate = effectiveRate(rateRow?.commission_rate);
     }
 
