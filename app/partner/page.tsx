@@ -297,7 +297,7 @@ function PartnerDashboard({ data, onReload }: { data: Dashboard; onReload: () =>
       <section className="rounded-2xl bg-[#07111f] p-3 text-white">
         <h2 className="px-1 pb-2 text-[18px] font-black">Overview</h2>
         {data.overview ? (
-          <OverviewCards stats={data.overview} />
+          <OverviewCards stats={data.overview} rate={data.commissionRate ?? 0.7} />
         ) : (
           <p className="px-1 text-[13px] text-white/50">Overview is unavailable right now.</p>
         )}

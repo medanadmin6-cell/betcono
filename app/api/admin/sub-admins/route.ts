@@ -3,6 +3,7 @@ import { db } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-guard";
 import { commissionRateEnabled } from "@/lib/schema";
 import { COMMISSION_RATE, effectiveRate } from "@/lib/money";
+import { syncPartnerTotals, syncAllPartnerTotals } from "@/lib/partner-totals";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,9 @@ export async function GET() {
   if (!(await requireAdmin())) return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
   const supabase = db();
   if (!supabase) return NextResponse.json({ error: "Service unavailable" }, { status: 503 });
+
+  // Correct any owed/lifetime total that drifted from the commission rows.
+  await syncAllPartnerTotals(supabase).catch((e) => console.error("[admin] totals sync failed", e));
 
   const { data: partners } = await supabase
     .from("sub_admins")
@@ -92,6 +96,9 @@ export async function PATCH(req: Request) {
     // Settling zeroes the currency's balance but leaves the lifetime total, so
     // the partner keeps a record of everything they have ever earned.
     const currency = String(body.currency ?? "");
+    // Bring the totals up to date first, so the amount settled is the true
+    // amount owed, including any commission a lost update had dropped.
+    await syncPartnerTotals(supabase, String(body.id));
     const { data: partner } = await supabase
       .from("sub_admins")
       .select("balances")

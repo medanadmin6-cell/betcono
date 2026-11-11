@@ -6,6 +6,7 @@ import { loadOverview } from "@/lib/overview";
 import { reconcilePendingDeposits } from "@/lib/reconcile";
 import { commissionRateEnabled } from "@/lib/schema";
 import { COMMISSION_RATE, effectiveRate } from "@/lib/money";
+import { syncPartnerTotals } from "@/lib/partner-totals";
 
 export const dynamic = "force-dynamic";
 
@@ -100,6 +101,10 @@ export async function GET() {
   }
 
   const country = getCountry(wallet?.country_code ?? "GH");
+  // Owed/lifetime are rebuilt from the commission rows before the cards read them.
+  await syncPartnerTotals(supabase, partner.id).catch((err) =>
+    console.error("[partner] totals sync failed", partner.id, err),
+  );
   const overview = await loadOverview(supabase, partner.id).catch((err) => {
     console.error("[partner] overview failed", partner.id, err);
     return null;

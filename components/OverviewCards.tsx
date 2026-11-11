@@ -50,8 +50,12 @@ function Card({
 }
 
 /** The same overview grid on the operator console and the sub-admin dashboard. */
-export function OverviewCards({ stats }: { stats: OverviewStats }) {
-  const rate = "70%";
+export function OverviewCards({ stats, rate }: { stats: OverviewStats; rate?: number }) {
+  // A partner sees their own share; the operator console sees no single rate.
+  const label =
+    rate === undefined
+      ? "Pending commission"
+      : `Pending commission (${Math.round(rate * 10000) / 100}%)`;
   return (
     <section className="grid grid-cols-2 gap-2.5">
       <Card
@@ -73,7 +77,7 @@ export function OverviewCards({ stats }: { stats: OverviewStats }) {
         Icon={Calendar}
       />
       <Card
-        label={`Pending commission (${rate})`}
+        label={label}
         value={figure(stats.pendingCommission)}
         detail="Not yet paid out"
         Icon={Clock}

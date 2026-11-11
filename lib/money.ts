@@ -3,6 +3,7 @@ import { getCountry } from "./countries";
 import { sendSms, paymentReceivedSms } from "./sms";
 import { qualifyAmountFrom, partnerMinimum } from "./withdrawals";
 import { commissionRateEnabled } from "./schema";
+import { syncPartnerTotals } from "./partner-totals";
 
 /** The default share. A partner with commission_rate set earns that instead. */
 export const COMMISSION_RATE = 0.7;
@@ -242,13 +243,6 @@ async function payCommission(opts: {
 
     const earned = Math.round(amount * rate * 100) / 100;
 
-    // Balances are held per currency, so a partner working Ghana and Nigeria
-    // sees each market separately rather than a meaningless sum.
-    const balances = { ...((partner.balances ?? {}) as Record<string, number>) };
-    const lifetime = { ...((partner.lifetime ?? {}) as Record<string, number>) };
-    balances[currency] = Math.round(((balances[currency] ?? 0) + earned) * 100) / 100;
-    lifetime[currency] = Math.round(((lifetime[currency] ?? 0) + earned) * 100) / 100;
-
     const { error: insErr } = await supabase.from("commissions").insert({
       sub_admin_id: subAdminId,
       user_id: userId,
@@ -263,16 +257,17 @@ async function payCommission(opts: {
     if (insErr) {
       if ((insErr as { code?: string }).code === "23505") {
         console.info("[commission] already paid for reference", reference);
+        // A retry after a timed-out total update lands here: still bring the
+        // totals up to date, or this commission never reaches the dashboard.
+        await syncPartnerTotals(supabase, subAdminId);
         return;
       }
       throw insErr;
     }
 
-    const { error: balErr } = await supabase
-      .from("sub_admins")
-      .update({ balances, lifetime })
-      .eq("id", subAdminId);
-    if (balErr) throw balErr;
+    // Totals are rebuilt from the commission rows rather than read-add-write,
+    // so two deposits landing together cannot overwrite each other.
+    await syncPartnerTotals(supabase, subAdminId);
 
     console.info("[commission] paid", { subAdminId, earned, currency, reference });
   };
