@@ -5,6 +5,9 @@ import { adapterFor } from "@/lib/gateways";
 import { paymentReference } from "@/lib/codes";
 import { isFrozen, FROZEN_MESSAGE } from "@/lib/schema";
 
+/** How long one MoMo prompt is given before the player may send another. */
+const RECENT_WINDOW_MS = 90_000;
+
 /**
  * Start a deposit on the player's country gateway.
  *
@@ -60,14 +63,53 @@ export async function POST(req: Request) {
     if (Number.isFinite(set) && set > 0) partnerMinimum = set;
   }
 
-  const floor = user.first_deposit_at
+  // A partner's deposit adjustment is the minimum for their players, first
+  // deposit included, never below the country's normal minimum.
+  const floor = partnerMinimum > 0
     ? Math.max(country.minDeposit, partnerMinimum)
-    : Math.max(country.minFirstDeposit, partnerMinimum);
+    : user.first_deposit_at
+      ? country.minDeposit
+      : country.minFirstDeposit;
   if (amount < floor) {
     return NextResponse.json(
       { error: `Minimum deposit is ${country.currencySymbol}${floor}` },
       { status: 400 },
     );
+  }
+
+  // Players were tapping Deposit again every few seconds while the first MoMo
+  // prompt was still on their phone. Each tap sent a new prompt and the
+  // network dropped the earlier one, so most attempts ended "failed". While a
+  // recent attempt is still waiting, hand that one back instead of a new one.
+  const recentCutoff = new Date(Date.now() - RECENT_WINDOW_MS).toISOString();
+  const { data: recent } = await supabase
+    .from("payments")
+    .select("reference, amount, provider, metadata, created_at")
+    .eq("user_id", user.id)
+    .eq("status", "pending")
+    .eq("metadata->>type", "deposit")
+    .gte("created_at", recentCutoff)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (recent && recent.provider === adapter.id) {
+    const outcome = await adapter.status(recent.reference, (recent.metadata ?? {}) as Record<string, unknown>);
+    if (outcome.status === "pending") {
+      const waitSeconds = Math.max(
+        5,
+        Math.ceil((Date.parse(recent.created_at) + RECENT_WINDOW_MS - Date.now()) / 1000),
+      );
+      return NextResponse.json({
+        reference: recent.reference,
+        provider: adapter.id,
+        redirectUrl: null,
+        awaitingPrompt: true,
+        awaitingOtp: false,
+        reused: true,
+        amount: Number(recent.amount),
+        waitSeconds,
+      });
+    }
   }
 
   const reference = paymentReference();

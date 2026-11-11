@@ -58,9 +58,11 @@ export async function GET(req: Request) {
 
   let depositMin = country.minDeposit;
   let firstDepositMin = country.minFirstDeposit;
+  // The partner's deposit adjustment is the minimum for their players, first
+  // deposit included, never below the country's normal minimum.
   if (partnerMin) {
-    depositMin = Math.max(depositMin, partnerMin);
-    firstDepositMin = Math.max(firstDepositMin, partnerMin);
+    depositMin = Math.max(country.minDeposit, partnerMin);
+    firstDepositMin = depositMin;
   }
 
   // Each qualifying deposit follows the partner's deposit adjustment.

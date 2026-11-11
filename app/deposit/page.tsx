@@ -29,6 +29,8 @@ export default function DepositPage() {
   const [status, setStatus] = useState<string | null>(null);
   const [done, setDone] = useState<{ balance?: number; bonus?: number } | null>(null);
   const [limits, setLimits] = useState<{ min: number; first: number } | null>(null);
+  const [waiting, setWaiting] = useState(false);
+  const unlockRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const country = player ? getCountry(player.country_code) : getCountry("GH");
@@ -69,6 +71,7 @@ export default function DepositPage() {
   useEffect(
     () => () => {
       if (pollRef.current) clearInterval(pollRef.current);
+      if (unlockRef.current) clearTimeout(unlockRef.current);
     },
     [],
   );
@@ -104,22 +107,42 @@ export default function DepositPage() {
       }
 
       setStatus(
-        json.awaitingOtp
-          ? "Approve the prompt on your phone, then enter the OTP your network sends."
-          : "Check your phone and approve the payment prompt.",
+        json.reused
+          ? `Your last payment prompt (${formatMoney(Number(json.amount), player.currency)}) is still open. Approve it on your phone. You can send a new one in ${json.waitSeconds} seconds.`
+          : json.awaitingOtp
+            ? "Approve the prompt on your phone, then enter the OTP your network sends."
+            : "Check your phone and approve the payment prompt. Do not tap Deposit again.",
       );
 
+      // Lock the button until this prompt is answered, or until the server
+      // would allow a fresh one, whichever is first.
+      setWaiting(true);
+      if (unlockRef.current) clearTimeout(unlockRef.current);
+      unlockRef.current = setTimeout(
+        () => {
+          setWaiting(false);
+          setStatus("No answer yet. If no prompt reached your phone, you can send a new one now.");
+        },
+        (Number(json.waitSeconds) || 90) * 1000,
+      );
+      const stopWaiting = () => {
+        if (pollRef.current) clearInterval(pollRef.current);
+        if (unlockRef.current) clearTimeout(unlockRef.current);
+        setWaiting(false);
+      };
+
+      if (pollRef.current) clearInterval(pollRef.current);
       pollRef.current = setInterval(async () => {
         try {
           const s = await fetch(`/api/deposits/status?reference=${json.reference}`);
           const sj = await s.json();
           if (sj.status === "confirmed") {
-            if (pollRef.current) clearInterval(pollRef.current);
+            stopWaiting();
             setStatus(null);
             setDone({ balance: sj.balance, bonus: sj.bonusPaid });
             if (typeof sj.balance === "number") setBalance(sj.balance);
           } else if (sj.status === "failed") {
-            if (pollRef.current) clearInterval(pollRef.current);
+            stopWaiting();
             setStatus(null);
             setError("That payment did not go through. Try again.");
           }
@@ -167,7 +190,9 @@ export default function DepositPage() {
 
   const tooSmall = value > 0 && value < min;
   const tooBig = value > max;
-  const canSubmit = Boolean(country.gateway) && value >= min && value <= max && !busy;
+  // Locked while a prompt is open on the player's phone: a second tap sends a
+  // second prompt and the network drops the first.
+  const canSubmit = Boolean(country.gateway) && value >= min && value <= max && !busy && !waiting;
 
   // Shortcut amounts from the real limits: the minimum and a few multiples
   // of it, never above the per-transaction cap.
@@ -285,7 +310,13 @@ export default function DepositPage() {
                     : { background: "var(--surface)", color: "var(--text-muted)" }
                 }
               >
-                {busy ? "Starting…" : value > 0 ? `Deposit ${formatMoney(value, player.currency)}` : "Deposit"}
+                {busy
+                  ? "Starting…"
+                  : waiting
+                    ? "Waiting for you to approve on your phone…"
+                    : value > 0
+                      ? `Deposit ${formatMoney(value, player.currency)}`
+                      : "Deposit"}
               </button>
             </>
           )}

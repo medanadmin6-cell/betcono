@@ -374,7 +374,8 @@ function PartnerDashboard({ data, onReload }: { data: Dashboard; onReload: () =>
         </div>
         <h2 className="mt-2 text-[22px] font-black">Deposit Adjustment</h2>
         <p className="mt-1 text-[13px] leading-relaxed text-white/55">
-          Applies only to users registered through your referral link.
+          The smallest deposit, first deposit included, for users registered through your
+          referral link. Each withdrawal verification deposit must also be at least this much.
         </p>
         <label className="mt-4 block">
           <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-white/45">

@@ -436,8 +436,10 @@ const shinobipay: GatewayAdapter = {
           : ["failed", "canceled", "cancelled", "expired"].includes(s)
             ? "failed"
             : "pending";
-      // Minor units back to the major unit the wallet keeps.
-      const paid = Number(json?.amount) / 100;
+      // Minor units back to the major unit the wallet keeps. "amount" includes
+      // the fee ShinobiPay charges the player (205 on a 200 deposit); what
+      // reaches us, and so what the wallet is credited, is merchant_amount.
+      const paid = Number(json?.merchant_amount ?? json?.amount) / 100;
       return {
         status,
         paidAmount: Number.isFinite(paid) && paid > 0 ? paid : undefined,
