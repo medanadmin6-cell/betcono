@@ -1,19 +1,8 @@
 
 export type PayoutRail = "mobile" | "bank";
-export type Gateway =
-  | "korapay"
-  | "moolre"
-  | "paystack"
-  | "alphapay"
-  | "shinobipay";
+export type Gateway = "alphapay";
 
-export const GATEWAYS: Gateway[] = [
-  "korapay",
-  "moolre",
-  "paystack",
-  "alphapay",
-  "shinobipay",
-];
+export const GATEWAYS: Gateway[] = ["alphapay"];
 
 export type KycKind = "bvn" | "nin" | "national_id";
 
@@ -183,17 +172,6 @@ function num(name: string, fallback: number): number {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-function gatewayEnv(
-  name: string,
-  fallback: Gateway | null
-): Gateway | null {
-  const raw = process.env[name];
-
-  return GATEWAYS.includes(raw as Gateway)
-    ? (raw as Gateway)
-    : fallback;
-}
-
 export function getCountry(
   code: string | null | undefined
 ): CountryConfig {
@@ -202,11 +180,6 @@ export function getCountry(
 
   return {
     ...base,
-
-    gateway: gatewayEnv(
-      `GATEWAY_${base.code}`,
-      base.gateway
-    ),
 
     minFirstDeposit: num(
       `MIN_FIRST_DEPOSIT_${base.code}`,

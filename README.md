@@ -14,7 +14,7 @@ One Next.js application on Vercel, with Supabase Postgres as the only database. 
 | Database | Supabase Postgres, server-side with the service-role key |
 | File storage | Supabase Storage (team crests) |
 | Fixtures & odds | API-Football v3, plus operator-created custom matches |
-| Payments | AlphaPay, Korapay, Moolre, and Paystack |
+| Payments | AlphaPay |
 | Messaging | Arkesel SMS, Web Push for goal alerts |
 
 The service-role key bypasses row-level security, so every database read and write happens on the server. No table is ever queried from the browser.
@@ -42,7 +42,7 @@ lib/
   fixtures.ts     the merged public feed
   clock.ts        the match clock every other module agrees with
   odds.ts         derived markets and live drift
-  gateways.ts     one adapter per payment rail
+  gateways.ts     the AlphaPay payment adapter
 app/api/          route handlers
 app/admin/        the operator console
 app/partner/      the partner dashboard

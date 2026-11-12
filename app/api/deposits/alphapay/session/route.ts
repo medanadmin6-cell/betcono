@@ -4,9 +4,10 @@ import { db } from "@/lib/supabase";
 export const dynamic = "force-dynamic";
 
 /**
- * What our checkout page needs to render: the figure, the currency and a
- * phone prefill. Keyed by the payment reference, which is unguessable, the
- * same way the gateway's own charge endpoints are.
+ * What our checkout page needs to render: the figure, the currency, the
+ * number the code went to and which step the payment is on. Keyed by the
+ * payment reference, which is unguessable, the same way the gateway's own
+ * verify-otp endpoint is.
  */
 export async function GET(req: Request) {
   const reference = new URL(req.url).searchParams.get("reference") ?? "";
@@ -31,5 +32,8 @@ export async function GET(req: Request) {
     currency: payment.currency,
     status: payment.status,
     phone: typeof meta.phone === "string" ? meta.phone : "",
+    // "otp": the code has not been confirmed yet. "prompt": the charge is on
+    // the handset waiting for the PIN.
+    step: meta.otp_required === true && meta.otp_verified !== true ? "otp" : "prompt",
   });
 }

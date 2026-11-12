@@ -93,8 +93,12 @@ export async function POST(req: Request) {
     .limit(1)
     .maybeSingle();
   if (recent && recent.provider === adapter.id) {
-    const outcome = await adapter.status(recent.reference, (recent.metadata ?? {}) as Record<string, unknown>);
+    const recentMeta = (recent.metadata ?? {}) as Record<string, unknown>;
+    const outcome = await adapter.status(recent.reference, recentMeta);
     if (outcome.status === "pending") {
+      // Still waiting on the SMS code: there is no prompt on the phone yet, so
+      // the player goes back to the page where the code is typed in.
+      const awaitingCode = recentMeta.otp_required === true && recentMeta.otp_verified !== true;
       const waitSeconds = Math.max(
         5,
         Math.ceil((Date.parse(recent.created_at) + RECENT_WINDOW_MS - Date.now()) / 1000),
@@ -102,9 +106,9 @@ export async function POST(req: Request) {
       return NextResponse.json({
         reference: recent.reference,
         provider: adapter.id,
-        redirectUrl: null,
-        awaitingPrompt: true,
-        awaitingOtp: false,
+        redirectUrl: awaitingCode ? `/checkout?reference=${encodeURIComponent(recent.reference)}` : null,
+        awaitingPrompt: !awaitingCode,
+        awaitingOtp: awaitingCode,
         reused: true,
         amount: Number(recent.amount),
         waitSeconds,

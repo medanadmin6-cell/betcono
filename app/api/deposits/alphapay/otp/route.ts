@@ -4,7 +4,10 @@ import { ALPHAPAY_BASE } from "@/lib/gateways";
 
 export const dynamic = "force-dynamic";
 
-/** Forwards the code the player typed to AlphaPay's verify-otp endpoint. */
+/**
+ * Forwards the code the player typed to AlphaPay's verify-otp endpoint. A
+ * correct code is what actually sends the charge to the handset.
+ */
 export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
   const reference = String(body?.reference ?? "");
@@ -18,12 +21,15 @@ export async function POST(req: Request) {
 
   const { data: payment } = await supabase
     .from("payments")
-    .select("reference, provider")
+    .select("reference, status, provider, metadata")
     .eq("reference", reference)
     .eq("provider", "alphapay")
     .maybeSingle();
 
   if (!payment) return NextResponse.json({ error: "Unknown payment" }, { status: 404 });
+  if (payment.status !== "pending") {
+    return NextResponse.json({ error: "This deposit is already closed" }, { status: 409 });
+  }
 
   try {
     const res = await fetch(`${ALPHAPAY_BASE}/${encodeURIComponent(reference)}/verify-otp/`, {
@@ -32,16 +38,24 @@ export async function POST(req: Request) {
       body: JSON.stringify({ code }),
     });
     const json = await res.json().catch(() => null);
-    if (!res.ok) {
+    if (!res.ok || json?.error) {
       const message = json?.error?.message ?? json?.message;
       return NextResponse.json(
         { error: typeof message === "string" ? message : "That code was not accepted" },
-        { status: 502 },
+        { status: res.status === 400 ? 400 : 502 },
       );
     }
-    return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[alphapay] otp", err);
-    return NextResponse.json({ error: "That code was not accepted" }, { status: 502 });
+    return NextResponse.json({ error: "Could not check the code. Try again." }, { status: 502 });
   }
+
+  // Remembered so a reload lands on the "approve on your phone" step rather
+  // than asking for a code that has already been used.
+  await supabase
+    .from("payments")
+    .update({ metadata: { ...((payment.metadata ?? {}) as Record<string, unknown>), otp_verified: true } })
+    .eq("reference", reference);
+
+  return NextResponse.json({ ok: true });
 }
