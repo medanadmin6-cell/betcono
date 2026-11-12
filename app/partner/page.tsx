@@ -280,9 +280,18 @@ function PartnerDashboard({ data, onReload }: { data: Dashboard; onReload: () =>
   return (
     <div className="mx-auto max-w-5xl space-y-3 px-4 py-6 md:px-6">
       <header className="flex items-center justify-between">
-        <Link href="/">
+        {/* Partners kept landing on the betting home page, logged out, from
+            this logo. It stays on the dashboard and refreshes it instead. */}
+        <button
+          type="button"
+          aria-label="Refresh dashboard"
+          onClick={() => {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+            onReload();
+          }}
+        >
           <Image src="/logo.svg" alt="Pep Stake" width={130} height={29} />
-        </Link>
+        </button>
         <button
           onClick={async () => {
             await fetch("/api/partner/logout", { method: "POST" });
