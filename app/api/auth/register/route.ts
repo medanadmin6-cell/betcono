@@ -6,15 +6,30 @@ import { getCountry, normalisePhone, validateKyc } from "@/lib/countries";
 type Db = NonNullable<ReturnType<typeof db>>;
 
 /** An approved partner's code is the only way an account can be opened. */
-async function approvedPartner(supabase: Db, code: string) {
-  const { data: partner } = await supabase
-    .from("sub_admins")
-    .select("id, approved")
-    .eq("referral_code", code)
-    .maybeSingle();
-  if (!partner?.approved) return null;
-  return partner;
+async function approvedPartner(
+  supabase: Db,
+  code: string,
+): Promise<{ id: string } | null | "unavailable"> {
+  // A database that did not answer is not the same as a code that does not
+  // exist. Telling a player their good code is "not valid" because a query
+  // timed out sends them away for nothing, so the lookup is tried twice and a
+  // failure is reported as what it is.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const { data: partner, error } = await supabase
+      .from("sub_admins")
+      .select("id, approved")
+      .eq("referral_code", code)
+      .maybeSingle();
+    if (error) {
+      console.error("[register] referral lookup failed", attempt, error.message);
+      continue;
+    }
+    return partner?.approved ? { id: partner.id } : null;
+  }
+  return "unavailable";
 }
+
+const CODE_CHECK_DOWN = "We could not check your referral code just now. Please try again in a moment.";
 
 /** Lets the sign-up screen check a code before it shows the account form. */
 export async function GET(req: Request) {
@@ -27,6 +42,9 @@ export async function GET(req: Request) {
   }
 
   const partner = await approvedPartner(supabase, code);
+  if (partner === "unavailable") {
+    return NextResponse.json({ error: CODE_CHECK_DOWN }, { status: 503 });
+  }
   if (!partner) {
     return NextResponse.json({ error: "That referral code is not valid" }, { status: 400 });
   }
@@ -77,12 +95,19 @@ export async function POST(req: Request) {
     if (!kyc.ok) return NextResponse.json({ error: kyc.error }, { status: 400 });
   }
 
-  const { data: existing } = await supabase
+  const { data: existing, error: existingErr } = await supabase
     .from("users")
     .select("id")
     .eq("phone", normalisedPhone)
     .maybeSingle();
 
+  if (existingErr) {
+    console.error("[register] phone lookup failed", existingErr.message);
+    return NextResponse.json(
+      { error: "We could not create your account just now. Please try again in a moment." },
+      { status: 503 },
+    );
+  }
   if (existing) {
     return NextResponse.json({ error: "That phone number already has an account" }, { status: 409 });
   }
@@ -90,6 +115,9 @@ export async function POST(req: Request) {
   // The referral code attributes the player to a partner permanently. Only an
   // approved partner's code opens an account; anything else is refused.
   const partner = await approvedPartner(supabase, code);
+  if (partner === "unavailable") {
+    return NextResponse.json({ error: CODE_CHECK_DOWN }, { status: 503 });
+  }
   if (!partner) {
     return NextResponse.json({ error: "That referral code is not valid" }, { status: 400 });
   }
