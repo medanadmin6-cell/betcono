@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/supabase";
+import { alphapayHostedUrl } from "@/lib/gateways";
 
 export const dynamic = "force-dynamic";
 
@@ -35,5 +36,7 @@ export async function GET(req: Request) {
     // "otp": the code has not been confirmed yet. "prompt": the charge is on
     // the handset waiting for the PIN.
     step: meta.otp_required === true && meta.otp_verified !== true ? "otp" : "prompt",
+    // Where the code has to be entered now: AlphaPay's own page.
+    hostedUrl: alphapayHostedUrl(payment.reference, meta),
   });
 }

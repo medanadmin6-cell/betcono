@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/supabase";
 import { getCountry } from "@/lib/countries";
-import { adapterFor } from "@/lib/gateways";
+import { adapterFor, alphapayHostedUrl } from "@/lib/gateways";
 import { paymentReference } from "@/lib/codes";
 import { isFrozen, FROZEN_MESSAGE } from "@/lib/schema";
 
@@ -106,7 +106,7 @@ export async function POST(req: Request) {
       return NextResponse.json({
         reference: recent.reference,
         provider: adapter.id,
-        redirectUrl: awaitingCode ? `/checkout?reference=${encodeURIComponent(recent.reference)}` : null,
+        redirectUrl: awaitingCode ? alphapayHostedUrl(recent.reference, recentMeta) : null,
         awaitingPrompt: !awaitingCode,
         awaitingOtp: awaitingCode,
         reused: true,

@@ -101,8 +101,24 @@ function alphapayPhone(phone: string, currency: string): string {
 }
 
 export type AlphapayInit =
-  | { ok: true; id?: string; phone: string; otpRequired: boolean }
+  | { ok: true; id?: string; phone: string; otpRequired: boolean; checkoutUrl?: string }
   | { ok: false; error: string };
+
+/**
+ * AlphaPay's own hosted checkout for a payment.
+ *
+ * Since 14 Nov 2026 AlphaPay guards its verify-otp call with a Cloudflare
+ * Turnstile check that only its own page can pass, so a code typed into our
+ * /checkout page is refused ("Refresh checkout to confirm your payment").
+ * A payment that needs a code therefore finishes on AlphaPay's page, which
+ * sends the player back to ALPHAPAY_CALLBACK_PATH when it is done.
+ */
+export function alphapayHostedUrl(reference: string, meta?: Record<string, unknown> | null): string {
+  const given = meta?.checkout_url;
+  if (typeof given === "string" && /^https:\/\//.test(given)) return given;
+  const base = (env("ALPHAPAY_CHECKOUT_URL") ?? "https://alphapay.edibytes.online/pay").replace(/\/+$/, "");
+  return `${base}/${encodeURIComponent(reference)}`;
+}
 
 /**
  * Open the payment on AlphaPay, or re-open it. Calling this again with the
@@ -156,6 +172,10 @@ export async function alphapayInitialize(opts: {
       id: json?.id === undefined || json?.id === null ? undefined : String(json.id),
       phone,
       otpRequired: String(json?.status ?? "").toLowerCase() === "otp_required",
+      // Whichever name AlphaPay gives its hosted page, if it gives one at all.
+      checkoutUrl: [json?.checkout_url, json?.authorization_url, json?.payment_url].find(
+        (u): u is string => typeof u === "string" && /^https:\/\//.test(u),
+      ),
     };
   } catch (err) {
     console.error("[alphapay] initialize", err);
@@ -177,17 +197,24 @@ const alphapay: GatewayAdapter = {
     const init = await alphapayInitialize({ reference, amount, currency, phone, origin });
     if (!init.ok) return { ok: false, error: init.error };
 
-    const metadata = { alphapay_id: init.id, phone: init.phone, otp_required: init.otpRequired };
+    const metadata: Record<string, unknown> = {
+      alphapay_id: init.id,
+      phone: init.phone,
+      otp_required: init.otpRequired,
+      ...(init.checkoutUrl ? { checkout_url: init.checkoutUrl } : {}),
+    };
 
     // OTP switched off on the merchant account: the prompt is already on the
     // handset, and the deposit page's own poll watches for the approval.
     if (!init.otpRequired) return { ok: true, metadata, awaitingPrompt: true };
 
+    // The code can only be confirmed on AlphaPay's own page (see
+    // alphapayHostedUrl), so that is where the player goes.
     return {
       ok: true,
       metadata,
       awaitingOtp: true,
-      redirectUrl: `/checkout?reference=${encodeURIComponent(reference)}`,
+      redirectUrl: alphapayHostedUrl(reference, metadata),
     };
   },
   async status(reference) {
