@@ -62,7 +62,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
 
   // --- Value it from live prices ------------------------------------------
   const matches = await Promise.all(
-    [...new Set(legs.map((l) => l.match_id))].map((id) => getMatchDetail(id)),
+    [...new Set(legs.map((l) => l.match_id))].map((id) => getMatchDetail(id, { fresh: true })),
   );
   const byId = new Map(matches.filter((m) => m !== null).map((m) => [m.id, m]));
 

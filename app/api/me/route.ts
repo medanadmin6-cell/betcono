@@ -11,7 +11,11 @@ import {
   qualifyCountFor,
 } from "@/lib/withdrawals";
 import { subAdminIndex, isSubAdminAccount } from "@/lib/partner-accounts";
-import { isFrozen, FROZEN_MESSAGE } from "@/lib/schema";
+import { isFrozen, freezeEnabled, FROZEN_MESSAGE } from "@/lib/schema";
+
+/** How often the light poll bothers to look for a player's stale withdrawals. */
+const LITE_SWEEP_MS = 120_000;
+const lastLiteSweep = new Map<string, number>();
 
 /**
  * The signed-in player's own record.
@@ -24,8 +28,38 @@ export async function GET(req: Request) {
   const supabase = db();
   if (!supabase) return NextResponse.json({ error: "Service unavailable" }, { status: 503 });
 
-  const userId = new URL(req.url).searchParams.get("userId");
+  const url = new URL(req.url);
+  const userId = url.searchParams.get("userId");
   if (!userId) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+
+  // The header asks every 30 seconds, from every open tab, and only wants the
+  // balance and whether the account is frozen. Answering that with the full
+  // record cost nine queries a poll and was most of the load on the database.
+  // The light form is one query, plus the refund sweep every couple of minutes.
+  if (url.searchParams.get("lite") === "1") {
+    const now = Date.now();
+    if (now - (lastLiteSweep.get(userId) ?? 0) > LITE_SWEEP_MS) {
+      if (lastLiteSweep.size > 5000) lastLiteSweep.clear();
+      lastLiteSweep.set(userId, now);
+      await refundStaleWithdrawals(supabase, userId).catch((e) =>
+        console.error("[withdrawal] sweep failed", e),
+      );
+    }
+
+    const canFreeze = await freezeEnabled();
+    const { data: row, error: liteErr } = await supabase
+      .from("users")
+      .select(canFreeze ? "id, balance, frozen" : "id, balance")
+      .eq("id", userId)
+      .maybeSingle();
+    if (liteErr || !row) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+    const lite = row as unknown as { id: string; balance: number; frozen?: boolean };
+    if (lite.frozen) {
+      return NextResponse.json({ error: FROZEN_MESSAGE, frozen: true }, { status: 403 });
+    }
+    return NextResponse.json({ user: { id: lite.id, balance: lite.balance } });
+  }
 
   // Unpaid withdrawals past the refund window go back to the wallet before
   // the balance is read, so the player sees the refund on this poll.

@@ -84,11 +84,11 @@ function tomorrow(): string {
   return new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
 }
 
-export async function getFeed(): Promise<FeedMatch[]> {
+export async function getFeed(opts: { fresh?: boolean } = {}): Promise<FeedMatch[]> {
   const [upstream, custom, overrides] = await Promise.all([
     loadUpstream(),
-    loadCustom(),
-    loadOverrides(),
+    loadCustom(opts.fresh),
+    loadOverrides(opts.fresh),
   ]);
 
   const merged = [...custom, ...upstream];
@@ -190,7 +190,21 @@ export function fullDerivedMarkets(home: number, draw: number, away: number): Ma
   ];
 }
 
-async function loadCustom(): Promise<FeedMatch[]> {
+/**
+ * The feed is polled every 30 seconds by every open page, and each poll used
+ * to read both operator tables again. The rows barely change, so they are
+ * kept for a few seconds and shared by everyone this instance serves. Only
+ * the rows are kept: clocks, scores and drifted odds are still worked out on
+ * every request. Anything that moves money asks for `fresh` and skips this.
+ */
+const ROWS_TTL_MS = 15_000;
+let customRowsCache: { at: number; rows: CustomRow[] } | null = null;
+let overrideRowsCache: { at: number; rows: OverrideRow[] } | null = null;
+
+async function customRows(fresh?: boolean): Promise<CustomRow[]> {
+  if (!fresh && customRowsCache && Date.now() - customRowsCache.at < ROWS_TTL_MS) {
+    return customRowsCache.rows;
+  }
   const supabase = db();
   if (!supabase) return []; // Degrade to upstream only.
 
@@ -201,11 +215,18 @@ async function loadCustom(): Promise<FeedMatch[]> {
     .order("kickoff", { ascending: true })
     .limit(120);
 
-  if (error || !data) return [];
+  // The board keeps the last good rows through a blip. A fresh read does not:
+  // a bet is never struck on rows that could not be re-read.
+  if (error || !data) return fresh ? [] : (customRowsCache?.rows ?? []);
 
+  customRowsCache = { at: Date.now(), rows: data as CustomRow[] };
+  return customRowsCache.rows;
+}
+
+async function loadCustom(fresh?: boolean): Promise<FeedMatch[]> {
   const out: FeedMatch[] = [];
 
-  for (const row of data as CustomRow[]) {
+  for (const row of await customRows(fresh)) {
     const clock = matchClock(row.kickoff, row.sport ?? "football");
     if (clock.isOver) continue; // Finished matches drop out of the feed.
 
@@ -257,13 +278,23 @@ async function loadCustom(): Promise<FeedMatch[]> {
   return out;
 }
 
-async function loadOverrides(): Promise<Map<string, OverrideRow>> {
+async function overrideRows(fresh?: boolean): Promise<OverrideRow[]> {
+  if (!fresh && overrideRowsCache && Date.now() - overrideRowsCache.at < ROWS_TTL_MS) {
+    return overrideRowsCache.rows;
+  }
   const supabase = db();
-  const out = new Map<string, OverrideRow>();
-  if (!supabase) return out;
+  if (!supabase) return [];
 
-  const { data } = await supabase.from("match_overrides").select("*");
-  for (const o of (data ?? []) as OverrideRow[]) out.set(o.match_id, o);
+  const { data, error } = await supabase.from("match_overrides").select("*");
+  if (error || !data) return fresh ? [] : (overrideRowsCache?.rows ?? []);
+
+  overrideRowsCache = { at: Date.now(), rows: data as OverrideRow[] };
+  return overrideRowsCache.rows;
+}
+
+async function loadOverrides(fresh?: boolean): Promise<Map<string, OverrideRow>> {
+  const out = new Map<string, OverrideRow>();
+  for (const o of await overrideRows(fresh)) out.set(o.match_id, o);
   return out;
 }
 
@@ -278,8 +309,11 @@ async function loadOverrides(): Promise<Map<string, OverrideRow>> {
  * Both the details page and bet placement go through here, so a player can
  * never be shown a price the placement endpoint would refuse to honour.
  */
-export async function getMatchDetail(id: string): Promise<FeedMatch | null> {
-  const feed = await getFeed();
+export async function getMatchDetail(
+  id: string,
+  opts: { fresh?: boolean } = {},
+): Promise<FeedMatch | null> {
+  const feed = await getFeed(opts);
   const match = feed.find((m) => m.id === id);
   if (!match) return null;
 

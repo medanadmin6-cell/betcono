@@ -117,7 +117,7 @@ export async function POST(req: Request) {
   // --- Price the slip from the board, not from the client -----------------
   // Resolved through the same function the details page uses, so every market
   // a player can see is a market this endpoint will honour.
-  const resolved = await Promise.all([...matchIds].map((id) => getMatchDetail(id)));
+  const resolved = await Promise.all([...matchIds].map((id) => getMatchDetail(id, { fresh: true })));
   const byId = new Map(resolved.filter((m) => m !== null).map((m) => [m.id, m]));
 
   const priced: PricedLeg[] = [];

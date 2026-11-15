@@ -86,7 +86,7 @@ function HeaderActions({ onOpenAccount }: { onOpenAccount: () => void }) {
     let alive = true;
     const tick = async () => {
       try {
-        const res = await fetch(`/api/me?userId=${player.id}`);
+        const res = await fetch(`/api/me?userId=${player.id}&lite=1`);
         if (res.status === 403) {
           const json = await res.json().catch(() => null);
           if (alive && json?.frozen) {
