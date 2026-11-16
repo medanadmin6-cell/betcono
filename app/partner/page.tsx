@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Shield } from "lucide-react";
+import { MessageCircle, Phone, Shield } from "lucide-react";
 import { WalletPanel } from "@/components/partner/WalletPanel";
 import { copyText } from "@/lib/clipboard";
 import { formatMoney, getCountry } from "@/lib/countries";
@@ -60,6 +60,8 @@ interface Dashboard {
   overview: OverviewStats | null;
   /** This partner's share of each deposit, as a fraction. */
   commissionRate?: number;
+  supportPhone: string | null;
+  supportWhatsapp: string | null;
 }
 
 export default function PartnerPage() {
@@ -229,6 +231,11 @@ function PartnerDashboard({ data, onReload }: { data: Dashboard; onReload: () =>
   const [minimumNote, setMinimumNote] = useState<string | null>(null);
   const [minimumError, setMinimumError] = useState<string | null>(null);
   const [savingMinimum, setSavingMinimum] = useState(false);
+  const [supportPhone, setSupportPhone] = useState(data.supportPhone ?? "");
+  const [supportWhatsapp, setSupportWhatsapp] = useState(data.supportWhatsapp ?? "");
+  const [supportNote, setSupportNote] = useState<string | null>(null);
+  const [supportError, setSupportError] = useState<string | null>(null);
+  const [savingSupport, setSavingSupport] = useState(false);
   const [payout, setPayout] = useState({
     payout_name: partner.payout_name ?? "",
     payout_network: partner.payout_network ?? "",
@@ -263,6 +270,34 @@ function PartnerDashboard({ data, onReload }: { data: Dashboard; onReload: () =>
       setMinimumError("Network problem. Try again.");
     } finally {
       setSavingMinimum(false);
+    }
+  };
+
+  const saveSupport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingSupport(true);
+    setSupportNote(null);
+    setSupportError(null);
+    try {
+      const res = await fetch("/api/partner/dashboard", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          support_phone: supportPhone,
+          support_whatsapp: supportWhatsapp,
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setSupportError(json.error ?? "Could not save the support numbers");
+        return;
+      }
+      setSupportNote("Saved.");
+      onReload();
+    } catch {
+      setSupportError("Network problem. Try again.");
+    } finally {
+      setSavingSupport(false);
     }
   };
 
@@ -407,6 +442,48 @@ function PartnerDashboard({ data, onReload }: { data: Dashboard; onReload: () =>
         </button>
         {minimumNote && <p className="mt-2 text-[12px] text-[#9ff611]">{minimumNote}</p>}
         {minimumError && <p className="mt-2 text-[12px] text-[#ff8d8d]">{minimumError}</p>}
+      </form>
+
+      <form onSubmit={saveSupport} className="rounded-2xl border border-[var(--line)] bg-[var(--bg-elevated)] p-4">
+        <h2 className="text-[18px] font-black text-[var(--text-bright)]">Support channels</h2>
+        <p className="mt-1 text-[13px] leading-relaxed text-[var(--text-muted)]">
+          These numbers are shown to players who registered with your referral code, on the home
+          page and the help screen. Call support dials the phone number. WhatsApp support opens a
+          chat with their name already filled in.
+        </p>
+        <label className="mt-4 block">
+          <span className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-[var(--text-muted)]">
+            <Phone size={13} /> Direct phone call number
+          </span>
+          <input
+            inputMode="tel"
+            value={supportPhone}
+            onChange={(e) => setSupportPhone(e.target.value)}
+            placeholder="e.g. +233 54 123 4567"
+            className="w-full rounded-xl border border-[var(--field-line)] bg-[var(--input)] px-3 py-3 text-[15px] text-[var(--input-ink)] outline-none focus:border-[var(--accent)]"
+          />
+        </label>
+        <label className="mt-3 block">
+          <span className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-[var(--text-muted)]">
+            <MessageCircle size={13} /> WhatsApp support number
+          </span>
+          <input
+            inputMode="tel"
+            value={supportWhatsapp}
+            onChange={(e) => setSupportWhatsapp(e.target.value)}
+            placeholder="e.g. 233541234567"
+            className="w-full rounded-xl border border-[var(--field-line)] bg-[var(--input)] px-3 py-3 text-[15px] text-[var(--input-ink)] outline-none focus:border-[var(--accent)]"
+          />
+        </label>
+        <button
+          type="submit"
+          disabled={savingSupport}
+          className="mt-3 w-full rounded-xl bg-[var(--accent)] py-3 text-[14px] font-black text-[var(--accent-ink)] disabled:opacity-50"
+        >
+          {savingSupport ? "Saving…" : "Save support channels"}
+        </button>
+        {supportNote && <p className="mt-2 text-[12px] text-[var(--accent)]">{supportNote}</p>}
+        {supportError && <p className="mt-2 text-[12px] text-[var(--lose)]">{supportError}</p>}
       </form>
 
       <WalletPanel

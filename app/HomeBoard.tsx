@@ -6,6 +6,7 @@ import { Page } from "@/components/Shell";
 import { MatchList, filterMatches } from "@/components/MatchList";
 import { WinnersTicker } from "@/components/WinnersTicker";
 import { HeroBanner, Shortcuts, SectionHeading, FilterBar } from "@/components/home/Panels";
+import { PartnerSupport } from "@/components/PartnerSupport";
 import { FeaturedMatches } from "@/components/home/FeaturedMatches";
 import { RecommendedCodes } from "@/components/home/RecommendedCodes";
 import { NewsStrip } from "@/components/home/NewsStrip";
@@ -71,6 +72,7 @@ export function HomeBoard() {
       <div className="space-y-4">
         <HeroBanner />
         <Shortcuts />
+        <PartnerSupport />
         <WinnersTicker />
 
         {featured.list.length > 0 && (

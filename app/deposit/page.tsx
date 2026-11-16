@@ -7,6 +7,7 @@ import { ArrowLeft, CircleHelp, Smartphone, Check } from "lucide-react";
 import { useSession } from "@/lib/store";
 import { getCountry, formatMoney, maskPhoneTail } from "@/lib/countries";
 import { Page } from "@/components/Shell";
+import { PartnerSupport } from "@/components/PartnerSupport";
 
 /**
  * The deposit screen.
@@ -376,16 +377,7 @@ export default function DepositPage() {
               <CircleHelp size={13} strokeWidth={2} />
               How deposits work
             </Link>
-            {whatsapp && (
-              <a
-                href={`https://wa.me/${whatsapp.replace(/\D/g, "")}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[var(--accent)]"
-              >
-                Payment problem? Chat on WhatsApp
-              </a>
-            )}
+            <PartnerSupport fallbackWhatsapp={whatsapp} />
           </div>
         </div>
       </div>

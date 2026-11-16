@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Page } from "@/components/Shell";
+import { PartnerSupport } from "@/components/PartnerSupport";
 import { TIERS } from "@/lib/tiers";
 
 export const metadata = { title: "How to play | Pep Stake" };
@@ -91,20 +92,7 @@ export default function HowToPlayPage() {
             The help button on any screen answers the common questions. For anything it cannot
             settle, reach a person:
           </p>
-          {whatsapp ? (
-            <a
-              href={`https://wa.me/${whatsapp.replace(/\D/g, "")}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-2 inline-block rounded bg-[var(--accent)] px-5 py-2.5 text-[13px] font-black text-[var(--accent-ink)]"
-            >
-              Message us on WhatsApp
-            </a>
-          ) : (
-            <p className="text-[var(--text-faint)]">
-              A support line is not configured on this deployment yet.
-            </p>
-          )}
+          <PartnerSupport fallbackWhatsapp={whatsapp} className="mt-2" />
         </Section>
 
         <Section title="Playing responsibly">

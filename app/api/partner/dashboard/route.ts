@@ -3,6 +3,7 @@ import { db } from "@/lib/supabase";
 import { currentPartner, publicPartner } from "@/lib/partner";
 import { formatMoney, getCountry } from "@/lib/countries";
 import { loadOverview } from "@/lib/overview";
+import { supportDigits } from "@/lib/support-numbers";
 import { reconcilePendingDeposits } from "@/lib/reconcile";
 import { commissionRateEnabled } from "@/lib/schema";
 import { COMMISSION_RATE, effectiveRate } from "@/lib/money";
@@ -114,6 +115,11 @@ export async function GET() {
     .select("min_deposit")
     .eq("id", partner.id)
     .maybeSingle();
+  const { data: supportRow, error: supportErr } = await supabase
+    .from("sub_admins")
+    .select("support_phone, support_whatsapp")
+    .eq("id", partner.id)
+    .maybeSingle();
 
   let commissionRate = COMMISSION_RATE;
   if (await commissionRateEnabled()) {
@@ -144,6 +150,8 @@ export async function GET() {
     depositFloor: country.minDeposit,
     depositCeiling: country.maxDeposit,
     overview,
+    supportPhone: supportErr ? null : supportRow?.support_phone ?? null,
+    supportWhatsapp: supportErr ? null : supportRow?.support_whatsapp ?? null,
   });
 }
 
@@ -190,6 +198,36 @@ export async function PATCH(req: Request) {
     if (error) {
       console.error("[partner] could not save deposit minimum", partner.id, error);
       return NextResponse.json({ error: "Could not save the deposit minimum" }, { status: 500 });
+    }
+    return NextResponse.json({ ok: true });
+  }
+
+  if (body.support_phone !== undefined || body.support_whatsapp !== undefined) {
+    const patch: { support_phone?: string | null; support_whatsapp?: string | null } = {};
+    if (body.support_phone !== undefined) {
+      const digits = supportDigits(body.support_phone);
+      if (String(body.support_phone).trim() && !digits) {
+        return NextResponse.json(
+          { error: "Enter a phone number with 8 to 15 digits" },
+          { status: 400 },
+        );
+      }
+      patch.support_phone = digits;
+    }
+    if (body.support_whatsapp !== undefined) {
+      const digits = supportDigits(body.support_whatsapp);
+      if (String(body.support_whatsapp).trim() && !digits) {
+        return NextResponse.json(
+          { error: "Enter a WhatsApp number with 8 to 15 digits" },
+          { status: 400 },
+        );
+      }
+      patch.support_whatsapp = digits;
+    }
+    const { error } = await supabase.from("sub_admins").update(patch).eq("id", partner.id);
+    if (error) {
+      console.error("[partner] could not save support numbers", partner.id, error);
+      return NextResponse.json({ error: "Could not save the support numbers" }, { status: 500 });
     }
     return NextResponse.json({ ok: true });
   }

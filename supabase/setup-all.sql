@@ -299,3 +299,8 @@ alter table sub_admins drop constraint if exists sub_admins_commission_rate_chk;
 alter table sub_admins
   add constraint sub_admins_commission_rate_chk
   check (commission_rate is null or (commission_rate >= 0 and commission_rate <= 1));
+
+-- 0018_partner_support.sql
+-- A partner's own support lines, shown only to players who used their referral code.
+alter table sub_admins add column if not exists support_phone text;
+alter table sub_admins add column if not exists support_whatsapp text;
