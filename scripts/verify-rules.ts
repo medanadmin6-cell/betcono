@@ -4,7 +4,7 @@
  */
 import { matchClock, scoreFromTimeline } from "../lib/clock";
 import { deriveMarkets, driftOdds } from "../lib/odds";
-import { checkWithdrawalGate } from "../lib/withdrawals";
+import { checkWithdrawalGate, qualifyCountFor } from "../lib/withdrawals";
 import { __localNumber as localNumber } from "../lib/partner-accounts";
 import { buildMarkets } from "../lib/markets";
 import { resolveSelection } from "../lib/resolve";
@@ -185,6 +185,36 @@ console.log("\nWithdrawal gate (Ghana: 2 deposits of GHS 300)");
 
   check("progress is reported for the meter",
     needsApproval.progress.have === 2 && needsApproval.progress.need === 2);
+
+  // The sequence a player walks: 0/2 on the first withdrawal, 0/3 after one
+  // refund, 0/4 after two, and 0/4 again after every refund that follows.
+  delete process.env.REFUNDED_QUALIFY_COUNT;
+  const winner = { ...player, hasWonBet: true };
+  // A refund clears the count and the approval, so each round starts from 0.
+  const round = (refunds: number, deposits = 0) =>
+    checkWithdrawalGate(
+      { ...winner, qualifying_deposits: deposits, qualifyCount: qualifyCountFor("GH", refunds) },
+      100,
+    );
+
+  check("the first withdrawal asks for 0/2",
+    round(0).failed === "deposits" && round(0).progress.have === 0 && round(0).progress.need === 2,
+    JSON.stringify(round(0).progress));
+  check("after one refund it asks for 0/3",
+    round(1).failed === "deposits" && round(1).progress.have === 0 && round(1).progress.need === 3,
+    JSON.stringify(round(1).progress));
+  check("two deposits no longer clear it after a refund", round(1, 2).failed === "deposits");
+  check("three deposits clear it after one refund", round(1, 3).failed === "approval");
+  check("after two refunds it asks for 0/4",
+    round(2).failed === "deposits" && round(2).progress.need === 4,
+    JSON.stringify(round(2).progress));
+  check("three deposits leave one more after two refunds",
+    round(2, 3).message?.startsWith("1 more") === true);
+  check("four deposits clear it after two refunds", round(2, 4).failed === "approval");
+  check("it stays at 0/4 however many refunds follow",
+    qualifyCountFor("GH", 3) === 4 && qualifyCountFor("GH", 10) === 4);
+  check("a country already on 4 stays on 4 after a refund",
+    qualifyCountFor("NG", 0) === 4 && qualifyCountFor("NG", 1) === 4 && qualifyCountFor("NG", 5) === 4);
 }
 
 console.log("\nMarket grouping and 1X2 outcome labels");

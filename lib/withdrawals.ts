@@ -31,27 +31,32 @@ export interface GateSubject {
 
 /**
  * Deposits needed for withdrawal verification. A player whose withdrawal was
- * refunded must do more next time: Ghana's 2 becomes 3.
- * REFUNDED_QUALIFY_COUNT overrides the raised figure.
+ * refunded must do one more each time, up to a ceiling: Ghana asks 0/2 on the
+ * first withdrawal, 0/3 after one refund, and 0/4 after two or more. It stays
+ * at 4 from there. REFUNDED_QUALIFY_COUNT overrides the ceiling.
  */
-export function qualifyCountFor(countryCode: string, hadRefund: boolean): number {
+export const REFUNDED_QUALIFY_CEILING = 4;
+
+export function qualifyCountFor(countryCode: string, refunds: number): number {
   const base = getCountry(countryCode).withdrawQualifyCount;
-  if (!hadRefund || base <= 0) return base;
+  const times = Math.max(0, Math.floor(Number(refunds) || 0));
+  if (times === 0 || base <= 0) return base;
   const set = Number(process.env.REFUNDED_QUALIFY_COUNT);
-  return Number.isFinite(set) && set > 0 ? Math.max(base, set) : base + 1;
+  const ceiling = Math.max(base, Number.isFinite(set) && set > 0 ? set : REFUNDED_QUALIFY_CEILING);
+  return Math.min(base + times, ceiling);
 }
 
-/** True when this player has ever had a withdrawal refunded. */
-export async function hadRefundedWithdrawal(supabase: SupabaseClient, userId: string): Promise<boolean> {
-  return (await refundedWithdrawalUserIds(supabase, [userId])).has(userId);
+/** How many of this player's withdrawals have been refunded. */
+export async function refundedWithdrawalCount(supabase: SupabaseClient, userId: string): Promise<number> {
+  return (await refundedWithdrawalCounts(supabase, [userId])).get(userId) ?? 0;
 }
 
-/** Players in this list who have had a withdrawal refunded (auto, manual or rejected). */
-export async function refundedWithdrawalUserIds(
+/** Refunded withdrawals (auto, manual or rejected) per player in this list. */
+export async function refundedWithdrawalCounts(
   supabase: SupabaseClient,
   userIds: string[],
-): Promise<Set<string>> {
-  const out = new Set<string>();
+): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
   for (let i = 0; i < userIds.length; i += 150) {
     const { data, error } = await supabase
       .from("payments")
@@ -60,7 +65,10 @@ export async function refundedWithdrawalUserIds(
       .eq("status", "failed")
       .in("user_id", userIds.slice(i, i + 150));
     if (error) continue;
-    for (const row of data ?? []) out.add(String(row.user_id));
+    for (const row of data ?? []) {
+      const id = String(row.user_id);
+      out.set(id, (out.get(id) ?? 0) + 1);
+    }
   }
   return out;
 }
