@@ -62,7 +62,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
     items: [
       { href: "/admin/sub-admins", label: "Partners", Icon: Handshake, hint: "Approval and commission" },
       { href: "/admin/commission", label: "Commission %", Icon: Percent, hint: "Set each partner's share" },
-      { href: "/admin/settings", label: "Settings", Icon: Settings, hint: "Operator-editable values" },
+      { href: "/admin/settings", label: "Settings", Icon: Settings, hint: "Support numbers and configuration" },
     ],
   },
 ];

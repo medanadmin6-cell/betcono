@@ -13,6 +13,7 @@ import {
 import { subAdminIndex, isSubAdminAccount } from "@/lib/partner-accounts";
 import { isFrozen, freezeEnabled, FROZEN_MESSAGE } from "@/lib/schema";
 import { supportDigits } from "@/lib/support-numbers";
+import { platformSupport } from "@/lib/platform-support";
 
 /** How often the light poll bothers to look for a player's stale withdrawals. */
 const LITE_SWEEP_MS = 120_000;
@@ -139,7 +140,9 @@ export async function GET(req: Request) {
   const tierPoints = (stakedRes.data ?? []).reduce((sum, b) => sum + Number(b.stake), 0);
   const partner = partnerRes.data;
 
-  let support: { phone: string | null; whatsapp: string | null } | null = null;
+  const platform = await platformSupport(supabase);
+  let phone = platform.phone;
+  let whatsapp = platform.whatsapp;
   if (user.referred_by) {
     const { data: lines, error: linesErr } = await supabase
       .from("sub_admins")
@@ -147,11 +150,11 @@ export async function GET(req: Request) {
       .eq("id", user.referred_by)
       .maybeSingle();
     if (!linesErr && lines) {
-      const phone = supportDigits(lines.support_phone);
-      const whatsapp = supportDigits(lines.support_whatsapp);
-      if (phone || whatsapp) support = { phone, whatsapp };
+      phone = supportDigits(lines.support_phone) ?? phone;
+      whatsapp = supportDigits(lines.support_whatsapp) ?? whatsapp;
     }
   }
+  const support = phone || whatsapp ? { phone, whatsapp } : null;
 
   return NextResponse.json({
     user,

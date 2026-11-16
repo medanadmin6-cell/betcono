@@ -25,18 +25,17 @@ export function PartnerSupport({
   const [lines, setLines] = useState<Lines | null>(null);
 
   useEffect(() => {
-    if (!player) {
-      setLines(null);
-      return;
-    }
     let alive = true;
-    fetch(`/api/me?userId=${encodeURIComponent(player.id)}`)
+    const url = player ? `/api/me?userId=${encodeURIComponent(player.id)}` : "/api/support";
+    fetch(url)
       .then((res) => (res.ok ? res.json() : null))
       .then((json) => {
-        if (!alive) return;
-        const phone = supportDigits(json?.support?.phone);
-        const whatsapp = supportDigits(json?.support?.whatsapp);
-        setLines({ phone, whatsapp });
+        if (!alive || !json) return;
+        const source = player ? json.support : json;
+        setLines({
+          phone: supportDigits(source?.phone),
+          whatsapp: supportDigits(source?.whatsapp),
+        });
       })
       .catch(() => {
         if (alive) setLines({ phone: null, whatsapp: null });
