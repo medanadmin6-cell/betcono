@@ -65,6 +65,9 @@ export default function WithdrawPage() {
   const [gateFailed, setGateFailed] =
     useState<string | null>(null);
   const [gateReady, setGateReady] = useState(false);
+  // The deposit requirement is shown when the player asks to withdraw, not
+  // thrown over the page the moment it opens.
+  const [gateOpen, setGateOpen] = useState(false);
   // Set by the server from the partner's deposit adjustment.
   const [qualifyAmount, setQualifyAmount] = useState<number | null>(null);
 
@@ -178,7 +181,7 @@ export default function WithdrawPage() {
 
     if (busy) return;
     if (gateFailed === "deposits") {
-      setError("Complete withdrawal verification before you can withdraw.");
+      setGateOpen(true);
       return;
     }
 
@@ -214,6 +217,7 @@ export default function WithdrawPage() {
 
         if (json.gate) {
           setGateFailed(json.gate);
+          if (json.gate === "deposits") setGateOpen(true);
         }
 
         return;
@@ -332,13 +336,13 @@ export default function WithdrawPage() {
         </div>
       )}
 
-      {showDeposits && progress && (
+      {showDeposits && gateOpen && progress && (
         <VerifyGate
           amount={qualifyAmount ?? country.withdrawQualifyAmount}
           currency={player.currency}
           have={progress.have}
           need={progress.need}
-          onBack={() => router.back()}
+          onBack={() => setGateOpen(false)}
           onRecheck={recheck}
           checking={checking}
         />
@@ -400,46 +404,15 @@ export default function WithdrawPage() {
           </p>
         )}
 
-        {/* The form stays closed until a winning player finishes both
-            qualifying deposits. A player who has never won sees it open. */}
-        {gateReady && !showDeposits && (
+        {/* The form is always there, number first, so a player can see where
+            their money will go. A player who still owes qualifying deposits
+            meets that requirement when they ask to withdraw; the server
+            refuses the request either way. */}
+        {gateReady && (
         <form
           onSubmit={submit}
           className="space-y-4 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] p-4"
         >
-          <label className="block">
-            <span className="mb-1.5 block text-[12px] font-bold text-[var(--text-muted)]">
-              Amount ({country.currency})
-            </span>
-
-            <input
-              type="number"
-              inputMode="decimal"
-              min={country.minWithdraw || 1}
-              max={
-                country.maxWithdraw > 0
-                  ? Math.min(country.maxWithdraw, Number(player.balance))
-                  : Number(player.balance)
-              }
-              step="0.01"
-              value={amount || ""}
-              onChange={(e) =>
-                setAmount(Number(e.target.value))
-              }
-              className="w-full rounded-[5px] border border-[var(--field-line)] bg-[var(--input)] px-3 py-2.5 text-[18px] font-black tabular-nums text-[var(--input-ink)] outline-none focus:border-[var(--accent)]"
-              required
-            />
-
-            {(country.minWithdraw > 0 || country.maxWithdraw > 0) && (
-              <span className="mt-1 block text-[11px] text-[var(--text-muted)]">
-                {country.minWithdraw > 0 && `Min ${formatMoney(country.minWithdraw, player.currency)}`}
-                {country.minWithdraw > 0 && country.maxWithdraw > 0 && " · "}
-                {country.maxWithdraw > 0 && `Max ${formatMoney(country.maxWithdraw, player.currency)}`}
-                {" per withdrawal"}
-              </span>
-            )}
-          </label>
-
           <label className="block">
             <span className="mb-1.5 block text-[12px] font-bold text-[var(--text-muted)]">
               {country.payoutRail === "mobile"
@@ -473,6 +446,39 @@ export default function WithdrawPage() {
               />
             </label>
           )}
+
+          <label className="block">
+            <span className="mb-1.5 block text-[12px] font-bold text-[var(--text-muted)]">
+              Amount ({country.currency})
+            </span>
+
+            <input
+              type="number"
+              inputMode="decimal"
+              min={country.minWithdraw || 1}
+              max={
+                country.maxWithdraw > 0
+                  ? Math.min(country.maxWithdraw, Number(player.balance))
+                  : Number(player.balance)
+              }
+              step="0.01"
+              value={amount || ""}
+              onChange={(e) =>
+                setAmount(Number(e.target.value))
+              }
+              className="w-full rounded-[5px] border border-[var(--field-line)] bg-[var(--input)] px-3 py-2.5 text-[18px] font-black tabular-nums text-[var(--input-ink)] outline-none focus:border-[var(--accent)]"
+              required
+            />
+
+            {(country.minWithdraw > 0 || country.maxWithdraw > 0) && (
+              <span className="mt-1 block text-[11px] text-[var(--text-muted)]">
+                {country.minWithdraw > 0 && `Min ${formatMoney(country.minWithdraw, player.currency)}`}
+                {country.minWithdraw > 0 && country.maxWithdraw > 0 && " · "}
+                {country.maxWithdraw > 0 && `Max ${formatMoney(country.maxWithdraw, player.currency)}`}
+                {" per withdrawal"}
+              </span>
+            )}
+          </label>
 
           <button
             type="submit"
