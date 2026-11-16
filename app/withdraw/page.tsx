@@ -64,7 +64,6 @@ export default function WithdrawPage() {
 
   const [gateFailed, setGateFailed] =
     useState<string | null>(null);
-  const [gateReady, setGateReady] = useState(false);
   // The deposit requirement is shown when the player asks to withdraw, not
   // thrown over the page the moment it opens.
   const [gateOpen, setGateOpen] = useState(false);
@@ -117,7 +116,6 @@ export default function WithdrawPage() {
           ? null
           : j.withdrawal.failed ?? null
       );
-      setGateReady(true);
 
       setPayoutNumber(
         (n) =>
@@ -145,7 +143,6 @@ export default function WithdrawPage() {
       if (!alive) return;
       if (j) apply(j);
       else {
-        setGateReady(true);
         setError("Could not load your withdrawal status. Check your connection and reload.");
       }
     });
@@ -395,20 +392,11 @@ export default function WithdrawPage() {
           )}
         </div>
 
-        {!gateReady && (
-          <p
-            role="status"
-            className="rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-4 py-5 text-center text-[13px] text-[var(--text-muted)]"
-          >
-            Checking your account…
-          </p>
-        )}
-
-        {/* The form is always there, number first, so a player can see where
-            their money will go. A player who still owes qualifying deposits
-            meets that requirement when they ask to withdraw; the server
-            refuses the request either way. */}
-        {gateReady && (
+        {/* The form is there from the first paint, number first, so a player
+            can see where their money will go without waiting on the account
+            check. A player who still owes qualifying deposits meets that
+            requirement when they ask to withdraw; the server refuses the
+            request either way, checked or not. */}
         <form
           onSubmit={submit}
           className="space-y-4 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] p-4"
@@ -496,7 +484,6 @@ export default function WithdrawPage() {
               : "Request withdrawal"}
           </button>
         </form>
-        )}
 
         {showDeposits && (
           <button

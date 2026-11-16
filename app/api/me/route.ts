@@ -61,34 +61,57 @@ export async function GET(req: Request) {
     return NextResponse.json({ user: { id: lite.id, balance: lite.balance } });
   }
 
-  // Unpaid withdrawals past the refund window go back to the wallet before
-  // the balance is read, so the player sees the refund on this poll.
-  await refundStaleWithdrawals(supabase, userId).catch((e) =>
-    console.error("[withdrawal] sweep failed", e),
-  );
+  // These lookups used to run one after another, seven round trips before the
+  // withdraw page could show anything. They do not depend on each other, so
+  // they now go out together.
+  //
+  // Only the sweep has an order: unpaid withdrawals past the refund window go
+  // back to the wallet before the balance and the refund count are read, so
+  // the player sees the refund on this poll.
+  const account = (async () => {
+    await refundStaleWithdrawals(supabase, userId).catch((e) =>
+      console.error("[withdrawal] sweep failed", e),
+    );
+    const [found, frozen, refunds] = await Promise.all([
+      supabase
+        .from("users")
+        .select(
+          "id, name, phone, email, country_code, currency, balance, total_deposited, total_withdrawn, verification_step, qualifying_deposits, withdrawal_approved, payout_number, payout_bank, bonus_paid, referred_by, created_at",
+        )
+        .eq("id", userId)
+        .maybeSingle(),
+      isFrozen(userId),
+      refundedWithdrawalCount(supabase, userId),
+    ]);
+    // The partner's deposit adjustment needs the referrer off the player row.
+    const partnerMin = found.data ? await partnerMinimum(supabase, found.data.referred_by) : null;
+    return { found, frozen, refunds, partnerMin };
+  })();
 
-  const { data: user, error } = await supabase
-    .from("users")
-    .select(
-      "id, name, phone, email, country_code, currency, balance, total_deposited, total_withdrawn, verification_step, qualifying_deposits, withdrawal_approved, payout_number, payout_bank, bonus_paid, referred_by, created_at",
-    )
-    .eq("id", userId)
-    .maybeSingle();
+  const [{ found, frozen, refunds, partnerMin }, index, hasWonBet, stakedRes, partnerRes] =
+    await Promise.all([
+      account,
+      subAdminIndex(),
+      playerHasWonBet(supabase, userId),
+      // Tier points come from turnover, so they are summed off the stakes.
+      supabase.from("bets").select("stake").eq("user_id", userId),
+      // A partner betting on their own account sees a way back to the dashboard.
+      supabase
+        .from("sub_admins")
+        .select("id, referral_code, approved")
+        .eq("user_id", userId)
+        .maybeSingle(),
+    ]);
 
+  const { data: user, error } = found;
   if (error || !user) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (await isFrozen(user.id)) {
+  if (frozen) {
     return NextResponse.json({ error: FROZEN_MESSAGE, frozen: true }, { status: 403 });
   }
 
   const country = getCountry(user.country_code);
   // Only a sub-admin account skips deposit verification. An admin cookie
   // does not unlock a different player's withdrawal.
-  const [index, hasWonBet, partnerMin, refunds] = await Promise.all([
-    subAdminIndex(),
-    playerHasWonBet(supabase, user.id),
-    partnerMinimum(supabase, user.referred_by),
-    refundedWithdrawalCount(supabase, user.id),
-  ]);
 
   let depositMin = country.minDeposit;
   let firstDepositMin = country.minFirstDeposit;
@@ -112,16 +135,8 @@ export async function GET(req: Request) {
     0,
   );
 
-  // Tier points come from turnover, so they are summed off the stakes.
-  const { data: staked } = await supabase.from("bets").select("stake").eq("user_id", user.id);
-  const tierPoints = (staked ?? []).reduce((sum, b) => sum + Number(b.stake), 0);
-
-  // A partner betting on their own account sees a way back to the dashboard.
-  const { data: partner } = await supabase
-    .from("sub_admins")
-    .select("id, referral_code, approved")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const tierPoints = (stakedRes.data ?? []).reduce((sum, b) => sum + Number(b.stake), 0);
+  const partner = partnerRes.data;
 
   return NextResponse.json({
     user,
