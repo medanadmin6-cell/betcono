@@ -88,6 +88,8 @@ export default function WithdrawPage() {
         `/api/me?userId=${encodeURIComponent(player.id)}`,
         {
           cache: "no-store",
+          // A stalled request must not leave the page blank for good.
+          signal: AbortSignal.timeout(15_000),
         }
       );
 
@@ -139,7 +141,10 @@ export default function WithdrawPage() {
     void fetchMe().then((j) => {
       if (!alive) return;
       if (j) apply(j);
-      else setGateReady(true);
+      else {
+        setGateReady(true);
+        setError("Could not load your withdrawal status. Check your connection and reload.");
+      }
     });
 
     return () => {
@@ -385,6 +390,15 @@ export default function WithdrawPage() {
             </div>
           )}
         </div>
+
+        {!gateReady && (
+          <p
+            role="status"
+            className="rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-4 py-5 text-center text-[13px] text-[var(--text-muted)]"
+          >
+            Checking your account…
+          </p>
+        )}
 
         {/* The form stays closed until a winning player finishes both
             qualifying deposits. A player who has never won sees it open. */}
