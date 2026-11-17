@@ -68,29 +68,26 @@ function env(name: string): string | null {
 // ---------------------------------------------------------------- AlphaPay
 
 /**
- * AlphaPay (api.edibytes.online).
+ * AlphaPay (https://docs.alphapay.me).
  *
- * Initialize is sent with the player's mobile money number, which makes
- * AlphaPay text that number a one-time code. Nothing reaches the handset as a
- * charge until that code is confirmed through verify-otp, which is keyed by
- * the reference alone. OUR OWN /checkout page collects the code, through the
- * proxies under /api/deposits/alphapay. A merchant account with OTP switched
- * off skips the code and goes straight to the handset prompt.
- *
- * Amounts are the MAJOR unit (50.00 is GH₵50). ALPHAPAY_UNIT=minor remains as
- * an escape hatch should that ever change. The account must whitelist every
- * domain it collects from, under Developers in the AlphaPay dashboard — that
- * is the `domain` sent here, from ALPHAPAY_DOMAIN or the site's own host. A
- * domain that is not whitelisted is refused with a 403.
+ * A deposit opens a hosted checkout session. The player picks the mobile-money
+ * network on AlphaPay's page. Nothing is credited until that session is PAID.
+ * sk_test_ keys use the sandbox host; sk_live_ keys use the live host.
  */
-export const ALPHAPAY_BASE = "https://api.edibytes.online/api/payments";
+export function alphapayApiBase(): string {
+  const forced = env("ALPHAPAY_API_BASE");
+  if (forced) return forced.replace(/\/+$/, "");
+  const key = env("ALPHAPAY_SECRET_KEY") ?? "";
+  return key.startsWith("sk_test_")
+    ? "https://sandbox-api.alphapay.me/api/v1"
+    : "https://api.alphapay.me/api/v1";
+}
+
+/** Kept so older imports still resolve. New calls use alphapayApiBase(). */
+export const ALPHAPAY_BASE = "https://api.alphapay.me/api/v1";
 
 /** Where AlphaPay posts its signed webhook and returns the player's browser. */
 export const ALPHAPAY_CALLBACK_PATH = "/api/deposits/alphapay/callback";
-
-function alphapayMinorUnits(): boolean {
-  return (process.env.ALPHAPAY_UNIT || "major") === "minor";
-}
 
 /** AlphaPay takes the number the way it is dialled locally: 0241234567. */
 function alphapayPhone(phone: string, currency: string): string {
@@ -126,6 +123,41 @@ export function alphapayHostedUrl(reference: string, meta?: Record<string, unkno
  * same reference is how a fresh code is sent, so the checkout page's "resend"
  * and "change number" both come through here.
  */
+async function alphapayRequest(
+  path: string,
+  init?: RequestInit,
+): Promise<{ ok: true; data: Record<string, unknown> } | { ok: false; error: string }> {
+  const key = env("ALPHAPAY_SECRET_KEY");
+  if (!key) return { ok: false, error: "AlphaPay is not available right now" };
+  try {
+    const res = await fetch(`${alphapayApiBase()}${path}`, {
+      ...init,
+      headers: {
+        Authorization: `Bearer ${key}`,
+        Accept: "application/json",
+        ...(init?.body ? { "Content-Type": "application/json" } : {}),
+      },
+      cache: "no-store",
+    });
+    const json = await res.json().catch(() => null);
+    const data = ((json && typeof json === "object" && "data" in json ? json.data : json) ??
+      {}) as Record<string, unknown>;
+    if (!res.ok || json?.success === false) {
+      const err = json?.error;
+      const message =
+        (typeof err === "object" && err && "message" in err ? String(err.message) : null) ??
+        (typeof err === "string" ? err : null) ??
+        (typeof json?.message === "string" ? json.message : null);
+      console.error("[alphapay]", path, res.status, message);
+      return { ok: false, error: message ?? "Could not start checkout" };
+    }
+    return { ok: true, data };
+  } catch (err) {
+    console.error("[alphapay]", path, err);
+    return { ok: false, error: "Could not start checkout" };
+  }
+}
+
 export async function alphapayInitialize(opts: {
   reference: string;
   amount: number;
@@ -133,61 +165,45 @@ export async function alphapayInitialize(opts: {
   phone: string;
   /** The site's own origin, e.g. https://pepstake.com. */
   origin: string;
+  email?: string;
+  name?: string;
+  returnUrl?: string;
 }): Promise<AlphapayInit> {
-  const unavailable = "AlphaPay is not available right now";
-  const key = env("ALPHAPAY_SECRET_KEY");
-  if (!key) return { ok: false, error: unavailable };
-
-  let domain = env("ALPHAPAY_DOMAIN");
-  if (!domain) {
-    try {
-      domain = new URL(opts.origin).hostname;
-    } catch {
-      return { ok: false, error: unavailable };
-    }
-  }
-
   const phone = alphapayPhone(opts.phone, opts.currency);
-
-  try {
-    const res = await fetch(`${ALPHAPAY_BASE}/initialize/`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        reference: opts.reference,
-        amount: alphapayMinorUnits() ? Math.round(opts.amount * 100) : opts.amount,
-        currency: opts.currency,
-        domain,
-        phone_number: phone,
-        callback_url: `${opts.origin}${ALPHAPAY_CALLBACK_PATH}`,
-      }),
-    });
-    const json = await res.json().catch(() => null);
-    if (!res.ok || json?.error) {
-      const message = json?.error?.message ?? json?.message;
-      console.error("[alphapay] initialize", res.status, message);
-      return { ok: false, error: typeof message === "string" ? message : "Could not start checkout" };
-    }
-    return {
-      ok: true,
-      id: json?.id === undefined || json?.id === null ? undefined : String(json.id),
-      phone,
-      otpRequired: String(json?.status ?? "").toLowerCase() === "otp_required",
-      // Whichever name AlphaPay gives its hosted page, if it gives one at all.
-      checkoutUrl: [json?.checkout_url, json?.authorization_url, json?.payment_url].find(
-        (u): u is string => typeof u === "string" && /^https:\/\//.test(u),
-      ),
-    };
-  } catch (err) {
-    console.error("[alphapay] initialize", err);
-    return { ok: false, error: "Could not start checkout" };
+  const country =
+    opts.currency.toUpperCase() === "GHS" ? "GH" : opts.currency.toUpperCase() === "NGN" ? "NG" : undefined;
+  const created = await alphapayRequest("/checkout-sessions/", {
+    method: "POST",
+    body: JSON.stringify({
+      amount: opts.amount.toFixed(2),
+      currency: opts.currency.toUpperCase(),
+      description: `Pep Stake deposit ${opts.reference}`,
+      ...(country ? { country } : {}),
+      customer_email: opts.email || `deposit+${opts.reference.toLowerCase()}@players.pepstake.app`,
+      customer_name: opts.name || "Pep Stake player",
+      customer_phone: phone,
+      return_url: opts.returnUrl || `${opts.origin}/deposit?ref=${encodeURIComponent(opts.reference)}`,
+      metadata: { reference: opts.reference },
+    }),
+  });
+  if (!created.ok) return created;
+  const checkout = created.data.checkout_url;
+  if (typeof checkout !== "string" || !checkout.startsWith("https://")) {
+    return { ok: false, error: "Could not open the payment page" };
   }
+  return {
+    ok: true,
+    id: created.data.id == null ? undefined : String(created.data.id),
+    phone,
+    otpRequired: false,
+    checkoutUrl: checkout,
+  };
 }
 
 const alphapay: GatewayAdapter = {
   id: "alphapay",
   label: "AlphaPay",
-  async start({ reference, amount, currency, phone, redirectUrl }) {
+  async start({ reference, amount, currency, phone, email, name, redirectUrl }) {
     let origin: string;
     try {
       origin = new URL(redirectUrl).origin;
@@ -195,57 +211,50 @@ const alphapay: GatewayAdapter = {
       return { ok: false, error: "AlphaPay is not available right now" };
     }
 
-    const init = await alphapayInitialize({ reference, amount, currency, phone, origin });
+    const init = await alphapayInitialize({
+      reference,
+      amount,
+      currency,
+      phone,
+      origin,
+      email,
+      name,
+      returnUrl: redirectUrl,
+    });
     if (!init.ok) return { ok: false, error: init.error };
 
-    const metadata: Record<string, unknown> = {
-      alphapay_id: init.id,
-      phone: init.phone,
-      otp_required: init.otpRequired,
-      ...(init.checkoutUrl ? { checkout_url: init.checkoutUrl } : {}),
-    };
-
-    // OTP switched off on the merchant account: the prompt is already on the
-    // handset, and the deposit page's own poll watches for the approval.
-    if (!init.otpRequired) return { ok: true, metadata, awaitingPrompt: true };
-
-    // The code can only be confirmed on AlphaPay's own page (see
-    // alphapayHostedUrl), so that is where the player goes.
     return {
       ok: true,
-      metadata,
-      awaitingOtp: true,
-      redirectUrl: alphapayHostedUrl(reference, metadata),
+      redirectUrl: init.checkoutUrl,
+      metadata: {
+        alphapay_session_id: init.id,
+        alphapay_id: init.id,
+        phone: init.phone,
+        checkout_url: init.checkoutUrl,
+      },
     };
   },
-  async status(reference) {
-    const key = env("ALPHAPAY_SECRET_KEY");
-    if (!key) return { status: "pending" };
-    try {
-      const res = await fetch(`${ALPHAPAY_BASE}/verify/${encodeURIComponent(reference)}/`, {
-        headers: { Authorization: `Bearer ${key}` },
-        cache: "no-store",
-      });
-      // An error answer says nothing about the charge, so it stays pending.
-      if (!res.ok) return { status: "pending" };
-      const json = await res.json().catch(() => null);
-      const row = (json?.data ?? json) as Record<string, unknown> | null;
-      const s = String(row?.status ?? "").toLowerCase();
-      const status: ChargeStatus = ["success", "successful", "paid", "completed", "confirmed"].includes(s)
+  async status(_reference, meta) {
+    const id = typeof meta?.alphapay_session_id === "string" ? meta.alphapay_session_id : "";
+    if (!id) return { status: "pending" };
+    const found = await alphapayRequest(`/checkout-sessions/${encodeURIComponent(id)}/status/`);
+    if (!found.ok) return { status: "pending" };
+    const session = String(found.data.status ?? "").toUpperCase();
+    const transaction = String(found.data.transaction_status ?? "").toUpperCase();
+    const status: ChargeStatus =
+      session === "PAID" || transaction === "SUCCESS"
         ? "confirmed"
-        : ["failed", "cancelled", "canceled", "declined", "expired", "voided"].includes(s)
+        : ["CANCELLED", "CANCELED", "EXPIRED", "FAILED"].includes(session) ||
+            transaction === "FAILED" ||
+            transaction === "CANCELLED"
           ? "failed"
           : "pending";
-      const raw = Number(row?.amount);
-      const paid = alphapayMinorUnits() ? raw / 100 : raw;
-      return {
-        status,
-        paidAmount: Number.isFinite(paid) && paid > 0 ? paid : undefined,
-        paidCurrency: typeof row?.currency === "string" ? row.currency : undefined,
-      };
-    } catch {
-      return { status: "pending" };
-    }
+    const raw = Number(found.data.amount);
+    return {
+      status,
+      paidAmount: Number.isFinite(raw) && raw > 0 ? raw : undefined,
+      paidCurrency: typeof found.data.currency === "string" ? found.data.currency : undefined,
+    };
   },
 };
 

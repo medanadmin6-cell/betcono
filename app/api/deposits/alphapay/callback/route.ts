@@ -18,10 +18,15 @@ export const dynamic = "force-dynamic";
  * credit.
  */
 
-function signatureMatches(raw: string, header: string | null): boolean {
-  const key = process.env.ALPHAPAY_SECRET_KEY;
-  if (!key || !header) return false;
-  const expected = createHmac("sha256", key).update(raw).digest("hex");
+function signatureMatches(raw: string, header: string | null, timestamp: string | null): boolean {
+  const secret = process.env.ALPHAPAY_WEBHOOK_SECRET || process.env.ALPHAPAY_SECRET_KEY;
+  if (!secret || !header) return false;
+  if (timestamp) {
+    const age = Math.abs(Math.floor(Date.now() / 1000) - Number(timestamp));
+    if (!Number.isFinite(age) || age > 300) return false;
+  }
+  const signed = timestamp ? `${timestamp}.${raw}` : raw;
+  const expected = createHmac("sha256", secret).update(signed).digest("hex");
   const given = header.trim().toLowerCase().replace(/^sha256=/, "");
   const a = Buffer.from(given);
   const b = Buffer.from(expected);
@@ -34,7 +39,13 @@ export async function POST(req: Request) {
 
   // The signature is checked over the raw body before anything is read out of it.
   const raw = await req.text();
-  if (!signatureMatches(raw, req.headers.get("x-alphapay-signature"))) {
+  if (
+    !signatureMatches(
+      raw,
+      req.headers.get("x-webhook-signature") ?? req.headers.get("x-alphapay-signature"),
+      req.headers.get("x-webhook-timestamp"),
+    )
+  ) {
     console.warn("[alphapay] webhook rejected, bad signature");
     return NextResponse.json({ ok: false }, { status: 401 });
   }
@@ -47,7 +58,10 @@ export async function POST(req: Request) {
   }
 
   const data = (event.data ?? {}) as Record<string, unknown>;
-  const reference = typeof data.reference === "string" ? data.reference : "";
+  const nested = (data.metadata ?? {}) as Record<string, unknown>;
+  const reference =
+    (typeof nested.reference === "string" && nested.reference) ||
+    (typeof data.reference === "string" ? data.reference : "");
   if (!reference) return NextResponse.json({ ok: true, ignored: true });
 
   const { data: payment } = await supabase
