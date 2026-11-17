@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { alphapaySessionUrl } from "@/lib/alphapay-url";
 import Image from "next/image";
 import Link from "next/link";
 import { Check, Loader2, MessageSquare, Smartphone } from "lucide-react";
@@ -66,10 +67,10 @@ function CheckoutInner() {
         setPhone(j.phone ?? "");
         if (j.status === "confirmed" || j.status === "resolved") setStage("confirmed");
         else if (j.status === "failed") setStage("failed");
-        else if (j.step === "otp" && typeof j.hostedUrl === "string") {
+        else if (j.step === "otp" && alphapaySessionUrl(j.hostedUrl)) {
           // AlphaPay only accepts the code on its own page now, so a player
           // who lands here with a code still to enter is passed on to it.
-          window.location.replace(j.hostedUrl);
+          window.location.replace(alphapaySessionUrl(j.hostedUrl) as string);
         } else setStage(j.step === "otp" ? "code" : "waiting");
       })
       .catch(() => {

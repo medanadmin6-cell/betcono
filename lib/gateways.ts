@@ -1,4 +1,5 @@
 import { createDecipheriv } from "node:crypto";
+import { alphapaySessionUrl } from "./alphapay-url";
 import type { Gateway } from "./countries";
 
 /**
@@ -111,11 +112,59 @@ export type AlphapayInit =
  * A payment that needs a code therefore finishes on AlphaPay's page, which
  * sends the player back to ALPHAPAY_CALLBACK_PATH when it is done.
  */
-export function alphapayHostedUrl(reference: string, meta?: Record<string, unknown> | null): string {
-  const given = meta?.checkout_url;
-  if (typeof given === "string" && /^https:\/\//.test(given)) return given;
-  const base = (env("ALPHAPAY_CHECKOUT_URL") ?? "https://alphapay.edibytes.online/pay").replace(/\/+$/, "");
-  return `${base}/${encodeURIComponent(reference)}`;
+export function alphapayHostedUrl(_reference: string, meta?: Record<string, unknown> | null): string {
+  return alphapaySessionUrl(meta?.checkout_url) ?? "";
+}
+
+/** Drop anything that could be a secret before a message is shown to a player. */
+function publicAlphapayMessage(raw: string): string {
+  const stripped = raw
+    .replace(/sk_(?:live|test)_[A-Za-z0-9_-]+/gi, "")
+    .replace(/bearer\s+\S+/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!stripped) return "AlphaPay rejected this checkout";
+  return stripped.slice(0, 240);
+}
+
+function pushAlphapayText(parts: string[], value: unknown) {
+  if (typeof value === "string" && value.trim()) parts.push(value.trim());
+  else if (Array.isArray(value)) {
+    for (const item of value) {
+      if (typeof item === "string" && item.trim()) parts.push(item.trim());
+    }
+  }
+}
+
+/**
+ * AlphaPay puts the human text in a few different places. A rejected key is
+ * `{ error: { detail: "..." } }`, a business error is `error.message`, and a
+ * validation error is one array per field.
+ */
+function alphapayErrorMessage(json: unknown, status: number): string {
+  const fallback = status ? `AlphaPay rejected this checkout (HTTP ${status})` : "Could not start checkout";
+  if (!json || typeof json !== "object") return fallback;
+  const body = json as Record<string, unknown>;
+  const parts: string[] = [];
+  const err = body.error;
+  if (typeof err === "string") pushAlphapayText(parts, err);
+  else if (err && typeof err === "object") {
+    const record = err as Record<string, unknown>;
+    pushAlphapayText(parts, record.message);
+    pushAlphapayText(parts, record.detail);
+    for (const [field, value] of Object.entries(record)) {
+      if (field === "message" || field === "code" || field === "detail") continue;
+      if (typeof value === "string" && value.trim()) parts.push(`${field}: ${value.trim()}`);
+      else if (Array.isArray(value)) {
+        const texts = value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+        if (texts.length) parts.push(`${field}: ${texts.join(" ")}`);
+      }
+    }
+  }
+  pushAlphapayText(parts, body.message);
+  if (typeof body.detail === "string") pushAlphapayText(parts, body.detail);
+  const joined = [...new Set(parts)].join(" ");
+  return joined ? publicAlphapayMessage(joined) : fallback;
 }
 
 /**
@@ -143,18 +192,14 @@ async function alphapayRequest(
     const data = ((json && typeof json === "object" && "data" in json ? json.data : json) ??
       {}) as Record<string, unknown>;
     if (!res.ok || json?.success === false) {
-      const err = json?.error;
-      const message =
-        (typeof err === "object" && err && "message" in err ? String(err.message) : null) ??
-        (typeof err === "string" ? err : null) ??
-        (typeof json?.message === "string" ? json.message : null);
+      const message = alphapayErrorMessage(json, res.status);
       console.error("[alphapay]", path, res.status, message);
-      return { ok: false, error: message ?? "Could not start checkout" };
+      return { ok: false, error: message };
     }
     return { ok: true, data };
   } catch (err) {
     console.error("[alphapay]", path, err);
-    return { ok: false, error: "Could not start checkout" };
+    return { ok: false, error: "Could not reach AlphaPay. Try again." };
   }
 }
 
@@ -187,8 +232,8 @@ export async function alphapayInitialize(opts: {
     }),
   });
   if (!created.ok) return created;
-  const checkout = created.data.checkout_url;
-  if (typeof checkout !== "string" || !checkout.startsWith("https://")) {
+  const checkout = alphapaySessionUrl(created.data.checkout_url);
+  if (!checkout) {
     return { ok: false, error: "Could not open the payment page" };
   }
   return {

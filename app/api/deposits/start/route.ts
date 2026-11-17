@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/supabase";
 import { getCountry } from "@/lib/countries";
+import { alphapaySessionUrl } from "@/lib/alphapay-url";
 import { adapterFor, alphapayHostedUrl } from "@/lib/gateways";
 import { paymentReference } from "@/lib/codes";
 import { isFrozen, FROZEN_MESSAGE } from "@/lib/schema";
@@ -107,10 +108,8 @@ export async function POST(req: Request) {
         reference: recent.reference,
         provider: adapter.id,
         redirectUrl: awaitingCode
-          ? alphapayHostedUrl(recent.reference, recentMeta)
-          : typeof recentMeta.checkout_url === "string"
-            ? recentMeta.checkout_url
-            : null,
+          ? alphapayHostedUrl(recent.reference, recentMeta) || null
+          : alphapaySessionUrl(recentMeta.checkout_url),
         awaitingPrompt: !awaitingCode,
         awaitingOtp: awaitingCode,
         reused: true,
