@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, CircleHelp, Smartphone, Check } from "lucide-react";
@@ -15,7 +15,7 @@ import { PartnerSupport } from "@/components/PartnerSupport";
  * The country's configured online gateway. The limits and fee notes at the
  * bottom are read from the same country configuration the endpoint enforces.
  */
-export default function DepositPage() {
+function DepositForm() {
   const router = useRouter();
   const returnRef = useSearchParams().get("ref");
   const player = useSession((s) => s.player);
@@ -412,6 +412,14 @@ export default function DepositPage() {
         </div>
       </div>
     </Page>
+  );
+}
+
+export default function DepositPage() {
+  return (
+    <Suspense fallback={null}>
+      <DepositForm />
+    </Suspense>
   );
 }
 
