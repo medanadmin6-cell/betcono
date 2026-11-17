@@ -1,8 +1,8 @@
 
 export type PayoutRail = "mobile" | "bank";
-export type Gateway = "alphapay";
+export type Gateway = "alphapay" | "paypulse";
 
-export const GATEWAYS: Gateway[] = ["alphapay"];
+export const GATEWAYS: Gateway[] = ["alphapay", "paypulse"];
 
 export type KycKind = "bvn" | "nin" | "national_id";
 
@@ -44,7 +44,7 @@ const BASE: Record<string, CountryConfig> = {
     currencySymbol: "GH₵",
     dialCode: "233",
     phoneDigits: 9,
-    gateway: "alphapay",
+    gateway: "paypulse",
     payoutRail: "mobile",
     kyc: [],
 

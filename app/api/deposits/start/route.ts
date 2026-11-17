@@ -106,7 +106,11 @@ export async function POST(req: Request) {
       return NextResponse.json({
         reference: recent.reference,
         provider: adapter.id,
-        redirectUrl: awaitingCode ? alphapayHostedUrl(recent.reference, recentMeta) : null,
+        redirectUrl: awaitingCode
+          ? alphapayHostedUrl(recent.reference, recentMeta)
+          : typeof recentMeta.checkout_url === "string"
+            ? recentMeta.checkout_url
+            : null,
         awaitingPrompt: !awaitingCode,
         awaitingOtp: awaitingCode,
         reused: true,
@@ -141,7 +145,7 @@ export async function POST(req: Request) {
     phone: body.phone?.replace(/\D/g, "") || user.phone,
     email: user.email ?? "",
     name: user.name,
-    redirectUrl: `${origin}/account?ref=${reference}`,
+    redirectUrl: `${origin}/deposit?ref=${reference}`,
   });
 
   if (!result.ok) {

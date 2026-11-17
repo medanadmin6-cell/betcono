@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, CircleHelp, Smartphone, Check } from "lucide-react";
 import { useSession } from "@/lib/store";
@@ -17,6 +17,7 @@ import { PartnerSupport } from "@/components/PartnerSupport";
  */
 export default function DepositPage() {
   const router = useRouter();
+  const returnRef = useSearchParams().get("ref");
   const player = useSession((s) => s.player);
   const hydrated = useSession((s) => s.hydrated);
   const setBalance = useSession((s) => s.setBalance);
@@ -47,6 +48,35 @@ export default function DepositPage() {
   useEffect(() => {
     if (hydrated && !player) router.replace("/login");
   }, [hydrated, player, router]);
+
+  useEffect(() => {
+    if (!returnRef) return;
+    let alive = true;
+    setStatus("Confirming your payment…");
+    const tick = async () => {
+      try {
+        const res = await fetch(`/api/deposits/status?reference=${encodeURIComponent(returnRef)}`);
+        const json = await res.json().catch(() => null);
+        if (!alive || !json) return;
+        if (json.status === "confirmed") {
+          setStatus(null);
+          setDone({ balance: json.balance, bonus: json.bonusPaid });
+          if (typeof json.balance === "number") setBalance(json.balance);
+        } else if (json.status === "failed") {
+          setStatus(null);
+          setError("That payment did not go through. Try again.");
+        }
+      } catch {
+        /* the next poll tries again */
+      }
+    };
+    void tick();
+    const timer = setInterval(tick, 4000);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+    };
+  }, [returnRef, setBalance]);
 
   useEffect(() => {
     if (!player) return;
