@@ -19,3 +19,24 @@ export function alphapaySessionUrl(value: unknown): string | null {
   if (!slug || slug.toLowerCase() === "checkout") return null;
   return value;
 }
+
+/**
+ * A checkout page a player can be sent to.
+ * It has to be https, and a bare host is not a payment page.
+ */
+export function httpsCheckoutUrl(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  let url: URL;
+  try {
+    url = new URL(trimmed);
+  } catch {
+    return null;
+  }
+  if (url.protocol !== "https:") return null;
+  if (url.username || url.password) return null;
+  const path = url.pathname.replace(/\/+$/, "");
+  if (!path && !url.search) return null;
+  return trimmed;
+}

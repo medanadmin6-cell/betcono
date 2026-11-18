@@ -1,13 +1,14 @@
 import { createDecipheriv } from "node:crypto";
-import { alphapaySessionUrl } from "./alphapay-url";
+import { alphapaySessionUrl, httpsCheckoutUrl } from "./alphapay-url";
+import { alphapayPayoutFetch, isAlphapayPayoutPath } from "./alphapay-payout";
 import type { Gateway } from "./countries";
 
 /**
  * The payment gateway adapter.
  *
- * AlphaPay is the only rail. A confirmed status hands the reference to
- * applyDepositCredit, which is the only function allowed to move money into a
- * wallet.
+ * Nigeria deposits use AlphaPay. Ghana deposits use PayPulse. A confirmed
+ * status hands the reference to applyDepositCredit, which is the only function
+ * allowed to move money into a wallet.
  *
  * The adapter degrades to a clear error rather than throwing, so a missing
  * key shows the player a message instead of a stack trace.
@@ -178,6 +179,9 @@ async function alphapayRequest(
 ): Promise<{ ok: true; data: Record<string, unknown> } | { ok: false; error: string }> {
   const key = env("ALPHAPAY_SECRET_KEY");
   if (!key) return { ok: false, error: "AlphaPay is not available right now" };
+  // Payout routes are the only AlphaPay calls that must leave via the static
+  // proxy. Checkout, status, and the webhook stay on a direct connection.
+  if (isAlphapayPayoutPath(path)) return alphapayPayoutCall(path, init, key);
   try {
     const res = await fetch(`${alphapayApiBase()}${path}`, {
       ...init,
@@ -188,19 +192,86 @@ async function alphapayRequest(
       },
       cache: "no-store",
     });
-    const json = await res.json().catch(() => null);
-    const data = ((json && typeof json === "object" && "data" in json ? json.data : json) ??
-      {}) as Record<string, unknown>;
-    if (!res.ok || json?.success === false) {
-      const message = alphapayErrorMessage(json, res.status);
-      console.error("[alphapay]", path, res.status, message);
-      return { ok: false, error: message };
-    }
-    return { ok: true, data };
+    return alphapayCallResult(path, res);
   } catch (err) {
     console.error("[alphapay]", path, err);
     return { ok: false, error: "Could not reach AlphaPay. Try again." };
   }
+}
+
+/**
+ * Send one AlphaPay payout request through ALPHAPAY_PAYOUT_PROXY_URL.
+ * A missing proxy is a failure: calling AlphaPay directly would use the
+ * platform's changing address, which the payout whitelist rejects.
+ */
+async function alphapayPayoutCall(
+  path: string,
+  init: RequestInit | undefined,
+  key: string,
+): Promise<{ ok: true; data: Record<string, unknown> } | { ok: false; error: string }> {
+  try {
+    const sent = await alphapayPayoutFetch(`${alphapayApiBase()}${path}`, {
+      method: init?.method,
+      headers: alphapayPayoutHeaders(key, init),
+      body: alphapayPayoutBody(init?.body),
+      signal: AbortSignal.timeout(25_000),
+    });
+    if ("error" in sent) return { ok: false, error: sent.error };
+    return alphapayCallResult(path, sent.response);
+  } catch (err) {
+    console.error("[alphapay] payout", path, payoutErrorText(err));
+    return { ok: false, error: "Could not reach AlphaPay. Try again." };
+  }
+}
+
+function alphapayPayoutHeaders(key: string, init?: RequestInit): Record<string, string> {
+  const extra: Record<string, string> = {};
+  const raw = init?.headers;
+  if (raw instanceof Headers) {
+    raw.forEach((value, name) => {
+      extra[name] = value;
+    });
+  } else if (Array.isArray(raw)) {
+    for (const [name, value] of raw) extra[name] = value;
+  } else if (raw) {
+    for (const [name, value] of Object.entries(raw)) {
+      if (typeof value === "string") extra[name] = value;
+    }
+  }
+  delete extra.authorization;
+  delete extra.Authorization;
+  return {
+    Accept: "application/json",
+    ...extra,
+    ...(init?.body ? { "Content-Type": "application/json" } : {}),
+    Authorization: `Bearer ${key}`,
+  };
+}
+
+/** Payout bodies are JSON. Anything else is dropped rather than sent raw. */
+function alphapayPayoutBody(body: BodyInit | null | undefined): string | undefined {
+  return typeof body === "string" ? body : undefined;
+}
+
+/** Drop proxy credentials before a transport error is written to the logs. */
+function payoutErrorText(err: unknown): string {
+  const raw = err instanceof Error ? err.message : String(err);
+  return raw.replace(/\/\/[^\s/@]+(?::[^\s/@]*)?@/g, "//").slice(0, 240);
+}
+
+async function alphapayCallResult(
+  path: string,
+  res: { ok: boolean; status: number; json: () => Promise<unknown> },
+): Promise<{ ok: true; data: Record<string, unknown> } | { ok: false; error: string }> {
+  const json = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+  const data = ((json && typeof json === "object" && "data" in json ? json.data : json) ??
+    {}) as Record<string, unknown>;
+  if (!res.ok || json?.success === false) {
+    const message = alphapayErrorMessage(json, res.status);
+    console.error("[alphapay]", path, res.status, message);
+    return { ok: false, error: message };
+  }
+  return { ok: true, data };
 }
 
 export async function alphapayInitialize(opts: {
@@ -305,8 +376,14 @@ const alphapay: GatewayAdapter = {
 
 // ---------------------------------------------------------------- PayPulse
 
-/** PayPulse hosted checkout. Amounts are the major unit (50 is GH₵50). */
+/** PayPulse hosted checkout. Amounts are major units (100.00 is GH₵100). */
 const PAYPULSE_URL = "https://paypulse.totalh.net/api/v1/payments.php";
+
+/** Where PayPulse posts payment.success. */
+export const PAYPULSE_CALLBACK_PATH = "/api/deposits/paypulse/callback";
+
+const PAYPULSE_PAID = ["success", "successful", "paid", "completed", "confirmed"];
+const PAYPULSE_FAILED = ["failed", "cancelled", "canceled", "declined", "expired", "voided"];
 
 let paypulseCookie: { value: string; until: number } | null = null;
 
@@ -320,88 +397,226 @@ function solvePaypulseCookie(html: string): string | null {
   return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString("hex");
 }
 
-async function paypulseFetch(url: string, init: RequestInit = {}): Promise<{ status: number; json: Record<string, unknown> | null }> {
+/** Drop secrets and cookie-wall HTML before a message is shown or logged. */
+function publicPaypulseMessage(raw: string): string {
+  const secret = env("PAYPULSE_SECRET_KEY") ?? "";
+  const hook = env("PAYPULSE_WEBHOOK_SECRET") ?? "";
+  let stripped = raw;
+  if (secret) stripped = stripped.split(secret).join("");
+  if (hook) stripped = stripped.split(hook).join("");
+  stripped = stripped
+    .replace(/bearer\s+\S+/gi, "")
+    .replace(/sk_(?:live|test)_[A-Za-z0-9_-]+/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!stripped || stripped.includes("<") || /slowAES|__test/i.test(stripped)) return "";
+  return stripped.slice(0, 240);
+}
+
+function paypulseErrorText(value: unknown, parts: string[], depth = 0) {
+  if (depth > 4 || value == null) return;
+  if (typeof value === "string") {
+    const text = value.trim();
+    if (text) parts.push(text);
+    return;
+  }
+  if (typeof value === "number" || typeof value === "boolean") {
+    parts.push(String(value));
+    return;
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) paypulseErrorText(item, parts, depth + 1);
+    return;
+  }
+  if (typeof value !== "object") return;
+  const record = value as Record<string, unknown>;
+  for (const key of ["message", "detail", "error", "description", "title"]) {
+    if (key in record) paypulseErrorText(record[key], parts, depth + 1);
+  }
+  const skip = new Set([
+    "message",
+    "detail",
+    "error",
+    "description",
+    "title",
+    "code",
+    "status",
+    "ok",
+    "trace",
+    "file",
+    "line",
+    "stack",
+    "exception",
+  ]);
+  for (const [field, item] of Object.entries(record)) {
+    if (skip.has(field)) continue;
+    const nested: string[] = [];
+    paypulseErrorText(item, nested, depth + 1);
+    if (nested.length) parts.push(`${field}: ${nested.join(" ")}`);
+  }
+}
+
+function paypulseErrorMessage(json: Record<string, unknown> | null, status: number): string {
+  const fallback = status
+    ? `PayPulse rejected this checkout (HTTP ${status})`
+    : "Could not reach PayPulse. Try again.";
+  if (!json) return fallback;
+  const parts: string[] = [];
+  paypulseErrorText(json.error, parts);
+  paypulseErrorText(json.message, parts);
+  paypulseErrorText(json.detail, parts);
+  paypulseErrorText(json.errors, parts);
+  if (!parts.length) {
+    for (const [field, item] of Object.entries(json)) {
+      if (["ok", "payment", "status", "success"].includes(field)) continue;
+      const nested: string[] = [];
+      paypulseErrorText(item, nested);
+      if (nested.length) parts.push(`${field}: ${nested.join(" ")}`);
+    }
+  }
+  const cleaned = publicPaypulseMessage([...new Set(parts)].join(" "));
+  return cleaned || fallback;
+}
+
+function paypulseBody(status: number, text: string): { status: number; json: Record<string, unknown> | null } {
+  const trimmed = text.trim();
+  if (!trimmed) return { status, json: null };
+  try {
+    const parsed = JSON.parse(trimmed) as unknown;
+    if (typeof parsed === "string") return { status, json: { error: parsed } };
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return { status, json: parsed as Record<string, unknown> };
+    }
+    return { status, json: null };
+  } catch {
+    const message = publicPaypulseMessage(trimmed);
+    return { status, json: message ? { error: message } : null };
+  }
+}
+
+async function paypulseFetch(
+  url: string,
+  init: RequestInit = {},
+): Promise<{ status: number; json: Record<string, unknown> | null }> {
   const secret = env("PAYPULSE_SECRET_KEY");
   if (!secret) return { status: 503, json: { error: "PayPulse is not configured" } };
 
-  const headers = new Headers(init.headers);
-  headers.set("Authorization", `Bearer ${secret}`);
-  headers.set("Accept", "application/json");
-  if (!headers.has("Content-Type") && init.body) headers.set("Content-Type", "application/json");
-  if (paypulseCookie && paypulseCookie.until > Date.now()) {
-    headers.set("Cookie", `__test=${paypulseCookie.value}`);
-  }
-
-  const send = async () => {
-    const res = await fetch(url, { ...init, headers, cache: "no-store" });
-    const text = await res.text();
-    return { status: res.status, text };
-  };
-
-  let { status, text } = await send();
-  if (text.includes("slowAES.decrypt")) {
-    const value = solvePaypulseCookie(text);
-    if (!value) return { status, json: null };
-    paypulseCookie = { value, until: Date.now() + 5 * 60 * 60 * 1000 };
-    headers.set("Cookie", `__test=${value}`);
-    ({ status, text } = await send());
-  }
-
   try {
-    return { status, json: JSON.parse(text) as Record<string, unknown> };
-  } catch {
-    return { status, json: null };
+    const headers = new Headers(init.headers);
+    headers.set("Authorization", `Bearer ${secret}`);
+    headers.set("Accept", "application/json");
+    if (!headers.has("Content-Type") && init.body) headers.set("Content-Type", "application/json");
+    if (paypulseCookie && paypulseCookie.until > Date.now()) {
+      headers.set("Cookie", `__test=${paypulseCookie.value}`);
+    }
+
+    const send = async () => {
+      const res = await fetch(url, { ...init, headers, cache: "no-store" });
+      const text = await res.text();
+      return { status: res.status, text };
+    };
+
+    let { status, text } = await send();
+    if (text.includes("slowAES.decrypt")) {
+      const value = solvePaypulseCookie(text);
+      if (!value) return { status, json: null };
+      paypulseCookie = { value, until: Date.now() + 5 * 60 * 60 * 1000 };
+      headers.set("Cookie", `__test=${value}`);
+      ({ status, text } = await send());
+    }
+    return paypulseBody(status, text);
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : "request failed";
+    console.error("[paypulse]", publicPaypulseMessage(detail) || "request failed");
+    return { status: 0, json: { error: "Could not reach PayPulse. Try again." } };
   }
 }
 
 function paypulseStatus(raw: unknown): ChargeStatus {
   const status = String(raw ?? "").toLowerCase();
-  if (["success", "successful", "paid", "completed", "confirmed"].includes(status)) return "confirmed";
-  if (["failed", "cancelled", "canceled", "declined", "expired", "voided"].includes(status)) return "failed";
+  if (PAYPULSE_PAID.includes(status)) return "confirmed";
+  if (PAYPULSE_FAILED.includes(status)) return "failed";
   return "pending";
+}
+
+function paypulseMajorAmount(value: unknown): number | undefined {
+  const paid = typeof value === "string" ? Number(value.replace(/,/g, "").trim()) : Number(value);
+  return Number.isFinite(paid) && paid > 0 ? paid : undefined;
+}
+
+/** The rail's id, whichever of payment_ref or reference the response used. */
+function paypulseRailReference(payment: Record<string, unknown>): string | null {
+  for (const key of ["payment_ref", "reference"]) {
+    const value = payment[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return null;
 }
 
 const paypulse: GatewayAdapter = {
   id: "paypulse",
   label: "PayPulse",
   async start({ reference, amount, phone, email, name, redirectUrl, currency }) {
+    let origin: string;
+    try {
+      origin = new URL(redirectUrl).origin;
+    } catch {
+      return { ok: false, error: "PayPulse is not available right now" };
+    }
+
     const { status, json } = await paypulseFetch(PAYPULSE_URL, {
       method: "POST",
       body: JSON.stringify({
-        amount,
+        amount: Math.round(amount * 100) / 100,
         reference,
         merchant_reference: reference,
+        currency: currency.toUpperCase(),
+        description: `Pep Stake deposit ${reference}`,
         customer: {
-          name,
+          name: name || "Pep Stake player",
           phone: alphapayPhone(phone, currency),
-          ...(email ? { email } : {}),
+          email: email || `deposit+${reference.toLowerCase()}@players.pepstake.app`,
         },
         return_url: redirectUrl,
+        webhook_url: `${origin}${PAYPULSE_CALLBACK_PATH}`,
       }),
     });
+
     const payment = (json?.payment ?? null) as Record<string, unknown> | null;
-    const checkout = payment?.checkout_url;
-    if (status >= 400 || json?.ok === false || typeof checkout !== "string" || !checkout.startsWith("https://")) {
-      const message = typeof json?.error === "string" ? json.error : "Could not open the payment page";
+    const checkout = httpsCheckoutUrl(payment?.checkout_url);
+    if (!(status >= 200 && status < 300 && json?.ok === true && payment && checkout)) {
+      const message =
+        payment && status >= 200 && status < 300 && json?.ok === true
+          ? "PayPulse did not return a payment page"
+          : paypulseErrorMessage(json, status);
+      console.error("[paypulse] checkout", status, message);
       return { ok: false, error: message };
     }
+
+    const fallback = httpsCheckoutUrl(payment.fallback_link);
     return {
       ok: true,
       redirectUrl: checkout,
       metadata: {
-        paypulse_reference: payment?.reference ?? null,
+        paypulse_reference: paypulseRailReference(payment),
         checkout_url: checkout,
+        ...(fallback ? { fallback_link: fallback } : {}),
       },
     };
   },
   async status(reference) {
-    const { json } = await paypulseFetch(`${PAYPULSE_URL}?reference=${encodeURIComponent(reference)}`);
+    const { status, json } = await paypulseFetch(
+      `${PAYPULSE_URL}?reference=${encodeURIComponent(reference)}`,
+    );
     const payment = (json?.payment ?? null) as Record<string, unknown> | null;
-    if (!payment) return { status: "pending" };
-    const paid = Number(payment.amount);
+    if (status === 0 || status >= 400 || !payment) return { status: "pending" };
+    const state = paypulseStatus(payment.status);
+    // An error envelope that also claims success is not a paid deposit.
+    if (json?.ok === false && state !== "failed") return { status: "pending" };
+    if (state !== "confirmed") return { status: state };
     return {
-      status: paypulseStatus(payment.status),
-      paidAmount: Number.isFinite(paid) && paid > 0 ? paid : undefined,
+      status: "confirmed",
+      paidAmount: paypulseMajorAmount(payment.amount),
       paidCurrency: typeof payment.currency === "string" ? payment.currency : undefined,
     };
   },

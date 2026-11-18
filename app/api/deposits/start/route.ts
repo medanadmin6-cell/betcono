@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/supabase";
 import { getCountry } from "@/lib/countries";
-import { alphapaySessionUrl } from "@/lib/alphapay-url";
+import { alphapaySessionUrl, httpsCheckoutUrl } from "@/lib/alphapay-url";
 import { adapterFor, alphapayHostedUrl } from "@/lib/gateways";
 import { paymentReference } from "@/lib/codes";
 import { isFrozen, FROZEN_MESSAGE } from "@/lib/schema";
@@ -100,22 +100,29 @@ export async function POST(req: Request) {
       // Still waiting on the SMS code: there is no prompt on the phone yet, so
       // the player goes back to the page where the code is typed in.
       const awaitingCode = recentMeta.otp_required === true && recentMeta.otp_verified !== true;
-      const waitSeconds = Math.max(
-        5,
-        Math.ceil((Date.parse(recent.created_at) + RECENT_WINDOW_MS - Date.now()) / 1000),
-      );
-      return NextResponse.json({
-        reference: recent.reference,
-        provider: adapter.id,
-        redirectUrl: awaitingCode
-          ? alphapayHostedUrl(recent.reference, recentMeta) || null
-          : alphapaySessionUrl(recentMeta.checkout_url),
-        awaitingPrompt: !awaitingCode,
-        awaitingOtp: awaitingCode,
-        reused: true,
-        amount: Number(recent.amount),
-        waitSeconds,
-      });
+      const checkout =
+        adapter.id === "paypulse"
+          ? httpsCheckoutUrl(recentMeta.checkout_url)
+          : awaitingCode
+            ? alphapayHostedUrl(recent.reference, recentMeta) || null
+            : alphapaySessionUrl(recentMeta.checkout_url);
+      // A PayPulse row with no https page cannot be reused. Start a new one.
+      if (adapter.id !== "paypulse" || checkout) {
+        const waitSeconds = Math.max(
+          5,
+          Math.ceil((Date.parse(recent.created_at) + RECENT_WINDOW_MS - Date.now()) / 1000),
+        );
+        return NextResponse.json({
+          reference: recent.reference,
+          provider: adapter.id,
+          redirectUrl: checkout,
+          awaitingPrompt: adapter.id === "paypulse" ? false : !awaitingCode,
+          awaitingOtp: adapter.id === "paypulse" ? false : awaitingCode,
+          reused: true,
+          amount: Number(recent.amount),
+          waitSeconds,
+        });
+      }
     }
   }
 

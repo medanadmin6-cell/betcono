@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, CircleHelp, Smartphone, Check } from "lucide-react";
 import { useSession } from "@/lib/store";
-import { alphapaySessionUrl } from "@/lib/alphapay-url";
+import { alphapaySessionUrl, httpsCheckoutUrl } from "@/lib/alphapay-url";
 import { getCountry, formatMoney, maskPhoneTail } from "@/lib/countries";
 import { Page } from "@/components/Shell";
 import { PartnerSupport } from "@/components/PartnerSupport";
@@ -133,7 +133,10 @@ function DepositForm() {
         return;
       }
 
-      const sessionUrl = alphapaySessionUrl(json.redirectUrl);
+      const sessionUrl =
+        json.provider === "paypulse"
+          ? httpsCheckoutUrl(json.redirectUrl)
+          : alphapaySessionUrl(json.redirectUrl);
       if (sessionUrl) {
         window.location.href = sessionUrl;
         return;
