@@ -44,7 +44,7 @@ const BASE: Record<string, CountryConfig> = {
     currencySymbol: "GH₵",
     dialCode: "233",
     phoneDigits: 9,
-    gateway: "paypulse",
+    gateway: "alphapay",
     payoutRail: "mobile",
     kyc: [],
 

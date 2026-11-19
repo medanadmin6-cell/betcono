@@ -6,9 +6,10 @@ import type { Gateway } from "./countries";
 /**
  * The payment gateway adapter.
  *
- * Nigeria deposits use AlphaPay. Ghana deposits use PayPulse. A confirmed
- * status hands the reference to applyDepositCredit, which is the only function
- * allowed to move money into a wallet.
+ * Ghana and Nigeria deposits both use AlphaPay. The PayPulse adapter is kept
+ * but no country points at it. A confirmed status hands the reference to
+ * applyDepositCredit, which is the only function allowed to move money into a
+ * wallet.
  *
  * The adapter degrades to a clear error rather than throwing, so a missing
  * key shows the player a message instead of a stack trace.
